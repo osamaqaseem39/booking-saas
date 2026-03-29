@@ -1,0 +1,110 @@
+export type BookingSportType = 'futsal' | 'cricket' | 'padel';
+export type BookingItemStatus = 'reserved' | 'confirmed' | 'cancelled';
+export type BookingStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'cancelled'
+  | 'completed'
+  | 'no_show';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type PaymentMethod = 'cash' | 'card' | 'jazzcash' | 'easypaisa';
+export type CourtKind =
+  | 'turf_court'
+  | 'futsal_field'
+  | 'padel_court'
+  | 'cricket_indoor_court';
+
+export interface BookingItemRow {
+  id: string;
+  courtKind: CourtKind;
+  courtId: string;
+  slotId?: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+  currency: string;
+  status: BookingItemStatus;
+}
+
+export interface BookingRecord {
+  bookingId: string;
+  arenaId: string;
+  userId: string;
+  sportType: BookingSportType;
+  bookingDate: string;
+  items: BookingItemRow[];
+  pricing: {
+    subTotal: number;
+    discount: number;
+    tax: number;
+    totalAmount: number;
+  };
+  payment: {
+    paymentStatus: PaymentStatus;
+    paymentMethod: PaymentMethod;
+    transactionId?: string;
+    paidAt?: string;
+  };
+  bookingStatus: BookingStatus;
+  notes?: string;
+  cancellationReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBookingPayload {
+  userId: string;
+  sportType: BookingSportType;
+  bookingDate: string;
+  items: Array<{
+    courtKind: CourtKind;
+    courtId: string;
+    slotId?: string;
+    startTime: string;
+    endTime: string;
+    price: number;
+    currency?: string;
+    status: BookingItemStatus;
+  }>;
+  pricing: {
+    subTotal: number;
+    discount: number;
+    tax: number;
+    totalAmount: number;
+  };
+  payment: {
+    paymentStatus: PaymentStatus;
+    paymentMethod: PaymentMethod;
+    transactionId?: string;
+    paidAt?: string;
+  };
+  bookingStatus?: BookingStatus;
+  notes?: string;
+}
+
+export interface UpdateBookingPayload {
+  bookingStatus?: BookingStatus;
+  notes?: string;
+  cancellationReason?: string;
+  payment?: {
+    paymentStatus?: PaymentStatus;
+    paymentMethod?: PaymentMethod;
+    transactionId?: string;
+    paidAt?: string;
+  };
+  itemStatuses?: Array<{ itemId: string; status: BookingItemStatus }>;
+}
+
+export interface IamUserRow {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  roles?: string[];
+}
+
+export interface CourtOption {
+  kind: CourtKind;
+  id: string;
+  label: string;
+}

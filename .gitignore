@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Local env / secrets
+.env
+.env.*.local
+
+# Logs / cache
+*.log
+.npm-cache/
+.vite/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# TypeScript
+*.tsbuildinfo

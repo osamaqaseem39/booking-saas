@@ -1,0 +1,373 @@
+import type {
+  BookingRecord,
+  BookingSportType,
+  CourtOption,
+  CreateBookingPayload,
+  UpdateBookingPayload,
+} from '../types/booking';
+import type {
+  BusinessLocationRow,
+  BusinessRow,
+  IamUserRow,
+  InvoiceRow,
+  NamedCourt,
+  SessionUser,
+} from '../types/domain';
+
+const LS_API = 'bukit_saas_api_url';
+const LS_TENANT = 'bukit_saas_tenant_id';
+const LS_USER = 'bukit_saas_user_id';
+const LS_ADMIN_LEGACY = 'bukit_saas_admin_user_id';
+
+export function getApiBase(): string {
+  return (
+    localStorage.getItem(LS_API) ||
+    import.meta.env.VITE_API_URL ||
+    'http://localhost:3000'
+  ).replace(/\/$/, '');
+}
+
+export function getTenantId(): string {
+  return localStorage.getItem(LS_TENANT)?.trim() || '';
+}
+
+export function getUserId(): string {
+  const u =
+    localStorage.getItem(LS_USER)?.trim() ||
+    localStorage.getItem(LS_ADMIN_LEGACY)?.trim() ||
+    '';
+  return u;
+}
+
+export function persistConnection(opts: {
+  apiBase: string;
+  tenantId: string;
+  userId: string;
+}): void {
+  localStorage.setItem(LS_API, opts.apiBase.trim().replace(/\/$/, ''));
+  localStorage.setItem(LS_TENANT, opts.tenantId.trim());
+  localStorage.setItem(LS_USER, opts.userId.trim());
+  if (localStorage.getItem(LS_ADMIN_LEGACY)) {
+    localStorage.removeItem(LS_ADMIN_LEGACY);
+  }
+}
+
+export function setTenantIdStorage(tenantId: string): void {
+  localStorage.setItem(LS_TENANT, tenantId.trim());
+}
+
+function headers(json = true): HeadersInit {
+  const h: Record<string, string> = {};
+  if (json) h['Content-Type'] = 'application/json';
+  const tenant = getTenantId();
+  if (tenant) h['X-Tenant-Id'] = tenant;
+  const user = getUserId();
+  if (user) h['X-User-Id'] = user;
+  return h;
+}
+
+async function readError(res: Response): Promise<string> {
+  try {
+    const data = (await res.json()) as { message?: string | string[] };
+    if (Array.isArray(data.message)) return data.message.join(', ');
+    if (typeof data.message === 'string') return data.message;
+  } catch {
+    /* ignore */
+  }
+  return res.statusText || `HTTP ${res.status}`;
+}
+
+export async function request<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const base = getApiBase();
+  const res = await fetch(`${base}${path}`, {
+    ...init,
+    headers: {
+      ...headers(!(init.body instanceof FormData)),
+      ...(init.headers as Record<string, string>),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(await readError(res));
+  }
+  if (res.status === 204) return undefined as T;
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+export async function fetchHealth(): Promise<{ status: string; service: string }> {
+  return request('/health', { method: 'GET' });
+}
+
+export async function fetchSessionUser(): Promise<SessionUser> {
+  return request<SessionUser>('/iam/me', { method: 'GET' });
+}
+
+export async function listBusinesses(): Promise<BusinessRow[]> {
+  return request<BusinessRow[]>('/businesses', { method: 'GET' });
+}
+
+export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
+  return request<BusinessLocationRow[]>('/businesses/locations', {
+    method: 'GET',
+  });
+}
+
+export async function createBusinessLocation(body: {
+  businessId: string;
+  locationType: string;
+  facilityTypes?: string[];
+  name: string;
+  addressLine?: string;
+  city?: string;
+  phone?: string;
+}): Promise<unknown> {
+  return request('/businesses/locations', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function onboardBusiness(body: {
+  businessName: string;
+  legalName?: string;
+  vertical: string;
+  admin: { fullName: string; email: string; phone?: string };
+}): Promise<unknown> {
+  return request('/businesses/onboard', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listIamUsers(): Promise<IamUserRow[]> {
+  return request<IamUserRow[]>('/iam/users', { method: 'GET' });
+}
+
+/** Platform owner only — users with customer-end-user role. */
+export async function listEndUsers(): Promise<IamUserRow[]> {
+  return request<IamUserRow[]>('/iam/end-users', { method: 'GET' });
+}
+
+export async function createIamUser(body: {
+  fullName: string;
+  email: string;
+  phone?: string;
+}): Promise<IamUserRow> {
+  return request<IamUserRow>('/iam/users', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function assignRole(body: {
+  userId: string;
+  role: string;
+}): Promise<unknown> {
+  return request('/iam/roles/assign', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listBookings(): Promise<BookingRecord[]> {
+  return request<BookingRecord[]>('/bookings', { method: 'GET' });
+}
+
+export async function getBooking(bookingId: string): Promise<BookingRecord> {
+  return request<BookingRecord>(`/bookings/${bookingId}`, { method: 'GET' });
+}
+
+export async function createBooking(
+  body: CreateBookingPayload,
+): Promise<BookingRecord> {
+  return request<BookingRecord>('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateBooking(
+  bookingId: string,
+  body: UpdateBookingPayload,
+): Promise<BookingRecord> {
+  return request<BookingRecord>(`/bookings/${bookingId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listInvoices(): Promise<InvoiceRow[]> {
+  return request<InvoiceRow[]>('/billing/invoices', { method: 'GET' });
+}
+
+export async function issueInvoice(body: {
+  bookingId: string;
+  amount: number;
+}): Promise<InvoiceRow> {
+  return request<InvoiceRow>('/billing/invoices', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getArenaMeta(): Promise<unknown> {
+  return request('/arena', { method: 'GET' });
+}
+
+function appendLocationQuery(
+  base: string,
+  sport: string | undefined,
+  businessLocationId: string | undefined,
+): string {
+  const p = new URLSearchParams();
+  if (sport) p.set('sport', sport);
+  if (businessLocationId?.trim()) p.set('businessLocationId', businessLocationId.trim());
+  const qs = p.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+export async function listTurfCourts(
+  sport?: 'futsal' | 'cricket',
+  businessLocationId?: string,
+): Promise<NamedCourt[]> {
+  return request<NamedCourt[]>(
+    appendLocationQuery('/arena/turf-courts', sport, businessLocationId),
+    { method: 'GET' },
+  );
+}
+
+export async function listPadelCourts(
+  businessLocationId?: string,
+): Promise<NamedCourt[]> {
+  const q = businessLocationId?.trim()
+    ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
+    : '';
+  return request<NamedCourt[]>(`/arena/padel-court${q}`, { method: 'GET' });
+}
+
+export async function listFutsalFields(
+  businessLocationId?: string,
+): Promise<NamedCourt[]> {
+  const q = businessLocationId?.trim()
+    ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
+    : '';
+  return request<NamedCourt[]>(`/arena/futsal-field${q}`, { method: 'GET' });
+}
+
+export async function listCricketIndoor(
+  businessLocationId?: string,
+): Promise<NamedCourt[]> {
+  const q = businessLocationId?.trim()
+    ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
+    : '';
+  return request<NamedCourt[]>(`/arena/cricket-indoor${q}`, { method: 'GET' });
+}
+
+export async function createTurfCourt(body: {
+  businessLocationId: string;
+  name: string;
+  sportMode: 'futsal_only' | 'cricket_only' | 'both';
+}): Promise<NamedCourt> {
+  return request<NamedCourt>('/arena/turf-courts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function createPadelCourt(body: {
+  businessLocationId: string;
+  name: string;
+}): Promise<NamedCourt> {
+  return request<NamedCourt>('/arena/padel-court', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function createFutsalField(body: {
+  businessLocationId: string;
+  name: string;
+  description?: string;
+  dimensions?: string;
+}): Promise<NamedCourt> {
+  return request<NamedCourt>('/arena/futsal-field', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function createCricketIndoorCourt(body: {
+  businessLocationId: string;
+  name: string;
+  description?: string;
+  laneCount?: number;
+}): Promise<NamedCourt> {
+  return request<NamedCourt>('/arena/cricket-indoor', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listCourtOptions(
+  sport: BookingSportType,
+): Promise<CourtOption[]> {
+  if (!getUserId() || !getTenantId()) return [];
+  try {
+    const out: CourtOption[] = [];
+    if (sport === 'padel') {
+      const rows = await listPadelCourts();
+      for (const r of rows) {
+        out.push({
+          kind: 'padel_court',
+          id: r.id,
+          label: `Padel — ${r.name}`,
+        });
+      }
+    } else if (sport === 'futsal') {
+      const [turf, fields] = await Promise.all([
+        listTurfCourts('futsal'),
+        listFutsalFields(),
+      ]);
+      for (const r of turf) {
+        out.push({
+          kind: 'turf_court',
+          id: r.id,
+          label: `Turf — ${r.name}`,
+        });
+      }
+      for (const r of fields) {
+        out.push({
+          kind: 'futsal_field',
+          id: r.id,
+          label: `Futsal field — ${r.name}`,
+        });
+      }
+    } else {
+      const [turf, indoor] = await Promise.all([
+        listTurfCourts('cricket'),
+        listCricketIndoor(),
+      ]);
+      for (const r of turf) {
+        out.push({
+          kind: 'turf_court',
+          id: r.id,
+          label: `Turf — ${r.name}`,
+        });
+      }
+      for (const r of indoor) {
+        out.push({
+          kind: 'cricket_indoor_court',
+          id: r.id,
+          label: `Cricket indoor — ${r.name}`,
+        });
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
