@@ -7,7 +7,6 @@ import {
   listIamUsers,
   listInvoices,
 } from '../api/saasClient';
-import { useSession } from '../context/SessionContext';
 import type { BusinessRow } from '../types/domain';
 
 type Counts = {
@@ -20,7 +19,6 @@ type Counts = {
 export default function BusinessTenantStatsPage() {
   const { businessId = '' } = useParams();
   const navigate = useNavigate();
-  const { tenantId } = useSession();
   const [business, setBusiness] = useState<BusinessRow | null>(null);
   const [counts, setCounts] = useState<Counts>({
     locations: 0,
@@ -86,10 +84,6 @@ export default function BusinessTenantStatsPage() {
             <div className="detail-row">
               <span>Business</span>
               <span>{business?.businessName ?? 'Unknown business'}</span>
-            </div>
-            <div className="detail-row">
-              <span>Active tenant</span>
-              <span>{tenantId || '—'}</span>
             </div>
             <div className="detail-row">
               <span>Vertical</span>

@@ -134,7 +134,7 @@ export default function BusinessEditPage() {
       ) : !business ? (
         <div className="empty-state">Business not found.</div>
       ) : (
-        <div className="form-grid" style={{ maxWidth: '920px' }}>
+        <div className="form-grid" style={{ maxWidth: '920px', margin: '1rem auto 0' }}>
           <div className="connection-panel" style={{ margin: 0 }}>
             <h2>Business Info</h2>
             <div className="form-row-2">
@@ -231,13 +231,14 @@ export default function BusinessEditPage() {
                 <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
               </div>
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <label className="ui-switch">
               <input
                 type="checkbox"
                 checked={allowOnlinePayments}
                 onChange={(e) => setAllowOnlinePayments(e.target.checked)}
               />
-              Allow online payments
+              <span className="ui-switch-track" />
+              <span className="ui-switch-text">Allow online payments</span>
             </label>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>

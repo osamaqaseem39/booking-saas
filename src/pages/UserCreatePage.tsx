@@ -32,43 +32,57 @@ export default function UserCreatePage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
-        <h1 className="page-title">Create user</h1>
+        <h1 className="page-title">Add user</h1>
         <button type="button" className="btn-ghost" onClick={() => navigate('/app/users')}>
           Back to list
         </button>
       </div>
+      <p className="muted">Create an IAM user account for console access.</p>
       {err && <div className="err-banner">{err}</div>}
-      <div className="form-grid" style={{ maxWidth: '520px' }}>
-        <div>
-          <label>Full name</label>
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        </div>
-        <div>
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div>
-          <label>Phone (optional)</label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </div>
-        <div>
-          <label>Password</label>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            placeholder="Min 8 characters"
-          />
+      <form
+        className="form-grid"
+        style={{ maxWidth: '760px', margin: '1rem auto 0' }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onCreate();
+        }}
+      >
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>User details</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Full name *</label>
+              <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            </div>
+            <div>
+              <label>Email *</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Phone (optional)</label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div>
+              <label>Password *</label>
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="Min 8 characters"
+              />
+            </div>
+          </div>
         </div>
         <button
-          type="button"
+          type="submit"
           className="btn-primary"
           disabled={busy || !fullName.trim() || !email.trim() || password.length < 8}
-          onClick={() => void onCreate()}
         >
           {busy ? 'Creating…' : 'Create user'}
         </button>
-      </div>
+      </form>
     </div>
   );
 }

@@ -20,7 +20,9 @@ export default function ConsoleLayout() {
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
-  const nav = navVisibleForRoles(roles);
+  const nav = navVisibleForRoles(roles).filter(
+    (item, index, arr) => arr.findIndex((x) => x.to === item.to) === index,
+  );
   const canListBiz = roles.some(
     (r) => r === 'platform-owner' || r === 'business-admin',
   );

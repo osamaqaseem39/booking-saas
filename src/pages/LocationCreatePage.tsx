@@ -157,179 +157,204 @@ export default function LocationCreatePage() {
           Back to list
         </button>
       </div>
+      <p className="muted">
+        Create location profile, contact details, geolocation, and facility types.
+      </p>
       {err && <div className="err-banner">{err}</div>}
       <form
         className="form-grid"
-        style={{ maxWidth: '560px' }}
+        style={{ maxWidth: '920px', margin: '1rem auto 0' }}
         onSubmit={(e) => {
           e.preventDefault();
           void onCreate();
         }}
       >
-        <div>
-          <label>Business *</label>
-          <select
-            value={businessId}
-            onChange={(e) => setBusinessId(e.target.value)}
-            required
-          >
-            <option value="">Select…</option>
-            {businesses.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.businessName}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Branch ID *</label>
-          <input value={branchId} onChange={(e) => setBranchId(e.target.value)} required />
-        </div>
-        <div>
-          <label>Arena ID *</label>
-          <input value={arenaId} onChange={(e) => setArenaId(e.target.value)} required />
-        </div>
-        <div>
-          <label>Branch name *</label>
-          <input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
-        </div>
-        <div>
-          <label>Location type *</label>
-          <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
-            {LOCATION_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-            <option value="custom">Custom…</option>
-          </select>
-        </div>
-        {locationType === 'custom' && (
-          <div>
-            <label>Custom type (max 80 chars) *</label>
-            <input
-              value={customType}
-              onChange={(e) => setCustomType(e.target.value)}
-              maxLength={80}
-              required
-            />
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Location Basics</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Business *</label>
+              <select
+                value={businessId}
+                onChange={(e) => setBusinessId(e.target.value)}
+                required
+              >
+                <option value="">Select…</option>
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.businessName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Location type *</label>
+              <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
+                {LOCATION_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+                <option value="custom">Custom…</option>
+              </select>
+            </div>
           </div>
-        )}
-        <div>
-          <label>Location name *</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div>
-          <label>Address *</label>
-          <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} required />
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>City *</label>
-            <input value={city} onChange={(e) => setCity(e.target.value)} required />
-          </div>
-          <div>
-            <label>Area *</label>
-            <input value={area} onChange={(e) => setArea(e.target.value)} required />
-          </div>
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>Country *</label>
-            <input value={country} onChange={(e) => setCountry(e.target.value)} required />
-          </div>
-          <div>
-            <label>Phone *</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} required />
-          </div>
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>Latitude *</label>
-            <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
-          </div>
-          <div>
-            <label>Longitude *</label>
-            <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
-          </div>
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>Manager *</label>
-            <input value={manager} onChange={(e) => setManager(e.target.value)} required />
-          </div>
-          <div>
-            <label>Status *</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} required>
-              <option value="active">active</option>
-              <option value="inactive">inactive</option>
-            </select>
-          </div>
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>Timezone *</label>
-            <input value={timezone} onChange={(e) => setTimezone(e.target.value)} required />
-          </div>
-          <div>
-            <label>Currency *</label>
-            <input value={currency} onChange={(e) => setCurrency(e.target.value)} required />
-          </div>
-        </div>
-        <div>
-          <label>Working hours JSON *</label>
-          <textarea
-            value={workingHoursText}
-            onChange={(e) => setWorkingHoursText(e.target.value)}
-            rows={4}
-            required
-          />
-        </div>
-        <div>
-          <label>Facility types at this location</label>
-          <div className="checkbox-grid">
-            {facilityOptions.map((o) => (
-              <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          {locationType === 'custom' && (
+            <div className="form-row-2">
+              <div>
+                <label>Custom type (max 80 chars) *</label>
                 <input
-                  type="checkbox"
-                  checked={facilityTypes.includes(o.value)}
-                  onChange={() =>
-                    setFacilityTypes((prev) =>
-                      prev.includes(o.value)
-                        ? prev.filter((x) => x !== o.value)
-                        : [...prev, o.value],
-                    )
-                  }
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  maxLength={80}
+                  required
                 />
-                {o.label}
-              </label>
-            ))}
-          </div>
-          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
-            <input
-              value={customFacilityType}
-              onChange={(e) => setCustomFacilityType(e.target.value)}
-              placeholder="Custom facility code (e.g. xbox, snooker-table)"
-            />
-            <button type="button" className="btn-ghost" onClick={addCustomFacilityType}>
-              Add custom
-            </button>
-          </div>
-          {facilityTypes.length > 0 && (
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {facilityTypes.map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  className="btn-ghost"
-                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                  onClick={() => setFacilityTypes((prev) => prev.filter((x) => x !== code))}
-                >
-                  {code} ×
-                </button>
-              ))}
+              </div>
+              <div />
             </div>
           )}
+          <div className="form-row-2">
+            <div>
+              <label>Branch ID *</label>
+              <input value={branchId} onChange={(e) => setBranchId(e.target.value)} required />
+            </div>
+            <div>
+              <label>Arena ID *</label>
+              <input value={arenaId} onChange={(e) => setArenaId(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Branch name *</label>
+              <input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
+            </div>
+            <div>
+              <label>Location name *</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+          </div>
+        </div>
+
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Address & Contact</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Address *</label>
+              <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} required />
+            </div>
+            <div>
+              <label>Manager *</label>
+              <input value={manager} onChange={(e) => setManager(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>City *</label>
+              <input value={city} onChange={(e) => setCity(e.target.value)} required />
+            </div>
+            <div>
+              <label>Area *</label>
+              <input value={area} onChange={(e) => setArea(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Country *</label>
+              <input value={country} onChange={(e) => setCountry(e.target.value)} required />
+            </div>
+            <div>
+              <label>Phone *</label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Latitude *</label>
+              <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
+            </div>
+            <div>
+              <label>Longitude *</label>
+              <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
+            </div>
+          </div>
+        </div>
+
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Operations & Facilities</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Status *</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} required>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </div>
+            <div>
+              <label>Timezone *</label>
+              <input value={timezone} onChange={(e) => setTimezone(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Currency *</label>
+              <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} required />
+            </div>
+            <div>
+              <label>Working hours JSON *</label>
+              <textarea
+                value={workingHoursText}
+                onChange={(e) => setWorkingHoursText(e.target.value)}
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label>Facility types at this location</label>
+            <div className="checkbox-grid">
+              {facilityOptions.map((o) => (
+                <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={facilityTypes.includes(o.value)}
+                    onChange={() =>
+                      setFacilityTypes((prev) =>
+                        prev.includes(o.value)
+                          ? prev.filter((x) => x !== o.value)
+                          : [...prev, o.value],
+                      )
+                    }
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+              <input
+                value={customFacilityType}
+                onChange={(e) => setCustomFacilityType(e.target.value)}
+                placeholder="Custom facility code (e.g. xbox, snooker-table)"
+              />
+              <button type="button" className="btn-ghost" onClick={addCustomFacilityType}>
+                Add custom
+              </button>
+            </div>
+            {facilityTypes.length > 0 && (
+              <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {facilityTypes.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    className="btn-ghost"
+                    style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                    onClick={() => setFacilityTypes((prev) => prev.filter((x) => x !== code))}
+                  >
+                    {code} ×
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <button
           type="submit"
