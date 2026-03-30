@@ -21,6 +21,7 @@ import OnboardPage from './pages/OnboardPage';
 import OwnerSignupPage from './pages/OwnerSignupPage';
 import OverviewPage from './pages/OverviewPage';
 import UserCreatePage from './pages/UserCreatePage';
+import UserDetailPage from './pages/UserDetailPage';
 import UserEditPage from './pages/UserEditPage';
 import UsersPage from './pages/UsersPage';
 
@@ -73,6 +74,7 @@ export default function App() {
             />
             <Route path="users" element={<UsersPage />} />
             <Route path="users/new" element={<UserCreatePage />} />
+            <Route path="users/:userId" element={<UserDetailPage />} />
             <Route path="users/:userId/edit" element={<UserEditPage />} />
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="billing" element={<BillingPage />} />

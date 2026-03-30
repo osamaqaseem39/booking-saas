@@ -64,6 +64,16 @@ function headers(json = true): HeadersInit {
   return h;
 }
 
+function headersForTenant(tenantId: string, json = true): HeadersInit {
+  const h: Record<string, string> = {};
+  if (json) h['Content-Type'] = 'application/json';
+  const tenant = (tenantId ?? '').toString().trim();
+  if (tenant) h['X-Tenant-Id'] = tenant;
+  const token = getToken();
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
+
 async function readError(res: Response): Promise<string> {
   try {
     const data = (await res.json()) as { message?: string | string[] };
@@ -84,6 +94,28 @@ export async function request<T>(
     ...init,
     headers: {
       ...headers(!(init.body instanceof FormData)),
+      ...(init.headers as Record<string, string>),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(await readError(res));
+  }
+  if (res.status === 204) return undefined as T;
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+export async function requestForTenant<T>(
+  tenantId: string,
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const base = getApiBase();
+  const res = await fetch(`${base}${path}`, {
+    ...init,
+    headers: {
+      ...headersForTenant(tenantId, !(init.body instanceof FormData)),
       ...(init.headers as Record<string, string>),
     },
   });
@@ -228,6 +260,14 @@ export async function listBookings(): Promise<BookingRecord[]> {
   return request<BookingRecord[]>('/bookings', { method: 'GET' });
 }
 
+export async function listBookingsForTenant(
+  tenantId: string,
+): Promise<BookingRecord[]> {
+  return requestForTenant<BookingRecord[]>(tenantId, '/bookings', {
+    method: 'GET',
+  });
+}
+
 export async function getBooking(bookingId: string): Promise<BookingRecord> {
   return request<BookingRecord>(`/bookings/${bookingId}`, { method: 'GET' });
 }
@@ -253,6 +293,12 @@ export async function updateBooking(
 
 export async function listInvoices(): Promise<InvoiceRow[]> {
   return request<InvoiceRow[]>('/billing/invoices', { method: 'GET' });
+}
+
+export async function listInvoicesForTenant(tenantId: string): Promise<InvoiceRow[]> {
+  return requestForTenant<InvoiceRow[]>(tenantId, '/billing/invoices', {
+    method: 'GET',
+  });
 }
 
 export async function issueInvoice(body: {

@@ -8,6 +8,22 @@ import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTyp
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessRow } from '../types/domain';
 
+const FACILITIES_BY_LOCATION_TYPE: Record<string, { value: string; label: string }[]> = {
+  arena: LOCATION_FACILITY_TYPE_OPTIONS,
+  'gaming-zone': [
+    { value: 'gaming-pc', label: 'Gaming PC' },
+    { value: 'xbox', label: 'Xbox' },
+    { value: 'ps5', label: 'PS5' },
+    { value: 'ps4', label: 'PS4' },
+    { value: 'vr', label: 'VR' },
+  ],
+  snooker: [
+    { value: 'snooker-table', label: 'Snooker Table' },
+    { value: 'billiard', label: 'Billiard' },
+  ],
+  'table-tennis': [{ value: 'table-tennis-table', label: 'Table Tennis Table' }],
+};
+
 export default function LocationCreatePage() {
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
@@ -21,6 +37,11 @@ export default function LocationCreatePage() {
   const [city, setCity] = useState('');
   const [phone, setPhone] = useState('');
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
+  const facilityOptions = FACILITIES_BY_LOCATION_TYPE[locationType] ?? [];
+
+  useEffect(() => {
+    setFacilityTypes((prev) => prev.filter((x) => facilityOptions.some((o) => o.value === x)));
+  }, [locationType]);
 
   useEffect(() => {
     void (async () => {
@@ -118,8 +139,11 @@ export default function LocationCreatePage() {
         </div>
         <div>
           <label>Facility types at this location</label>
+          {!facilityOptions.length && (
+            <p className="muted">Select a supported location type to see facility options.</p>
+          )}
           <div className="checkbox-grid">
-            {LOCATION_FACILITY_TYPE_OPTIONS.map((o) => (
+            {facilityOptions.map((o) => (
               <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <input
                   type="checkbox"

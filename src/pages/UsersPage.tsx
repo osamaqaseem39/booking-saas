@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listIamUsers } from '../api/saasClient';
+import { deleteIamUser, listIamUsers } from '../api/saasClient';
 import type { IamUserRow } from '../types/domain';
 
 export default function UsersPage() {
   const [rows, setRows] = useState<IamUserRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const reload = () => {
     void (async () => {
@@ -26,6 +27,21 @@ export default function UsersPage() {
     reload();
   }, []);
 
+  async function onDelete(userId: string) {
+    const yes = window.confirm('Delete this user? This cannot be undone.');
+    if (!yes) return;
+    setDeletingId(userId);
+    setErr(null);
+    try {
+      await deleteIamUser(userId);
+      reload();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div>
       <h1 className="page-title">Users & IAM</h1>
@@ -44,7 +60,7 @@ export default function UsersPage() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Roles</th>
-                <th>Edit</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -58,7 +74,19 @@ export default function UsersPage() {
                     </code>
                   </td>
                   <td>
-                    <Link to={`/app/users/${u.id}/edit`}>Edit</Link>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link to={`/app/users/${u.id}`}>View</Link>
+                      <Link to={`/app/users/${u.id}/edit`}>Edit</Link>
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                        disabled={deletingId === u.id}
+                        onClick={() => void onDelete(u.id)}
+                      >
+                        {deletingId === u.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
