@@ -4,6 +4,7 @@ import ConsoleLayout from './layout/ConsoleLayout';
 import RequireRoles from './layout/RequireRoles';
 import ArenaHubPage from './pages/ArenaHubPage';
 import BillingPage from './pages/BillingPage';
+import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/app" element={<ConsoleLayout />}>
             <Route index element={<OverviewPage />} />
             <Route path="businesses" element={<BusinessesPage />} />
+            <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
             <Route path="locations" element={<LocationsPage />} />
             <Route
               path="locations/:locationId/facilities"
