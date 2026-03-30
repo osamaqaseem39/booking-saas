@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../context/SessionContext';
 
 export default function LoginPage() {
@@ -183,6 +183,11 @@ export default function LoginPage() {
             >
               {loading ? 'Signing in…' : 'Continue'}
             </button>
+          </div>
+          <div style={{ marginTop: '0.75rem' }}>
+            <Link to="/owner-signup" className="muted">
+              First time setup? Create owner account
+            </Link>
           </div>
         </form>
       </div>

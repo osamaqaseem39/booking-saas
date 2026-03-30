@@ -13,6 +13,7 @@ import LocationsPage from './pages/LocationsPage';
 import HealthPage from './pages/HealthPage';
 import LoginPage from './pages/LoginPage';
 import OnboardPage from './pages/OnboardPage';
+import OwnerSignupPage from './pages/OwnerSignupPage';
 import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 
@@ -22,6 +23,7 @@ export default function App() {
       <SessionProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/owner-signup" element={<OwnerSignupPage />} />
           <Route path="/app" element={<ConsoleLayout />}>
             <Route index element={<OverviewPage />} />
             <Route path="businesses" element={<BusinessesPage />} />
