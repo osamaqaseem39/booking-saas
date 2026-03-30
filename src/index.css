@@ -726,3 +726,103 @@ table.data tbody tr:last-child td {
 .action-link:active {
   transform: translateY(0);
 }
+
+.overview-content {
+  margin-top: 1rem;
+}
+
+.overview-subtitle {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.overview-panel {
+  margin-top: 0.5rem;
+}
+
+.overview-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.overview-search {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.overview-totals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.overview-metric-card {
+  background: linear-gradient(180deg, rgba(28, 36, 46, 0.92) 0%, rgba(20, 26, 33, 0.98) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.26);
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.overview-metric-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.overview-metric-value {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #f2fbfa;
+}
+
+.overview-tenant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.overview-tenant-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  padding: 0.78rem 0.85rem;
+}
+
+.overview-tenant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.overview-tenant-head strong {
+  font-size: 0.94rem;
+}
+
+.overview-tenant-subtitle {
+  margin: 0.3rem 0 0.62rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.overview-tenant-stats {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.overview-tenant-stats span {
+  font-size: 0.73rem;
+  color: #cae7e3;
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  background: rgba(45, 212, 191, 0.1);
+  border-radius: 999px;
+  padding: 0.16rem 0.45rem;
+}

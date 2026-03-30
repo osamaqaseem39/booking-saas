@@ -10,8 +10,10 @@ import type { BookingRecord, BookingStatus } from '../types/booking';
 import type { BusinessLocationRow, BusinessRow, InvoiceRow } from '../types/domain';
 
 export default function OverviewPage() {
-  const { session } = useSession();
-  const isPlatformOwner = (session?.roles ?? []).includes('platform-owner');
+  const { session, tenantId } = useSession();
+  const roles = session?.roles ?? [];
+  const isPlatformOwner = roles.includes('platform-owner');
+  const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
 
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
@@ -21,6 +23,15 @@ export default function OverviewPage() {
   const [invoicesByTenant, setInvoicesByTenant] = useState<Record<string, InvoiceRow[]>>({});
   const [ownerLoading, setOwnerLoading] = useState(false);
   const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [tenantLoading, setTenantLoading] = useState(false);
+  const [tenantError, setTenantError] = useState<string | null>(null);
+  const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
+  const [tenantSummary, setTenantSummary] = useState({
+    businesses: 0,
+    locations: 0,
+    bookings: 0,
+    invoices: 0,
+  });
   const [dateRange, setDateRange] = useState<'7' | '30' | '90' | 'all'>('30');
   const [bookingStatus, setBookingStatus] = useState<'all' | BookingStatus>('all');
   const [invoiceStatus, setInvoiceStatus] = useState<'all' | string>('all');
@@ -70,6 +81,38 @@ export default function OverviewPage() {
       }
     })();
   }, [isPlatformOwner]);
+
+  useEffect(() => {
+    if (!isBusinessUser) return;
+    if (!tenantId.trim()) {
+      setTenantSummary({ businesses: 0, locations: 0, bookings: 0, invoices: 0 });
+      setTenantBusinessName('Your business');
+      return;
+    }
+    void (async () => {
+      setTenantLoading(true);
+      setTenantError(null);
+      try {
+        const [biz, loc, bookings, invoices] = await Promise.all([
+          listBusinesses(),
+          listBusinessLocations(),
+          listBookingsForTenant(tenantId),
+          listInvoicesForTenant(tenantId),
+        ]);
+        setTenantBusinessName(biz[0]?.businessName || 'Your business');
+        setTenantSummary({
+          businesses: biz.length,
+          locations: loc.length,
+          bookings: bookings.length,
+          invoices: invoices.length,
+        });
+      } catch (e) {
+        setTenantError(e instanceof Error ? e.message : 'Failed to load business overview');
+      } finally {
+        setTenantLoading(false);
+      }
+    })();
+  }, [isBusinessUser, tenantId]);
 
   const invoiceStatusOptions = useMemo(() => {
     const statuses = new Set<string>();
@@ -150,24 +193,46 @@ export default function OverviewPage() {
   );
 
   return (
-    <div>
+    <div className="overview-page">
       <h1 className="page-title">Overview</h1>
-      {isPlatformOwner && (
-        <div style={{ marginTop: '1rem' }}>
-          <h2 style={{ marginBottom: '0.5rem' }}>All-tenant activity view</h2>
+      {isBusinessUser && (
+        <div className="overview-content">
+          <h2 className="overview-subtitle">{tenantBusinessName}</h2>
+          {tenantError && <div className="err-banner">{tenantError}</div>}
+          {tenantLoading ? (
+            <p className="muted">Loading your business activity…</p>
+          ) : (
+            <div className="overview-totals-grid">
+              <div className="overview-metric-card">
+                <span className="overview-metric-label">Businesses</span>
+                <strong className="overview-metric-value">{tenantSummary.businesses}</strong>
+              </div>
+              <div className="overview-metric-card">
+                <span className="overview-metric-label">Locations</span>
+                <strong className="overview-metric-value">{tenantSummary.locations}</strong>
+              </div>
+              <div className="overview-metric-card">
+                <span className="overview-metric-label">Bookings</span>
+                <strong className="overview-metric-value">{tenantSummary.bookings}</strong>
+              </div>
+              <div className="overview-metric-card">
+                <span className="overview-metric-label">Invoices</span>
+                <strong className="overview-metric-value">{tenantSummary.invoices}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {isPlatformOwner && !isBusinessUser && (
+        <div className="overview-content">
+          <h2 className="overview-subtitle">All-tenant activity view</h2>
           {ownerError && <div className="err-banner">{ownerError}</div>}
           {ownerLoading ? (
             <p className="muted">Loading all tenants and activity…</p>
           ) : (
             <>
-              <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '0.75rem',
-                  }}
-                >
+              <div className="connection-panel overview-panel">
+                <div className="overview-filter-grid">
                   <label>
                     <span className="muted">Date range</span>
                     <select
@@ -227,7 +292,7 @@ export default function OverviewPage() {
                     </select>
                   </label>
                 </div>
-                <label style={{ display: 'block', marginTop: '0.75rem' }}>
+                <label className="overview-search">
                   <span className="muted">Search tenant</span>
                   <input
                     className="input"
@@ -238,39 +303,45 @@ export default function OverviewPage() {
                 </label>
               </div>
 
-              <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
-                <div className="detail-row">
-                  <span>Tenants in view</span>
-                  <span>{ownerTotals.tenants}</span>
+              <div className="overview-totals-grid">
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Tenants in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.tenants}</strong>
                 </div>
-                <div className="detail-row">
-                  <span>Locations in view</span>
-                  <span>{ownerTotals.locations}</span>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Locations in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.locations}</strong>
                 </div>
-                <div className="detail-row">
-                  <span>Bookings in view</span>
-                  <span>{ownerTotals.bookings}</span>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Bookings in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.bookings}</strong>
                 </div>
-                <div className="detail-row">
-                  <span>Invoices in view</span>
-                  <span>{ownerTotals.invoices}</span>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Invoices in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.invoices}</strong>
                 </div>
               </div>
 
-              <div className="connection-panel" style={{ marginTop: '0.75rem' }}>
-                <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div className="connection-panel overview-panel">
+                <div className="overview-tenant-grid">
                   {tenantStats.map((row) => (
-                    <div key={row.id} className="detail-row">
-                      <span>
-                        {row.businessName} ({row.tenantId.slice(0, 8)}…)
-                      </span>
-                      <span>
-                        {row.locations} locations, {row.bookings} bookings, {row.invoices} invoices
-                      </span>
-                    </div>
+                    <article key={row.id} className="overview-tenant-card">
+                      <div className="overview-tenant-head">
+                        <strong>{row.businessName}</strong>
+                        <span className="badge badge-neutral">{row.tenantId.slice(0, 8)}...</span>
+                      </div>
+                      <p className="overview-tenant-subtitle">{row.tenantId}</p>
+                      <div className="overview-tenant-stats">
+                        <span>{row.locations} locations</span>
+                        <span>{row.bookings} bookings</span>
+                        <span>{row.invoices} invoices</span>
+                      </div>
+                    </article>
                   ))}
                   {tenantStats.length === 0 && (
-                    <div className="muted">No tenants match the selected filters.</div>
+                    <div className="muted">
+                      No tenants match the selected filters.
+                    </div>
                   )}
                 </div>
               </div>
@@ -278,7 +349,7 @@ export default function OverviewPage() {
           )}
         </div>
       )}
-      {!isPlatformOwner && (
+      {!isPlatformOwner && !isBusinessUser && (
         <p className="muted" style={{ marginTop: '0.5rem' }}>
           Use the sidebar to view bookings, invoices, and tenant tools available for your role.
         </p>
