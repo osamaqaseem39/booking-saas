@@ -129,6 +129,35 @@ export async function createBusinessLocation(body: {
   });
 }
 
+export async function updateBusinessLocation(
+  locationId: string,
+  body: {
+    locationType?: string;
+    facilityTypes?: string[];
+    name?: string;
+    addressLine?: string;
+    city?: string;
+    phone?: string;
+    isActive?: boolean;
+  },
+): Promise<unknown> {
+  return request(`/businesses/locations/${locationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteBusinessLocation(
+  locationId: string,
+): Promise<{ deleted: true; locationId: string }> {
+  return request<{ deleted: true; locationId: string }>(
+    `/businesses/locations/${locationId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+}
+
 export async function onboardBusiness(body: {
   businessName: string;
   legalName?: string;
@@ -159,6 +188,29 @@ export async function createIamUser(body: {
   return request<IamUserRow>('/iam/users', {
     method: 'POST',
     body: JSON.stringify(body),
+  });
+}
+
+export async function updateIamUser(
+  userId: string,
+  body: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+  },
+): Promise<IamUserRow> {
+  return request<IamUserRow>(`/iam/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteIamUser(
+  userId: string,
+): Promise<{ deleted: true; userId: string }> {
+  return request<{ deleted: true; userId: string }>(`/iam/users/${userId}`, {
+    method: 'DELETE',
   });
 }
 

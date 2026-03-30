@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  createBusinessLocation,
   listBusinessLocations,
   listBusinesses,
 } from '../api/saasClient';
-import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
-import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import { useSession } from '../context/SessionContext';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
@@ -17,14 +14,6 @@ export default function LocationsPage() {
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [businessId, setBusinessId] = useState('');
-  const [locationType, setLocationType] = useState('arena');
-  const [customType, setCustomType] = useState('');
-  const [name, setName] = useState('');
-  const [addressLine, setAddressLine] = useState('');
-  const [city, setCity] = useState('');
-  const [phone, setPhone] = useState('');
-  const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
 
   const load = () => {
     void (async () => {
@@ -37,9 +26,6 @@ export default function LocationsPage() {
         ]);
         setRows(locs);
         setBusinesses(biz);
-        if (!businessId && biz.length > 0) {
-          setBusinessId(biz[0]!.id);
-        }
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {
@@ -65,141 +51,8 @@ export default function LocationsPage() {
       </p>
       {err && <div className="err-banner">{err}</div>}
 
-      <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>Add location</h3>
-      <div className="form-grid" style={{ maxWidth: '560px' }}>
-        <div>
-          <label>Business</label>
-          <select
-            value={businessId}
-            onChange={(e) => setBusinessId(e.target.value)}
-          >
-            <option value="">Select…</option>
-            {businesses.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.businessName}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Location type</label>
-          <select
-            value={locationType}
-            onChange={(e) => setLocationType(e.target.value)}
-          >
-            {LOCATION_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-            <option value="custom">Custom…</option>
-          </select>
-        </div>
-        {locationType === 'custom' && (
-          <div>
-            <label>Custom type (max 80 chars)</label>
-            <input
-              value={customType}
-              onChange={(e) => setCustomType(e.target.value)}
-              maxLength={80}
-              placeholder="e.g. pop_up_venue"
-            />
-          </div>
-        )}
-        <div>
-          <label>Location name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <label>Address (optional)</label>
-          <input
-            value={addressLine}
-            onChange={(e) => setAddressLine(e.target.value)}
-          />
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>City</label>
-            <input value={city} onChange={(e) => setCity(e.target.value)} />
-          </div>
-          <div>
-            <label>Phone</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-        </div>
-        <div style={{ gridColumn: '1 / -1' }}>
-          <label>Facility types at this location</label>
-          <div
-            className="muted"
-            style={{ fontSize: '0.85rem', marginBottom: '0.35rem' }}
-          >
-            Select all that apply (optional).
-          </div>
-          <div className="checkbox-grid">
-            {LOCATION_FACILITY_TYPE_OPTIONS.map((o) => (
-              <label
-                key={o.value}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={facilityTypes.includes(o.value)}
-                  onChange={() => {
-                    setFacilityTypes((prev) =>
-                      prev.includes(o.value)
-                        ? prev.filter((x) => x !== o.value)
-                        : [...prev, o.value],
-                    );
-                  }}
-                />
-                {o.label}
-              </label>
-            ))}
-          </div>
-        </div>
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={
-            !businessId ||
-            !name.trim() ||
-            (locationType === 'custom' && !customType.trim())
-          }
-          onClick={() => {
-            void (async () => {
-              try {
-                const lt =
-                  locationType === 'custom'
-                    ? customType.trim().slice(0, 80)
-                    : locationType;
-                await createBusinessLocation({
-                  businessId,
-                  locationType: lt,
-                  facilityTypes: facilityTypes.length ? facilityTypes : undefined,
-                  name: name.trim(),
-                  addressLine: addressLine.trim() || undefined,
-                  city: city.trim() || undefined,
-                  phone: phone.trim() || undefined,
-                });
-                setName('');
-                setAddressLine('');
-                setCity('');
-                setPhone('');
-                setFacilityTypes([]);
-                load();
-              } catch (e) {
-                setErr(e instanceof Error ? e.message : 'Create failed');
-              }
-            })();
-          }}
-        >
-          Add location
-        </button>
+      <div style={{ marginTop: '1rem' }}>
+        <Link to="/app/locations/new">Add location</Link>
       </div>
 
       <h3 style={{ fontSize: '1rem', marginTop: '1.75rem' }}>All locations</h3>
@@ -223,6 +76,7 @@ export default function LocationsPage() {
                 <th>City</th>
                 <th>Phone</th>
                 <th>Facilities</th>
+                <th>Edit</th>
               </tr>
             </thead>
             <tbody>
@@ -255,6 +109,9 @@ export default function LocationsPage() {
                     <Link to={`/app/locations/${r.id}/facilities`}>
                       Manage
                     </Link>
+                  </td>
+                  <td>
+                    <Link to={`/app/locations/${r.id}/edit`}>Edit</Link>
                   </td>
                 </tr>
               ))}

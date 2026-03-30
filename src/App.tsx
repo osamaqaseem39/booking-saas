@@ -11,12 +11,16 @@ import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
 import LocationFacilitiesPage from './pages/LocationFacilitiesPage';
 import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
+import LocationCreatePage from './pages/LocationCreatePage';
+import LocationEditPage from './pages/LocationEditPage';
 import LocationsPage from './pages/LocationsPage';
 import HealthPage from './pages/HealthPage';
 import LoginPage from './pages/LoginPage';
 import OnboardPage from './pages/OnboardPage';
 import OwnerSignupPage from './pages/OwnerSignupPage';
 import OverviewPage from './pages/OverviewPage';
+import UserCreatePage from './pages/UserCreatePage';
+import UserEditPage from './pages/UserEditPage';
 import UsersPage from './pages/UsersPage';
 
 export default function App() {
@@ -39,6 +43,8 @@ export default function App() {
             />
             <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
             <Route path="locations" element={<LocationsPage />} />
+            <Route path="locations/new" element={<LocationCreatePage />} />
+            <Route path="locations/:locationId/edit" element={<LocationEditPage />} />
             <Route
               path="locations/:locationId/facilities"
               element={<LocationFacilitiesPage />}
@@ -64,6 +70,8 @@ export default function App() {
               }
             />
             <Route path="users" element={<UsersPage />} />
+            <Route path="users/new" element={<UserCreatePage />} />
+            <Route path="users/:userId/edit" element={<UserEditPage />} />
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="billing" element={<BillingPage />} />
             <Route path="arena" element={<ArenaHubPage />} />
