@@ -18,6 +18,13 @@ import {
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessRow } from '../types/domain';
 
+function splitGalleryInput(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 export default function LocationCreatePage() {
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
@@ -40,11 +47,12 @@ export default function LocationCreatePage() {
   const [timezone, setTimezone] = useState('Asia/Karachi');
   const [currency, setCurrency] = useState('PKR');
   const [isActive, setIsActive] = useState(true);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [galleryText, setGalleryText] = useState('');
   const [workingHours, setWorkingHours] = useState<Record<string, unknown>>(
     createDefaultWorkingHoursPayload(),
   );
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
-  const [customFacilityType, setCustomFacilityType] = useState('');
   const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
   const countryOptions = Object.keys(LOCATION_HIERARCHY);
   const stateOptions = getStatesByCountry(country);
@@ -124,6 +132,10 @@ export default function LocationCreatePage() {
         workingHours,
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
+        ...(logoUrl.trim() ? { logo: logoUrl.trim() } : {}),
+        ...(splitGalleryInput(galleryText).length > 0
+          ? { gallery: splitGalleryInput(galleryText) }
+          : {}),
         status: isActive ? 'active' : 'inactive',
         location: {
           country: country.trim(),
@@ -149,13 +161,6 @@ export default function LocationCreatePage() {
     }
   }
 
-  function addCustomFacilityType() {
-    const next = customFacilityType.trim().toLowerCase();
-    if (!next) return;
-    setFacilityTypes((prev) => (prev.includes(next) ? prev : [...prev, next]));
-    setCustomFacilityType('');
-  }
-
   function onCountryChange(nextCountry: string) {
     setCountry(nextCountry);
     setStateProvince('');
@@ -178,7 +183,6 @@ export default function LocationCreatePage() {
     setLocationType(nextType);
     if (nextType !== 'arena') {
       setFacilityTypes([]);
-      setCustomFacilityType('');
     }
   }
 
@@ -356,6 +360,32 @@ export default function LocationCreatePage() {
         </div>
 
         <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Media</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Logo URL</label>
+              <input
+                type="url"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="https://…"
+              />
+            </div>
+            <div />
+          </div>
+          <div>
+            <label>Gallery (one image URL per line)</label>
+            <textarea
+              value={galleryText}
+              onChange={(e) => setGalleryText(e.target.value)}
+              rows={4}
+              placeholder="https://…"
+              style={{ width: '100%', minHeight: '5rem' }}
+            />
+          </div>
+        </div>
+
+        <div className="connection-panel" style={{ margin: 0 }}>
           <h2>Operations & Facilities</h2>
           <div className="form-row-2">
             <label className="ui-switch">
@@ -365,7 +395,7 @@ export default function LocationCreatePage() {
                 onChange={(e) => setIsActive(e.target.checked)}
               />
               <span className="ui-switch-track" />
-              <span className="ui-switch-text">Active Location</span>
+              <span className="ui-switch-text">Active location</span>
             </label>
             <div>
               <label>Timezone *</label>
@@ -402,37 +432,6 @@ export default function LocationCreatePage() {
                 </label>
               ))}
             </div>
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
-              <input
-                value={customFacilityType}
-                onChange={(e) => setCustomFacilityType(e.target.value)}
-                placeholder="Custom facility code (e.g. xbox, snooker-table)"
-                disabled={!isArenaType}
-              />
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={addCustomFacilityType}
-                disabled={!isArenaType}
-              >
-                Add custom
-              </button>
-            </div>
-            {facilityTypes.length > 0 && (
-              <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {facilityTypes.map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    className="btn-ghost"
-                    style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                    onClick={() => setFacilityTypes((prev) => prev.filter((x) => x !== code))}
-                  >
-                    {code} ×
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
         <button

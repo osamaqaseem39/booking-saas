@@ -6,6 +6,7 @@ import {
   listBusinesses,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
+import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
@@ -187,7 +188,7 @@ export default function LocationsPage() {
                       <div className="facility-chip-list">
                         {r.facilityTypes.map((code) => (
                           <span key={code} className="facility-chip">
-                            {code}
+                            {formatFacilityTypeLabel(code)}
                           </span>
                         ))}
                       </div>

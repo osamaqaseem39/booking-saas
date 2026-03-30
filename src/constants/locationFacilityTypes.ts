@@ -2,8 +2,15 @@
 
 export const LOCATION_FACILITY_TYPE_OPTIONS: { value: string; label: string }[] =
   [
-    { value: 'turf-court', label: 'Turf (futsal / cricket)' },
-    { value: 'cricket-indoor', label: 'Cricket indoor' },
-    { value: 'futsal-field', label: 'Futsal field' },
-    { value: 'padel-court', label: 'Padel court' },
+    { value: 'cricket-indoor', label: 'Arena Cricket' },
+    { value: 'futsal-field', label: 'Futsal' },
+    { value: 'padel-court', label: 'Padel' },
   ];
+
+const LABEL_BY_CODE: Record<string, string> = Object.fromEntries(
+  LOCATION_FACILITY_TYPE_OPTIONS.map((o) => [o.value, o.label]),
+);
+
+export function formatFacilityTypeLabel(code: string): string {
+  return LABEL_BY_CODE[code] ?? code;
+}

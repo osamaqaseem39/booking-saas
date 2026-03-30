@@ -17,6 +17,18 @@ import type {
 const LS_API = 'bukit_saas_api_url';
 const LS_TENANT = 'bukit_saas_tenant_id';
 const LS_TOKEN = 'bukit_saas_token';
+const LS_REFRESH = 'bukit_saas_refresh_token';
+
+const TOKENS_UPDATED = 'bukit_saas_tokens_updated';
+
+function notifyTokensUpdated(): void {
+  window.dispatchEvent(new CustomEvent(TOKENS_UPDATED));
+}
+
+export function subscribeTokensUpdated(fn: () => void): () => void {
+  window.addEventListener(TOKENS_UPDATED, fn);
+  return () => window.removeEventListener(TOKENS_UPDATED, fn);
+}
 
 export function getApiBase(): string {
   return (
@@ -34,10 +46,16 @@ export function getToken(): string {
   return localStorage.getItem(LS_TOKEN)?.trim() || '';
 }
 
+export function getRefreshToken(): string {
+  return localStorage.getItem(LS_REFRESH)?.trim() || '';
+}
+
 export function persistConnection(opts: {
   apiBase: string;
   tenantId: string;
   token: string;
+  /** When set, updates stored refresh token (omit to leave existing value). */
+  refreshToken?: string;
 }): void {
   // Defensive: sometimes API responses / state updates can introduce `undefined`
   // at runtime even if TypeScript types say `string`.
@@ -48,10 +66,21 @@ export function persistConnection(opts: {
   localStorage.setItem(LS_API, apiBase);
   localStorage.setItem(LS_TENANT, tenantId);
   localStorage.setItem(LS_TOKEN, token);
+  if (opts.refreshToken !== undefined) {
+    const rt = (opts.refreshToken ?? '').toString().trim();
+    if (rt) localStorage.setItem(LS_REFRESH, rt);
+    else localStorage.removeItem(LS_REFRESH);
+  }
 }
 
 export function setTenantIdStorage(tenantId: string): void {
   localStorage.setItem(LS_TENANT, (tenantId ?? '').toString().trim());
+}
+
+/** Clears access + refresh tokens from local storage (e.g. sign out). */
+export function clearAuthLocalStorage(): void {
+  localStorage.removeItem(LS_TOKEN);
+  localStorage.removeItem(LS_REFRESH);
 }
 
 function headers(json = true): HeadersInit {
@@ -85,9 +114,58 @@ async function readError(res: Response): Promise<string> {
   return res.statusText || `HTTP ${res.status}`;
 }
 
-export async function request<T>(
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const rt = getRefreshToken();
+      if (!rt) return false;
+      try {
+        const base = getApiBase();
+        const res = await fetch(`${base}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+        if (!res.ok) return false;
+        const data = (await res.json()) as {
+          token?: string;
+          refreshToken?: string;
+        };
+        const token = (data.token ?? '').trim();
+        if (!token) return false;
+        localStorage.setItem(LS_TOKEN, token);
+        const nextRt = (data.refreshToken ?? '').trim();
+        if (nextRt) localStorage.setItem(LS_REFRESH, nextRt);
+        notifyTokensUpdated();
+        return true;
+      } catch {
+        return false;
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+function shouldAttemptRefreshOn401(path: string): boolean {
+  if (path === '/auth/refresh' || path === '/auth/login') return false;
+  return !!getRefreshToken();
+}
+
+async function parseSuccessBody<T>(res: Response): Promise<T> {
+  if (res.status === 204) return undefined as T;
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+async function requestOnce<T>(
   path: string,
-  init: RequestInit = {},
+  init: RequestInit,
+  retriedAfterRefresh: boolean,
 ): Promise<T> {
   const base = getApiBase();
   const res = await fetch(`${base}${path}`, {
@@ -97,19 +175,36 @@ export async function request<T>(
       ...(init.headers as Record<string, string>),
     },
   });
+
+  if (
+    res.status === 401 &&
+    !retriedAfterRefresh &&
+    shouldAttemptRefreshOn401(path)
+  ) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return requestOnce<T>(path, init, true);
+    }
+  }
+
   if (!res.ok) {
     throw new Error(await readError(res));
   }
-  if (res.status === 204) return undefined as T;
-  const ct = res.headers.get('content-type') || '';
-  if (!ct.includes('application/json')) return undefined as T;
-  return res.json() as Promise<T>;
+  return parseSuccessBody<T>(res);
 }
 
-export async function requestForTenant<T>(
-  tenantId: string,
+export async function request<T>(
   path: string,
   init: RequestInit = {},
+): Promise<T> {
+  return requestOnce<T>(path, init, false);
+}
+
+async function requestForTenantOnce<T>(
+  tenantId: string,
+  path: string,
+  init: RequestInit,
+  retriedAfterRefresh: boolean,
 ): Promise<T> {
   const base = getApiBase();
   const res = await fetch(`${base}${path}`, {
@@ -119,13 +214,30 @@ export async function requestForTenant<T>(
       ...(init.headers as Record<string, string>),
     },
   });
+
+  if (
+    res.status === 401 &&
+    !retriedAfterRefresh &&
+    shouldAttemptRefreshOn401(path)
+  ) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return requestForTenantOnce<T>(tenantId, path, init, true);
+    }
+  }
+
   if (!res.ok) {
     throw new Error(await readError(res));
   }
-  if (res.status === 204) return undefined as T;
-  const ct = res.headers.get('content-type') || '';
-  if (!ct.includes('application/json')) return undefined as T;
-  return res.json() as Promise<T>;
+  return parseSuccessBody<T>(res);
+}
+
+export async function requestForTenant<T>(
+  tenantId: string,
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  return requestForTenantOnce<T>(tenantId, path, init, false);
 }
 
 export async function fetchHealth(): Promise<{ status: string; service: string }> {
@@ -148,8 +260,6 @@ export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
 
 export async function createBusinessLocation(body: {
   businessId: string;
-  branchId?: string;
-  arenaId?: string;
   branchName?: string;
   locationType: string;
   facilityTypes?: string[];
@@ -165,6 +275,8 @@ export async function createBusinessLocation(body: {
   workingHours?: Record<string, unknown>;
   timezone?: string;
   currency?: string;
+  logo?: string;
+  gallery?: string[];
   status?: string;
   location?: {
     country?: string;
@@ -191,8 +303,6 @@ export async function createBusinessLocation(body: {
 export async function updateBusinessLocation(
   locationId: string,
   body: {
-    branchId?: string;
-    arenaId?: string;
     branchName?: string;
     locationType?: string;
     facilityTypes?: string[];
@@ -208,6 +318,8 @@ export async function updateBusinessLocation(
     workingHours?: Record<string, unknown>;
     timezone?: string;
     currency?: string;
+    logo?: string;
+    gallery?: string[];
     status?: string;
     location?: {
       country?: string;
@@ -224,7 +336,6 @@ export async function updateBusinessLocation(
       timezone?: string;
       currency?: string;
     };
-    isActive?: boolean;
   },
 ): Promise<unknown> {
   return request(`/businesses/locations/${locationId}`, {
@@ -468,11 +579,63 @@ export async function listCricketIndoor(
   return request<NamedCourt[]>(`/arena/cricket-indoor${q}`, { method: 'GET' });
 }
 
-export async function createTurfCourt(body: {
+/** Matches API `CreateTurfCourtDto` (optional fields omitted when unset). */
+export type CreateTurfCourtBody = {
   businessLocationId: string;
   name: string;
   sportMode: 'futsal_only' | 'cricket_only' | 'both';
-}): Promise<NamedCourt> {
+  arenaLabel?: string;
+  courtStatus?: 'active' | 'maintenance';
+  imageUrls?: string[];
+  ceilingHeightValue?: number;
+  ceilingHeightUnit?: 'ft' | 'm';
+  coveredType?: 'open' | 'semi_covered' | 'fully_indoor';
+  sideNetting?: boolean;
+  netHeight?: string;
+  boundaryType?: 'net' | 'wall';
+  ventilation?: ('natural' | 'fans' | 'ac')[];
+  lighting?: 'led_floodlights' | 'mixed' | 'daylight';
+  lengthM?: number;
+  widthM?: number;
+  surfaceType?: 'artificial_turf' | 'hard_surface';
+  turfQuality?: string;
+  shockAbsorptionLayer?: boolean;
+  futsalFormat?: '5v5' | '6v6' | '7v7';
+  futsalGoalPostsAvailable?: boolean;
+  futsalGoalPostSize?: string;
+  futsalLineMarkings?: 'permanent' | 'temporary';
+  cricketFormat?: 'tape_ball' | 'tennis_ball' | 'hard_ball';
+  cricketStumpsAvailable?: boolean;
+  cricketBowlingMachine?: boolean;
+  cricketPracticeMode?: 'full_ground' | 'nets_mode';
+  futsalPricePerSlot?: number;
+  cricketPricePerSlot?: number;
+  peakPricing?: { weekdayEvening?: number; weekend?: number };
+  discountMembership?: {
+    label?: string;
+    amount?: number;
+    percentOff?: number;
+  };
+  slotDurationMinutes?: 30 | 60;
+  bufferBetweenSlotsMinutes?: number;
+  allowParallelBooking?: boolean;
+  amenities?: {
+    changingRoom?: boolean;
+    washroom?: boolean;
+    parking?: boolean;
+    drinkingWater?: boolean;
+    seatingArea?: boolean;
+  };
+  rules?: {
+    maxPlayers?: number;
+    safetyInstructions?: string;
+    cancellationPolicy?: string;
+  };
+};
+
+export async function createTurfCourt(
+  body: CreateTurfCourtBody,
+): Promise<NamedCourt> {
   return request<NamedCourt>('/arena/turf-courts', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -481,7 +644,7 @@ export async function createTurfCourt(body: {
 
 export async function updateTurfCourt(
   id: string,
-  body: { name?: string; sportMode?: 'futsal_only' | 'cricket_only' | 'both' },
+  body: Partial<CreateTurfCourtBody>,
 ): Promise<NamedCourt> {
   return request<NamedCourt>(`/arena/turf-courts/${id}`, {
     method: 'PATCH',

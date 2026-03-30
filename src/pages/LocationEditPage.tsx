@@ -20,6 +20,17 @@ import {
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
+function splitGalleryInput(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+function joinGalleryForInput(urls: string[] | undefined | null): string {
+  return (urls ?? []).join('\n');
+}
+
 export default function LocationEditPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
   const navigate = useNavigate();
@@ -46,8 +57,9 @@ export default function LocationEditPage() {
     createDefaultWorkingHoursPayload(),
   );
   const [isActive, setIsActive] = useState(true);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [galleryText, setGalleryText] = useState('');
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
-  const [customFacilityType, setCustomFacilityType] = useState('');
   const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
   const countryOptions = Object.keys(LOCATION_HIERARCHY);
   const stateOptions = getStatesByCountry(country);
@@ -87,7 +99,9 @@ export default function LocationEditPage() {
     setTimezone(location.timezone ?? 'Asia/Karachi');
     setCurrency(location.currency ?? 'PKR');
     setWorkingHours((location.workingHours as Record<string, unknown> | null) ?? {});
-    setIsActive((location.status ?? '').toLowerCase() === 'active' ? true : Boolean(location.isActive));
+    setIsActive((location.status ?? '').toLowerCase() === 'active');
+    setLogoUrl(location.logo ?? '');
+    setGalleryText(joinGalleryForInput(location.gallery));
     setFacilityTypes(location.facilityTypes ?? []);
     const isPreset = LOCATION_TYPE_OPTIONS.some((o) => o.value === location.locationType);
     if (location.locationType && !isPreset) {
@@ -158,6 +172,8 @@ export default function LocationEditPage() {
         workingHours,
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
+        logo: logoUrl.trim(),
+        gallery: splitGalleryInput(galleryText),
         status: isActive ? 'active' : 'inactive',
         location: {
           country: country.trim(),
@@ -174,7 +190,6 @@ export default function LocationEditPage() {
           timezone: timezone.trim(),
           currency: currency.trim().toUpperCase(),
         },
-        isActive,
       });
       navigate('/app/locations', { replace: true });
     } catch (e) {
@@ -200,13 +215,6 @@ export default function LocationEditPage() {
     }
   }
 
-  function addCustomFacilityType() {
-    const next = customFacilityType.trim().toLowerCase();
-    if (!next) return;
-    setFacilityTypes((prev) => (prev.includes(next) ? prev : [...prev, next]));
-    setCustomFacilityType('');
-  }
-
   function onCountryChange(nextCountry: string) {
     setCountry(nextCountry);
     setStateProvince('');
@@ -229,7 +237,6 @@ export default function LocationEditPage() {
     setLocationType(nextType);
     if (nextType !== 'arena') {
       setFacilityTypes([]);
-      setCustomFacilityType('');
     }
   }
 
@@ -377,7 +384,7 @@ export default function LocationEditPage() {
                 onChange={(e) => setIsActive(e.target.checked)}
               />
               <span className="ui-switch-track" />
-              <span className="ui-switch-text">Active Location</span>
+              <span className="ui-switch-text">Active location</span>
             </label>
           </div>
           <div className="form-row-2">
@@ -391,13 +398,29 @@ export default function LocationEditPage() {
             </div>
           </div>
           <div>
-            <WorkingHoursEditor value={workingHours} onChange={setWorkingHours} />
+            <label>Logo URL</label>
+            <input
+              type="url"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://…"
+            />
+            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+              Main image for this location. Leave empty to clear.
+            </p>
           </div>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-              Active location
-            </label>
+            <label>Gallery (one image URL per line)</label>
+            <textarea
+              value={galleryText}
+              onChange={(e) => setGalleryText(e.target.value)}
+              rows={4}
+              placeholder="https://…"
+              style={{ width: '100%', minHeight: '5rem' }}
+            />
+          </div>
+          <div>
+            <WorkingHoursEditor value={workingHours} onChange={setWorkingHours} />
           </div>
           <div>
             <label>Facility types at this location</label>
@@ -420,37 +443,6 @@ export default function LocationEditPage() {
                 </label>
               ))}
             </div>
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
-              <input
-                value={customFacilityType}
-                onChange={(e) => setCustomFacilityType(e.target.value)}
-                placeholder="Custom facility code (e.g. xbox, snooker-table)"
-                disabled={!isArenaType}
-              />
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={addCustomFacilityType}
-                disabled={!isArenaType}
-              >
-                Add custom
-              </button>
-            </div>
-            {facilityTypes.length > 0 && (
-              <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {facilityTypes.map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    className="btn-ghost"
-                    style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                    onClick={() => setFacilityTypes((prev) => prev.filter((x) => x !== code))}
-                  >
-                    {code} ×
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button

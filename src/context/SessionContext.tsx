@@ -8,12 +8,14 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  clearAuthLocalStorage,
   fetchSessionUser,
   getApiBase,
   getTenantId,
   getToken,
   persistConnection,
   setTenantIdStorage,
+  subscribeTokensUpdated,
 } from '../api/saasClient';
 import type { SessionUser } from '../types/domain';
 
@@ -46,6 +48,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     persistConnection({ apiBase, tenantId, token });
   }, [apiBase, tenantId, token]);
+
+  useEffect(() => {
+    const sync = () => setTokenState(getToken());
+    return subscribeTokensUpdated(sync);
+  }, []);
 
   const refreshSession = useCallback(async () => {
     if (!token.trim()) {
@@ -111,12 +118,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
         throw new Error(message);
       }
-      const data = (await res.json()) as { token: string };
+      const data = (await res.json()) as {
+        token: string;
+        refreshToken?: string;
+      };
       setTokenState(data.token);
       persistConnection({
         apiBase: api,
         tenantId: getTenantId(),
         token: data.token,
+        ...(data.refreshToken
+          ? { refreshToken: data.refreshToken }
+          : {}),
       });
 
       const me = await fetchSessionUser();
@@ -135,7 +148,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
-    localStorage.removeItem('bukit_saas_token');
+    clearAuthLocalStorage();
     setUserIdState('');
     setTokenState('');
     setSession(null);

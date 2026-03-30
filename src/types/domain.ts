@@ -43,8 +43,6 @@ export interface BusinessRow {
 export interface BusinessLocationRow {
   id: string;
   businessId: string;
-  branchId?: string | null;
-  arenaId?: string | null;
   /** Kind of site (arena, branch, …) — set on each location. */
   locationType?: string;
   /** Court / sub-facility kinds this location hosts (e.g. padel-court). */
@@ -61,7 +59,10 @@ export interface BusinessLocationRow {
   workingHours?: Record<string, unknown> | null;
   timezone?: string | null;
   currency?: string | null;
+  logo?: string | null;
+  gallery?: string[];
   status?: string | null;
+  /** Derived from `status` on the server; use `status` when updating. */
   isActive: boolean;
   createdAt: string;
   business: {

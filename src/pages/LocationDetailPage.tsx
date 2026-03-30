@@ -7,6 +7,7 @@ import {
   listPadelCourts,
   listTurfCourts,
 } from '../api/saasClient';
+import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
 type FacilityCounts = {
@@ -108,7 +109,11 @@ export default function LocationDetailPage() {
             </div>
             <div className="detail-row">
               <span>Facility types</span>
-              <span>{location.facilityTypes?.join(', ') || '—'}</span>
+              <span>
+                {location.facilityTypes?.length
+                  ? location.facilityTypes.map(formatFacilityTypeLabel).join(', ')
+                  : '—'}
+              </span>
             </div>
           </div>
 

@@ -4,15 +4,34 @@ import {
   createCricketIndoorCourt,
   createFutsalField,
   createPadelCourt,
-  createTurfCourt,
   listBusinessLocations,
 } from '../api/saasClient';
+import { TurfCourtSetupForm } from '../components/TurfCourtSetupForm';
 import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
-const CODES = new Set(LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value));
+/** Combined turf pitch: not a location “facility type”, but still creatable when Futsal and/or Arena Cricket are enabled. */
+const TURF_SETUP_CODE = 'turf-court';
 
-type SportMode = 'futsal_only' | 'cricket_only' | 'both';
+const CODES = new Set([
+  ...LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
+  TURF_SETUP_CODE,
+]);
+
+function isFacilitySetupAllowed(
+  location: BusinessLocationRow | undefined,
+  code: string,
+): boolean {
+  if (!location) return false;
+  const allowed = location.facilityTypes ?? [];
+  if (allowed.length === 0) return true;
+  if (code === TURF_SETUP_CODE) {
+    return (
+      allowed.includes('futsal-field') || allowed.includes('cricket-indoor')
+    );
+  }
+  return allowed.includes(code);
+}
 
 export default function LocationFacilitySetupPage() {
   const { locationId = '', facilityCode = '' } = useParams<{
@@ -22,7 +41,6 @@ export default function LocationFacilitySetupPage() {
   const navigate = useNavigate();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [name, setName] = useState('');
-  const [sportMode, setSportMode] = useState<SportMode>('both');
   const [description, setDescription] = useState('');
   const [dimensions, setDimensions] = useState('');
   const [laneCount, setLaneCount] = useState('');
@@ -34,10 +52,15 @@ export default function LocationFacilitySetupPage() {
     [locations, locationId],
   );
 
-  const label = useMemo(
-    () => LOCATION_FACILITY_TYPE_OPTIONS.find((o) => o.value === facilityCode),
-    [facilityCode],
-  );
+  const label = useMemo(() => {
+    if (facilityCode === TURF_SETUP_CODE) {
+      return {
+        value: TURF_SETUP_CODE,
+        label: 'Turf court (Futsal + Cricket)',
+      };
+    }
+    return LOCATION_FACILITY_TYPE_OPTIONS.find((o) => o.value === facilityCode);
+  }, [facilityCode]);
 
   useEffect(() => {
     void (async () => {
@@ -58,13 +81,7 @@ export default function LocationFacilitySetupPage() {
     setSaving(true);
     setErr(null);
     try {
-      if (facilityCode === 'turf-court') {
-        await createTurfCourt({
-          businessLocationId: locationId,
-          name: name.trim(),
-          sportMode,
-        });
-      } else if (facilityCode === 'padel-court') {
+      if (facilityCode === 'padel-court') {
         await createPadelCourt({
           businessLocationId: locationId,
           name: name.trim(),
@@ -107,10 +124,7 @@ export default function LocationFacilitySetupPage() {
     );
   }
 
-  const typeAllowed =
-    location &&
-    (!location.facilityTypes?.length ||
-      location.facilityTypes.includes(facilityCode));
+  const typeAllowed = location && isFacilitySetupAllowed(location, facilityCode);
 
   return (
     <div>
@@ -129,12 +143,26 @@ export default function LocationFacilitySetupPage() {
           This location does not include “{facilityCode}”. Edit the location’s
           facility types on the Locations page, then try again.
         </div>
+      ) : facilityCode === TURF_SETUP_CODE ? (
+        <>
+          <p className="muted">
+            Location: <strong>{location.name}</strong>. Configure the combined
+            turf court (Futsal + Cricket); all sections map to the booking API.
+          </p>
+          <TurfCourtSetupForm
+            locationId={locationId}
+            locations={locations}
+            onCreated={() =>
+              navigate(`/app/locations/${locationId}/facilities`)
+            }
+          />
+        </>
       ) : (
         <>
           <p className="muted">
             Location: <strong>{location.name}</strong>. This form sends the
-            minimum required fields; use the API for full turf/padel setup
-            (pricing, amenities, rules, …).
+            minimum required fields; use the API for full padel setup (pricing,
+            amenities, rules, …).
           </p>
           {err && <div className="err-banner">{err}</div>}
           <form
@@ -151,19 +179,6 @@ export default function LocationFacilitySetupPage() {
                 maxLength={160}
               />
             </div>
-            {facilityCode === 'turf-court' && (
-              <div>
-                <label>Sport mode</label>
-                <select
-                  value={sportMode}
-                  onChange={(e) => setSportMode(e.target.value as SportMode)}
-                >
-                  <option value="both">Futsal + cricket</option>
-                  <option value="futsal_only">Futsal only</option>
-                  <option value="cricket_only">Cricket only</option>
-                </select>
-              </div>
-            )}
             {(facilityCode === 'futsal-field' ||
               facilityCode === 'cricket-indoor') && (
               <div>
