@@ -3,18 +3,10 @@ import { useEffect, useState } from 'react';
 import { listBusinesses, onboardBusiness } from '../api/saasClient';
 import { useNavigate } from 'react-router-dom';
 
-const VERTICAL_OPTIONS = [
-  { value: 'arena', label: 'Arena' },
-  { value: 'gaming-zone', label: 'Gaming Zone' },
-  { value: 'snooker', label: 'Snooker' },
-  { value: 'table-tennis', label: 'Table Tennis' },
-];
-
 export default function OnboardPage() {
   const navigate = useNavigate();
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
-  const [vertical, setVertical] = useState('arena');
   const [businessType, setBusinessType] = useState('multi_branch');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -34,7 +26,6 @@ export default function OnboardPage() {
   const [fieldErrors, setFieldErrors] = useState<{
     businessName?: string;
     legalName?: string;
-    vertical?: string;
     ownerName?: string;
     ownerEmail?: string;
   }>({});
@@ -79,7 +70,6 @@ export default function OnboardPage() {
       const res = await onboardBusiness({
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        vertical: vertical.trim() || undefined,
         businessType: businessType.trim() || undefined,
         owner: {
           name: ownerName.trim(),
@@ -165,25 +155,13 @@ export default function OnboardPage() {
               />
             </div>
           </div>
-          <div className="form-row-2">
-            <div>
-              <label>Vertical</label>
-              <select name="vertical" value={vertical} onChange={(e) => setVertical(e.target.value)}>
-                {VERTICAL_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Business type</label>
-              <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
-                <option value="single_branch">Single Branch</option>
-                <option value="multi_branch">Multi Branch</option>
-                <option value="franchise">Franchise</option>
-              </select>
-            </div>
+          <div>
+            <label>Business type</label>
+            <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
+              <option value="single_branch">Single Branch</option>
+              <option value="multi_branch">Multi Branch</option>
+              <option value="franchise">Franchise</option>
+            </select>
           </div>
         </div>
         <div className="connection-panel" style={{ margin: 0 }}>

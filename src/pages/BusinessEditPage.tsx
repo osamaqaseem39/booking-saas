@@ -13,7 +13,6 @@ export default function BusinessEditPage() {
   const [deleting, setDeleting] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
-  const [vertical, setVertical] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -50,7 +49,6 @@ export default function BusinessEditPage() {
     if (!business) return;
     setBusinessName(business.businessName);
     setLegalName(business.legalName ?? '');
-    setVertical(business.vertical ?? '');
     setBusinessType(business.businessType ?? '');
     setOwnerName(business.owner?.name ?? '');
     setOwnerEmail(business.owner?.email ?? '');
@@ -72,7 +70,6 @@ export default function BusinessEditPage() {
       await updateBusiness(businessId, {
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        vertical: vertical.trim() || undefined,
         businessType: businessType.trim() || undefined,
         owner: {
           name: ownerName.trim() || undefined,
@@ -147,24 +144,13 @@ export default function BusinessEditPage() {
                 <input value={legalName} onChange={(e) => setLegalName(e.target.value)} />
               </div>
             </div>
-            <div className="form-row-2">
-              <div>
-                <label>Vertical</label>
-                <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
-                  <option value="arena">Arena</option>
-                  <option value="gaming-zone">Gaming Zone</option>
-                  <option value="snooker">Snooker</option>
-                  <option value="table-tennis">Table Tennis</option>
-                </select>
-              </div>
-              <div>
-                <label>Business type</label>
-                <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
-                  <option value="single_branch">Single Branch</option>
-                  <option value="multi_branch">Multi Branch</option>
-                  <option value="franchise">Franchise</option>
-                </select>
-              </div>
+            <div>
+              <label>Business type</label>
+              <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
+                <option value="single_branch">Single Branch</option>
+                <option value="multi_branch">Multi Branch</option>
+                <option value="franchise">Franchise</option>
+              </select>
             </div>
           </div>
           <div className="connection-panel" style={{ margin: 0 }}>
@@ -245,7 +231,7 @@ export default function BusinessEditPage() {
             <button
               type="button"
               className="btn-primary"
-              disabled={saving || !businessName.trim() || !vertical.trim()}
+              disabled={saving || !businessName.trim()}
               onClick={() => void onSave()}
             >
               {saving ? 'Saving…' : 'Save changes'}

@@ -3,13 +3,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onboardBusiness } from '../api/saasClient';
 
-const VERTICAL_OPTIONS = [
-  { value: 'arena', label: 'Arena' },
-  { value: 'gaming-zone', label: 'Gaming Zone' },
-  { value: 'snooker', label: 'Snooker' },
-  { value: 'table-tennis', label: 'Table Tennis' },
-];
-
 const BUSINESS_TYPE_OPTIONS = [
   { value: 'single_branch', label: 'Single Branch' },
   { value: 'multi_branch', label: 'Multi Branch' },
@@ -36,7 +29,6 @@ export default function BusinessCreatePage() {
   const [tenantId, setTenantId] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
-  const [vertical, setVertical] = useState('arena');
   const [businessType, setBusinessType] = useState('multi_branch');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -104,7 +96,6 @@ export default function BusinessCreatePage() {
         tenantId: tenantId.trim() || undefined,
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        vertical: vertical.trim() || undefined,
         businessType: businessType.trim() || undefined,
         owner: {
           name: ownerName.trim(),
@@ -173,22 +164,10 @@ export default function BusinessCreatePage() {
               {fieldErrors.tenantId && <div className="muted" style={{ color: 'var(--danger)' }}>{fieldErrors.tenantId}</div>}
             </div>
           </div>
-          <div className="form-row-2">
-            <div>
-              <label>Legal Name (optional)</label>
-              <input value={legalName} onChange={(e) => setLegalName(e.target.value)} />
-              {fieldErrors.legalName && <div className="muted" style={{ color: 'var(--danger)' }}>{fieldErrors.legalName}</div>}
-            </div>
-            <div>
-              <label>Vertical *</label>
-              <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
-                {VERTICAL_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label>Legal Name (optional)</label>
+            <input value={legalName} onChange={(e) => setLegalName(e.target.value)} />
+            {fieldErrors.legalName && <div className="muted" style={{ color: 'var(--danger)' }}>{fieldErrors.legalName}</div>}
           </div>
           <div className="form-row-2">
             <div>

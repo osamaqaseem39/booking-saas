@@ -9,7 +9,6 @@ import {
   deleteFutsalField,
   deletePadelCourt,
   deleteTurfCourt,
-  getArenaMeta,
   listBusinessLocations,
   listCricketIndoor,
   listFutsalFields,
@@ -23,20 +22,21 @@ import {
 import type { NamedCourt } from '../types/domain';
 
 export default function ArenaHubPage() {
-  const [meta, setMeta] = useState<unknown>(null);
   const [turf, setTurf] = useState<NamedCourt[]>([]);
   const [futsal, setFutsal] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
   const [cricket, setCricket] = useState<NamedCourt[]>([]);
   const [locationId, setLocationId] = useState('');
+  const [search, setSearch] = useState('');
+  const [courtFilter, setCourtFilter] = useState<'all' | 'turf' | 'futsal' | 'padel' | 'cricket'>(
+    'all',
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function reload() {
     setErr(null);
     try {
-      const m = await getArenaMeta();
-      setMeta(m);
       const [tu, fu, pa, cr, locs] = await Promise.all([
         listTurfCourts(),
         listFutsalFields(),
@@ -199,6 +199,20 @@ export default function ArenaHubPage() {
     );
   }
 
+  function filterRows(rows: NamedCourt[]) {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (row) => row.name.toLowerCase().includes(q) || row.id.toLowerCase().includes(q),
+    );
+  }
+
+  const turfRows = filterRows(turf);
+  const futsalRows = filterRows(futsal);
+  const padelRows = filterRows(padel);
+  const cricketRows = filterRows(cricket);
+  const totalVisible = turfRows.length + futsalRows.length + padelRows.length + cricketRows.length;
+
   return (
     <div>
       <h1 className="page-title">Arena courts</h1>
@@ -222,14 +236,60 @@ export default function ArenaHubPage() {
           </button>
         </div>
       </div>
-      <h3 style={{ fontSize: '1rem' }}>Meta</h3>
-      <pre className="code-block" style={{ marginBottom: '1.5rem' }}>
-        {JSON.stringify(meta, null, 2)}
-      </pre>
-      <Table title="Turf courts" rows={turf} kind="turf" />
-      <Table title="Futsal fields" rows={futsal} kind="futsal" />
-      <Table title="Padel courts" rows={padel} kind="padel" />
-      <Table title="Cricket indoor" rows={cricket} kind="cricket" />
+      <div className="connection-panel" style={{ marginBottom: '1rem' }}>
+        <div className="form-row-2" style={{ maxWidth: '660px' }}>
+          <div>
+            <label>Search courts</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Court name or ID"
+            />
+          </div>
+          <div>
+            <label>Court type</label>
+            <select value={courtFilter} onChange={(e) => setCourtFilter(e.target.value as typeof courtFilter)}>
+              <option value="all">All</option>
+              <option value="turf">Turf</option>
+              <option value="futsal">Futsal</option>
+              <option value="padel">Padel</option>
+              <option value="cricket">Cricket</option>
+            </select>
+          </div>
+        </div>
+        <div className="detail-row" style={{ marginTop: '0.75rem' }}>
+          <span>Visible courts</span>
+          <span>{totalVisible}</span>
+        </div>
+        <div className="detail-row">
+          <span>Turf</span>
+          <span>{turfRows.length}</span>
+        </div>
+        <div className="detail-row">
+          <span>Futsal</span>
+          <span>{futsalRows.length}</span>
+        </div>
+        <div className="detail-row">
+          <span>Padel</span>
+          <span>{padelRows.length}</span>
+        </div>
+        <div className="detail-row">
+          <span>Cricket</span>
+          <span>{cricketRows.length}</span>
+        </div>
+      </div>
+      {(courtFilter === 'all' || courtFilter === 'turf') && (
+        <Table title="Turf courts" rows={turfRows} kind="turf" />
+      )}
+      {(courtFilter === 'all' || courtFilter === 'futsal') && (
+        <Table title="Futsal fields" rows={futsalRows} kind="futsal" />
+      )}
+      {(courtFilter === 'all' || courtFilter === 'padel') && (
+        <Table title="Padel courts" rows={padelRows} kind="padel" />
+      )}
+      {(courtFilter === 'all' || courtFilter === 'cricket') && (
+        <Table title="Cricket indoor" rows={cricketRows} kind="cricket" />
+      )}
     </div>
   );
 }

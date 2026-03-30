@@ -87,10 +87,6 @@ export default function BusinessTenantStatsPage() {
               <span>Business</span>
               <span>{business?.businessName ?? 'Unknown business'}</span>
             </div>
-            <div className="detail-row">
-              <span>Vertical</span>
-              <span>{business?.vertical ?? '—'}</span>
-            </div>
           </div>
 
           <div className="connection-grid" style={{ marginTop: '1rem' }}>

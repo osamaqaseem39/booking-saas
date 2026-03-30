@@ -248,7 +248,6 @@ export async function onboardBusiness(body: {
   tenantId?: string;
   businessName: string;
   legalName?: string;
-  vertical?: string;
   businessType?: string;
   sportsOffered?: string[];
   owner?: {
@@ -281,7 +280,6 @@ export async function updateBusiness(
   body: {
     businessName?: string;
     legalName?: string;
-    vertical?: string;
     businessType?: string;
     sportsOffered?: string[];
     owner?: { name?: string; email?: string; phone?: string };

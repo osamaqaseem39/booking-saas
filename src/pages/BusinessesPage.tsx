@@ -13,7 +13,6 @@ export default function BusinessesPage() {
   const { session, setTenantId } = useSession();
   const canCreateBusiness = (session?.roles ?? []).includes('platform-owner');
   const totalMemberships = rows.reduce((sum, row) => sum + (row.memberships?.length ?? 0), 0);
-  const uniqueVerticals = new Set(rows.map((row) => row.vertical.trim().toLowerCase()).filter(Boolean)).size;
 
   async function reloadBusinesses() {
     setLoading(true);
@@ -75,8 +74,10 @@ export default function BusinessesPage() {
             <strong style={{ fontSize: '1.25rem' }}>{totalMemberships}</strong>
           </div>
           <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Verticals</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{uniqueVerticals}</strong>
+            <h2>Avg members / business</h2>
+            <strong style={{ fontSize: '1.25rem' }}>
+              {rows.length > 0 ? (totalMemberships / rows.length).toFixed(1) : '0.0'}
+            </strong>
           </div>
         </div>
       )}
@@ -103,7 +104,6 @@ export default function BusinessesPage() {
               <tr>
                 <th>Name</th>
                 <th>Tenant ID</th>
-                <th>Vertical</th>
                 <th>Type</th>
                 <th>Status</th>
                 <th>Members</th>
@@ -117,7 +117,6 @@ export default function BusinessesPage() {
                   <td>
                     <code style={{ fontSize: '0.75rem' }}>{b.tenantId}</code>
                   </td>
-                  <td>{toProperCase(b.vertical)}</td>
                   <td>{toProperCase(b.businessType)}</td>
                   <td>{toProperCase(b.status ?? 'active')}</td>
                   <td>{b.memberships?.length ?? 0}</td>
