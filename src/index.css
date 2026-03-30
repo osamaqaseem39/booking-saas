@@ -471,6 +471,17 @@ table.data tbody tr:last-child td {
   height: 1rem;
 }
 
+.turf-sport-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.turf-sport-switches .ui-switch {
+  margin-top: 0;
+}
+
 @media (max-width: 520px) {
   .form-row-2 {
     grid-template-columns: 1fr;

@@ -605,22 +605,24 @@ export function TurfCourtSetupForm({
 
       <div className="detail-section">
         <h4>5. Supported sports</h4>
-        <div className="turf-setup-checkrow">
-          <label className="turf-setup-inline">
+        <div className="turf-sport-switches">
+          <label className="ui-switch">
             <input
               type="checkbox"
               checked={supportFutsal}
               onChange={(e) => setSupportFutsal(e.target.checked)}
             />
-            Futsal
+            <span className="ui-switch-track" aria-hidden />
+            <span className="ui-switch-text">Futsal</span>
           </label>
-          <label className="turf-setup-inline">
+          <label className="ui-switch">
             <input
               type="checkbox"
               checked={supportCricket}
               onChange={(e) => setSupportCricket(e.target.checked)}
             />
-            Cricket
+            <span className="ui-switch-track" aria-hidden />
+            <span className="ui-switch-text">Cricket</span>
           </label>
         </div>
       </div>
