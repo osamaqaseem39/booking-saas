@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   deleteBusinessLocation,
@@ -6,6 +6,7 @@ import {
   listBusinesses,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
+import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
 export default function LocationsPage() {
@@ -17,6 +18,8 @@ export default function LocationsPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const load = () => {
     void (async () => {
@@ -56,6 +59,31 @@ export default function LocationsPage() {
     }
   }
 
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (typeFilter !== 'all' && (r.locationType ?? 'unknown') !== typeFilter) return false;
+      if (!q) return true;
+      return (
+        (r.name ?? '').toLowerCase().includes(q) ||
+        (r.city ?? '').toLowerCase().includes(q) ||
+        (r.business?.businessName ?? '').toLowerCase().includes(q) ||
+        (r.business?.tenantId ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [query, rows, typeFilter]);
+
+  const stats = useMemo(() => {
+    const active = filteredRows.filter((r) => (r.status ?? '').toLowerCase() === 'active').length;
+    const withFacilities = filteredRows.filter((r) => (r.facilityTypes?.length ?? 0) > 0).length;
+    return {
+      total: filteredRows.length,
+      active,
+      inactive: filteredRows.length - active,
+      withFacilities,
+    };
+  }, [filteredRows]);
+
   return (
     <div>
       <h1 className="page-title">Locations</h1>
@@ -75,14 +103,56 @@ export default function LocationsPage() {
         </button>
       </div>
 
+      <div className="connection-panel location-list-toolbar">
+        <div className="form-row-2" style={{ maxWidth: '760px' }}>
+          <div>
+            <label>Search</label>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Location, city, business, tenant"
+            />
+          </div>
+          <div>
+            <label>Location type</label>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+              <option value="all">All types</option>
+              {LOCATION_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+        </div>
+        <div className="location-stats">
+          <div className="location-stat-card">
+            <div className="muted">In view</div>
+            <strong>{stats.total}</strong>
+          </div>
+          <div className="location-stat-card">
+            <div className="muted">Active</div>
+            <strong>{stats.active}</strong>
+          </div>
+          <div className="location-stat-card">
+            <div className="muted">Inactive</div>
+            <strong>{stats.inactive}</strong>
+          </div>
+          <div className="location-stat-card">
+            <div className="muted">Configured facilities</div>
+            <strong>{stats.withFacilities}</strong>
+          </div>
+        </div>
+      </div>
+
       <h3 style={{ fontSize: '1rem', marginTop: '1.75rem' }}>All locations</h3>
       <div className="table-wrap">
         {loading ? (
           <div className="empty-state">Loading…</div>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <div className="empty-state">
-            No locations yet. Add one above (run DB migration if the table is
-            missing).
+            No locations match the current filters.
           </div>
         ) : (
           <table className="data">
@@ -99,7 +169,7 @@ export default function LocationsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {filteredRows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.business?.businessName ?? r.businessId}</td>
                   <td>
@@ -108,27 +178,39 @@ export default function LocationsPage() {
                     </code>
                   </td>
                   <td>
-                    <code style={{ fontSize: '0.75rem' }}>
+                    <code className="location-type-chip">
                       {r.locationType ?? '—'}
                     </code>
                   </td>
                   <td>
                     {r.facilityTypes?.length ? (
-                      <code style={{ fontSize: '0.7rem' }}>
-                        {r.facilityTypes.join(', ')}
-                      </code>
+                      <div className="facility-chip-list">
+                        {r.facilityTypes.map((code) => (
+                          <span key={code} className="facility-chip">
+                            {code}
+                          </span>
+                        ))}
+                      </div>
                     ) : (
                       '—'
                     )}
                   </td>
                   <td>{r.name}</td>
                   <td>{r.city ?? '—'}</td>
-                  <td>{r.phone ?? '—'}</td>
+                  <td>
+                    <div>{r.phone ?? '—'}</div>
+                    <span
+                      className={`badge ${(r.status ?? '').toLowerCase() === 'active' ? 'badge-confirmed' : 'badge-neutral'}`}
+                      style={{ marginTop: '0.3rem' }}
+                    >
+                      {(r.status ?? 'unknown').toUpperCase()}
+                    </span>
+                  </td>
                   <td style={{ minWidth: '220px' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <Link to={`/app/locations/${r.id}/facilities`}>Manage</Link>
-                      <Link to={`/app/locations/${r.id}`}>View</Link>
-                      <Link to={`/app/locations/${r.id}/edit`}>Edit</Link>
+                    <div className="location-actions">
+                      <Link className="action-link" to={`/app/locations/${r.id}/facilities`}>Manage</Link>
+                      <Link className="action-link" to={`/app/locations/${r.id}`}>View</Link>
+                      <Link className="action-link" to={`/app/locations/${r.id}/edit`}>Edit</Link>
                       <button
                         type="button"
                         className="btn-danger"

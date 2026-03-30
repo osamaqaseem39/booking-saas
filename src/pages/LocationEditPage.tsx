@@ -6,6 +6,10 @@ import {
   updateBusinessLocation,
 } from '../api/saasClient';
 import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
+import WorkingHoursEditor, {
+  createDefaultWorkingHoursPayload,
+  validateWorkingHoursPayload,
+} from '../components/WorkingHoursEditor';
 import {
   getAreasByCountryStateCity,
   getCitiesByCountryState,
@@ -38,7 +42,9 @@ export default function LocationEditPage() {
   const [manager, setManager] = useState('');
   const [timezone, setTimezone] = useState('Asia/Karachi');
   const [currency, setCurrency] = useState('PKR');
-  const [workingHoursText, setWorkingHoursText] = useState('{}');
+  const [workingHours, setWorkingHours] = useState<Record<string, unknown>>(
+    createDefaultWorkingHoursPayload(),
+  );
   const [isActive, setIsActive] = useState(true);
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
   const [customFacilityType, setCustomFacilityType] = useState('');
@@ -47,6 +53,7 @@ export default function LocationEditPage() {
   const stateOptions = getStatesByCountry(country);
   const cityOptions = getCitiesByCountryState(country, stateProvince);
   const areaOptions = getAreasByCountryStateCity(country, stateProvince, city);
+  const isArenaType = locationType === 'arena';
 
   const location = useMemo(
     () => rows.find((r) => r.id === locationId) ?? null,
@@ -79,9 +86,7 @@ export default function LocationEditPage() {
     setManager(location.manager ?? '');
     setTimezone(location.timezone ?? 'Asia/Karachi');
     setCurrency(location.currency ?? 'PKR');
-    setWorkingHoursText(
-      JSON.stringify(location.workingHours ?? {}, null, 2),
-    );
+    setWorkingHours((location.workingHours as Record<string, unknown> | null) ?? {});
     setIsActive((location.status ?? '').toLowerCase() === 'active' ? true : Boolean(location.isActive));
     setFacilityTypes(location.facilityTypes ?? []);
     const isPreset = LOCATION_TYPE_OPTIONS.some((o) => o.value === location.locationType);
@@ -114,13 +119,9 @@ export default function LocationEditPage() {
     if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
       return 'Longitude must be a valid number between -180 and 180.';
     }
-    try {
-      const parsed = JSON.parse(workingHoursText || '{}');
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        return 'Working hours must be a JSON object.';
-      }
-    } catch {
-      return 'Working hours must be valid JSON.';
+    const workingHoursError = validateWorkingHoursPayload(workingHours);
+    if (workingHoursError) {
+      return workingHoursError;
     }
     if (locationType === 'custom' && !customType.trim()) {
       return 'Custom location type is required.';
@@ -139,7 +140,6 @@ export default function LocationEditPage() {
     setErr(null);
     try {
       const lt = locationType === 'custom' ? customType.trim().slice(0, 80) : locationType;
-      const workingHours = JSON.parse(workingHoursText || '{}') as Record<string, unknown>;
       const lat = Number(latitude);
       const lng = Number(longitude);
       await updateBusinessLocation(locationId, {
@@ -225,6 +225,20 @@ export default function LocationEditPage() {
     setArea('');
   }
 
+  function onLocationTypeChange(nextType: string) {
+    setLocationType(nextType);
+    if (nextType !== 'arena') {
+      setFacilityTypes([]);
+      setCustomFacilityType('');
+    }
+  }
+
+  function toggleFacilityType(code: string, enabled: boolean) {
+    setFacilityTypes((prev) =>
+      enabled ? (prev.includes(code) ? prev : [...prev, code]) : prev.filter((x) => x !== code),
+    );
+  }
+
   if (!locationId.trim()) return <p className="muted">Missing location id.</p>;
 
   return (
@@ -253,7 +267,7 @@ export default function LocationEditPage() {
           </div>
           <div>
             <label>Location Type *</label>
-            <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
+            <select value={locationType} onChange={(e) => onLocationTypeChange(e.target.value)}>
               {LOCATION_TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -377,13 +391,7 @@ export default function LocationEditPage() {
             </div>
           </div>
           <div>
-            <label>Working hours JSON *</label>
-            <textarea
-              value={workingHoursText}
-              onChange={(e) => setWorkingHoursText(e.target.value)}
-              rows={4}
-              required
-            />
+            <WorkingHoursEditor value={workingHours} onChange={setWorkingHours} />
           </div>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -393,21 +401,22 @@ export default function LocationEditPage() {
           </div>
           <div>
             <label>Facility types at this location</label>
+            {!isArenaType && (
+              <p className="muted" style={{ margin: '0.4rem 0 0.65rem' }}>
+                Facility court switches apply to <strong>Arena</strong> type only.
+              </p>
+            )}
             <div className="checkbox-grid">
               {facilityOptions.map((o) => (
-                <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <label key={o.value} className="ui-switch">
                   <input
                     type="checkbox"
                     checked={facilityTypes.includes(o.value)}
-                    onChange={() =>
-                      setFacilityTypes((prev) =>
-                        prev.includes(o.value)
-                          ? prev.filter((x) => x !== o.value)
-                          : [...prev, o.value],
-                      )
-                    }
+                    onChange={(e) => toggleFacilityType(o.value, e.target.checked)}
+                    disabled={!isArenaType}
                   />
-                  {o.label}
+                  <span className="ui-switch-track" />
+                  <span className="ui-switch-text">{o.label}</span>
                 </label>
               ))}
             </div>
@@ -416,8 +425,14 @@ export default function LocationEditPage() {
                 value={customFacilityType}
                 onChange={(e) => setCustomFacilityType(e.target.value)}
                 placeholder="Custom facility code (e.g. xbox, snooker-table)"
+                disabled={!isArenaType}
               />
-              <button type="button" className="btn-ghost" onClick={addCustomFacilityType}>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={addCustomFacilityType}
+                disabled={!isArenaType}
+              >
                 Add custom
               </button>
             </div>
