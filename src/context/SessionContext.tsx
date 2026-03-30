@@ -11,7 +11,7 @@ import {
   fetchSessionUser,
   getApiBase,
   getTenantId,
-  getUserId,
+  getToken,
   persistConnection,
   setTenantIdStorage,
 } from '../api/saasClient';
@@ -28,7 +28,7 @@ type Ctx = {
   setUserId: (v: string) => void;
   setTenantId: (v: string) => void;
   refreshSession: () => Promise<void>;
-  signIn: (api: string, uid: string) => Promise<void>;
+  signIn: (api: string, email: string, password: string) => Promise<void>;
   signOut: () => void;
 };
 
@@ -36,18 +36,19 @@ const SessionCtx = createContext<Ctx | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [apiBase, setApiBaseState] = useState(getApiBase);
-  const [userId, setUserIdState] = useState(getUserId);
+  const [userId, setUserIdState] = useState('');
   const [tenantId, setTenantIdState] = useState(getTenantId);
   const [session, setSession] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [token, setTokenState] = useState(getToken);
 
   useEffect(() => {
-    persistConnection({ apiBase, tenantId, userId });
-  }, [apiBase, tenantId, userId]);
+    persistConnection({ apiBase, tenantId, token });
+  }, [apiBase, tenantId, token]);
 
   const refreshSession = useCallback(async () => {
-    if (!userId.trim()) {
+    if (!token.trim()) {
       setSession(null);
       return;
     }
@@ -56,6 +57,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       const me = await fetchSessionUser();
       setSession(me);
+      setUserIdState(me.id);
       if (!me.roles?.length) {
         setError('This user has no roles assigned yet.');
       }
@@ -65,11 +67,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [token]);
 
   useEffect(() => {
     void refreshSession();
-  }, [userId, apiBase, refreshSession]);
+  }, [token, apiBase, refreshSession]);
 
   const setApiBase = useCallback((v: string) => {
     setApiBaseState(v);
@@ -84,19 +86,40 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setTenantIdStorage(v);
   }, []);
 
-  const signIn = useCallback(async (api: string, uid: string) => {
+  const signIn = useCallback(async (api: string, email: string, password: string) => {
     setApiBaseState(api);
-    setUserIdState(uid);
-    persistConnection({
-      apiBase: api,
-      tenantId: getTenantId(),
-      userId: uid,
-    });
     setLoading(true);
     setError(null);
     try {
+      const base = api.replace(/\/$/, '');
+      const res = await fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        let message = 'Login failed';
+        try {
+          const data = (await res.json()) as { message?: string | string[] };
+          if (typeof data.message === 'string') message = data.message;
+          else if (Array.isArray(data.message)) message = data.message.join(', ');
+          else message = res.statusText || message;
+        } catch {
+          message = res.statusText || message;
+        }
+        throw new Error(message);
+      }
+      const data = (await res.json()) as { token: string };
+      setTokenState(data.token);
+      persistConnection({
+        apiBase: api,
+        tenantId: getTenantId(),
+        token: data.token,
+      });
+
       const me = await fetchSessionUser();
       setSession(me);
+      setUserIdState(me.id);
       if (!me.roles?.length) {
         setError('This user has no roles assigned yet.');
       }
@@ -110,8 +133,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
-    localStorage.removeItem('bukit_saas_user_id');
+    localStorage.removeItem('bukit_saas_token');
     setUserIdState('');
+    setTokenState('');
     setSession(null);
     setError(null);
   }, []);

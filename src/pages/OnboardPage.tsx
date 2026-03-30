@@ -11,6 +11,7 @@ export default function OnboardPage() {
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,6 +23,7 @@ export default function OnboardPage() {
     adminName?: string;
     adminEmail?: string;
     adminPhone?: string;
+    adminPassword?: string;
   }>({});
 
   const emailRe = /^\S+@\S+\.\S+$/;
@@ -49,6 +51,8 @@ export default function OnboardPage() {
     if (!adminName.trim()) next.adminName = 'Admin full name is required';
     if (!adminEmail.trim()) next.adminEmail = 'Email is required';
     else if (!emailRe.test(adminEmail.trim())) next.adminEmail = 'Invalid email';
+    if (!adminPassword.trim()) next.adminPassword = 'Admin password is required';
+    else if (adminPassword.trim().length < 8) next.adminPassword = 'Password must be at least 8 characters';
 
     setFieldErrors(next);
     return Object.keys(next).length === 0;
@@ -70,6 +74,7 @@ export default function OnboardPage() {
           fullName: adminName.trim(),
           email: adminEmail.trim(),
           phone: adminPhone.trim() || undefined,
+          password: adminPassword,
         },
       });
       setMsg(`Created: ${JSON.stringify(res, null, 2)}`);
@@ -195,6 +200,22 @@ export default function OnboardPage() {
             onChange={(e) => setAdminPhone(e.target.value)}
             aria-invalid={!!fieldErrors.adminPhone}
           />
+        </div>
+
+        <div>
+          <label>Admin password</label>
+          <input
+            name="adminPassword"
+            type="password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            aria-invalid={!!fieldErrors.adminPassword}
+          />
+          {fieldErrors.adminPassword && (
+            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+              {fieldErrors.adminPassword}
+            </div>
+          )}
         </div>
 
         <button

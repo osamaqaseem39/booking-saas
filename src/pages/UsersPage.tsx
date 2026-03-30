@@ -25,6 +25,7 @@ export default function UsersPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [assignUserId, setAssignUserId] = useState('');
   const [assignRoleCode, setAssignRoleCode] = useState<string>(
     'customer-end-user',
@@ -73,6 +74,15 @@ export default function UsersPage() {
           <label>Phone (optional)</label>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
+          <div>
+            <label>Password</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder="Min 8 characters"
+            />
+          </div>
         <button
           type="button"
           className="btn-primary"
@@ -83,10 +93,12 @@ export default function UsersPage() {
                   fullName: fullName.trim(),
                   email: email.trim(),
                   phone: phone.trim() || undefined,
+                    password,
                 });
                 setFullName('');
                 setEmail('');
                 setPhone('');
+                  setPassword('');
                 reload();
               } catch (e) {
                 setErr(e instanceof Error ? e.message : 'Create failed');

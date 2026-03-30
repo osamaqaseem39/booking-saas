@@ -12,16 +12,19 @@ export default function LoginPage() {
       localStorage.getItem('bukit_saas_api_url') ||
       'http://localhost:3000',
   );
-  const [uid, setUid] = useState(userId);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [tenant, setTenant] = useState(tenantId);
   const [fieldErrors, setFieldErrors] = useState<{
     api?: string;
-    uid?: string;
+    email?: string;
+    password?: string;
     tenantId?: string;
   }>({});
 
   const uuidRe =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const emailRe = /^\S+@\S+\.\S+$/;
 
   function validate(): boolean {
     const next: typeof fieldErrors = {};
@@ -38,11 +41,18 @@ export default function LoginPage() {
       }
     }
 
-    const uidTrim = uid.trim();
-    if (!uidTrim) {
-      next.uid = 'User UUID is required';
-    } else if (!uuidRe.test(uidTrim)) {
-      next.uid = 'Invalid UUID format';
+    const emailTrim = email.trim();
+    if (!emailTrim) {
+      next.email = 'Email is required';
+    } else if (!emailRe.test(emailTrim)) {
+      next.email = 'Invalid email';
+    }
+
+    const passTrim = password.trim();
+    if (!passTrim) {
+      next.password = 'Password is required';
+    } else if (passTrim.length < 8) {
+      next.password = 'Password must be at least 8 characters';
     }
 
     const tenantTrim = tenant.trim();
@@ -64,7 +74,7 @@ export default function LoginPage() {
 
     setTenantId(tenant.trim());
     try {
-      await signIn(api.replace(/\/$/, ''), uid.trim());
+      await signIn(api.replace(/\/$/, ''), email.trim(), password);
       // Navigation happens via the effect once the session is loaded.
     } catch {
       // Error is surfaced by SessionContext.
@@ -82,9 +92,9 @@ export default function LoginPage() {
       <div className="login-card">
         <h1>Bukit SaaS console</h1>
         <p className="muted">
-          Sign in with your user UUID. The API uses{' '}
-          <code>X-User-Id</code> and <code>X-Tenant-Id</code> headers (no JWT
-          in this stack).
+          Sign in with <code>email + password</code>. Requests use a JWT
+          token under <code>Authorization: Bearer ...</code>, plus{' '}
+          <code>X-Tenant-Id</code> for tenant scoping.
         </p>
         <form onSubmit={onSubmit}>
           <div className="form-grid" style={{ marginTop: '1.25rem' }}>
@@ -105,20 +115,39 @@ export default function LoginPage() {
               )}
             </div>
             <div>
-              <label htmlFor="uid">User ID (UUID)</label>
+              <label htmlFor="email">Email</label>
               <input
-                id="uid"
-                name="uid"
-                value={uid}
-                onChange={(e) => setUid(e.target.value)}
-                placeholder="From database users.id"
-                aria-invalid={!!fieldErrors.uid}
+                id="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
                 autoFocus
+                placeholder="you@company.com"
+                aria-invalid={!!fieldErrors.email}
                 inputMode="text"
               />
-              {fieldErrors.uid && (
+              {fieldErrors.email && (
                 <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.uid}
+                  {fieldErrors.email}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="Your password"
+                aria-invalid={!!fieldErrors.password}
+              />
+              {fieldErrors.password && (
+                <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                  {fieldErrors.password}
                 </div>
               )}
             </div>
@@ -147,7 +176,11 @@ export default function LoginPage() {
           )}
 
           <div style={{ marginTop: '1.25rem' }}>
-            <button type="submit" className="btn-primary" disabled={loading || !uid.trim()}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading || !email.trim() || !password.trim()}
+            >
               {loading ? 'Signing in…' : 'Continue'}
             </button>
           </div>

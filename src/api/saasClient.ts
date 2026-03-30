@@ -16,8 +16,7 @@ import type {
 
 const LS_API = 'bukit_saas_api_url';
 const LS_TENANT = 'bukit_saas_tenant_id';
-const LS_USER = 'bukit_saas_user_id';
-const LS_ADMIN_LEGACY = 'bukit_saas_admin_user_id';
+const LS_TOKEN = 'bukit_saas_token';
 
 export function getApiBase(): string {
   return (
@@ -31,25 +30,18 @@ export function getTenantId(): string {
   return localStorage.getItem(LS_TENANT)?.trim() || '';
 }
 
-export function getUserId(): string {
-  const u =
-    localStorage.getItem(LS_USER)?.trim() ||
-    localStorage.getItem(LS_ADMIN_LEGACY)?.trim() ||
-    '';
-  return u;
+export function getToken(): string {
+  return localStorage.getItem(LS_TOKEN)?.trim() || '';
 }
 
 export function persistConnection(opts: {
   apiBase: string;
   tenantId: string;
-  userId: string;
+  token: string;
 }): void {
   localStorage.setItem(LS_API, opts.apiBase.trim().replace(/\/$/, ''));
   localStorage.setItem(LS_TENANT, opts.tenantId.trim());
-  localStorage.setItem(LS_USER, opts.userId.trim());
-  if (localStorage.getItem(LS_ADMIN_LEGACY)) {
-    localStorage.removeItem(LS_ADMIN_LEGACY);
-  }
+  localStorage.setItem(LS_TOKEN, opts.token.trim());
 }
 
 export function setTenantIdStorage(tenantId: string): void {
@@ -61,8 +53,8 @@ function headers(json = true): HeadersInit {
   if (json) h['Content-Type'] = 'application/json';
   const tenant = getTenantId();
   if (tenant) h['X-Tenant-Id'] = tenant;
-  const user = getUserId();
-  if (user) h['X-User-Id'] = user;
+  const token = getToken();
+  if (token) h['Authorization'] = `Bearer ${token}`;
   return h;
 }
 
@@ -135,7 +127,7 @@ export async function onboardBusiness(body: {
   businessName: string;
   legalName?: string;
   vertical: string;
-  admin: { fullName: string; email: string; phone?: string };
+  admin: { fullName: string; email: string; phone?: string; password: string };
 }): Promise<unknown> {
   return request('/businesses/onboard', {
     method: 'POST',
@@ -156,6 +148,7 @@ export async function createIamUser(body: {
   fullName: string;
   email: string;
   phone?: string;
+  password: string;
 }): Promise<IamUserRow> {
   return request<IamUserRow>('/iam/users', {
     method: 'POST',
@@ -315,7 +308,7 @@ export async function createCricketIndoorCourt(body: {
 export async function listCourtOptions(
   sport: BookingSportType,
 ): Promise<CourtOption[]> {
-  if (!getUserId() || !getTenantId()) return [];
+  if (!getToken() || !getTenantId()) return [];
   try {
     const out: CourtOption[] = [];
     if (sport === 'padel') {
