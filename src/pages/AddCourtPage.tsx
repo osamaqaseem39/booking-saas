@@ -38,6 +38,12 @@ export default function AddCourtPage() {
     !!location && isCourtSetupAllowedForLocation(location, TURF_COURT_SETUP_CODE);
   const turfHref =
     locationId && turfAllowed ? setupPath(locationId, TURF_COURT_SETUP_CODE) : '';
+
+  const padelAllowed =
+    !!location && isCourtSetupAllowedForLocation(location, 'padel-court');
+  const padelHref =
+    locationId && padelAllowed ? setupPath(locationId, 'padel-court') : '';
+
   const showLocationPicker = locations.length > 1;
 
   return (
@@ -75,21 +81,39 @@ export default function AddCourtPage() {
       )}
 
       <div className="add-court-cta">
-        {turfHref ? (
-          <Link to={turfHref} className="btn-primary btn-primary-lg">
-            Add turf
-          </Link>
-        ) : (
-          <button type="button" className="btn-primary btn-primary-lg" disabled>
-            Add turf
-          </button>
-        )}
+        <div className="add-court-actions">
+          {turfHref ? (
+            <Link to={turfHref} className="btn-primary btn-primary-lg">
+              Add turf
+            </Link>
+          ) : (
+            <button type="button" className="btn-primary btn-primary-lg" disabled>
+              Add turf
+            </button>
+          )}
+          {padelHref ? (
+            <Link to={padelHref} className="btn-primary btn-primary-lg">
+              Add padel
+            </Link>
+          ) : (
+            <button type="button" className="btn-primary btn-primary-lg" disabled>
+              Add padel
+            </button>
+          )}
+        </div>
         {locations.length === 0 && !err && (
-          <p className="muted add-court-hint">Create a location first to add a turf court.</p>
+          <p className="muted add-court-hint">
+            Create a location first to add turf or padel courts.
+          </p>
         )}
         {location && !turfAllowed && (
           <p className="muted add-court-hint">
             Turn on Futsal or Arena Cricket for this location, then you can add turf.
+          </p>
+        )}
+        {location && !padelAllowed && (
+          <p className="muted add-court-hint">
+            Turn on Padel for this location (facility types), then you can add a padel court.
           </p>
         )}
       </div>

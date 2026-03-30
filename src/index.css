@@ -135,6 +135,13 @@ a.btn-primary:hover {
   gap: 0.75rem;
 }
 
+.add-court-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .add-court-hint {
   margin: 0;
   max-width: 26rem;
