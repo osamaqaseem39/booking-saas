@@ -7,7 +7,7 @@ const OWNER_SIGNUP_HIDDEN_KEY = 'bukit_owner_signup_hidden';
 
 export default function OwnerSignupPage() {
   const navigate = useNavigate();
-  const { userId, session, signIn, loading, error } = useSession();
+  const { userId, session, loading, error } = useSession();
   const [api, setApi] = useState(
     () =>
       import.meta.env.VITE_API_URL ||
@@ -95,9 +95,10 @@ export default function OwnerSignupPage() {
         throw new Error(message);
       }
 
-      setSuccess('Owner account created. Signing you in...');
+      setSuccess('Owner account created successfully. You can now sign in.');
       localStorage.setItem(OWNER_SIGNUP_HIDDEN_KEY, '1');
-      await signIn(base, email.trim(), password);
+      setPassword('');
+      setBootstrapSecret('');
     } catch (e) {
       setLocalError(e instanceof Error ? e.message : 'Owner sign up failed');
     } finally {

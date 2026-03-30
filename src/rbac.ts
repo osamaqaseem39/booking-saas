@@ -26,7 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'End users',
     anyOf: ['platform-owner'],
   },
-  { to: '/app/onboard', label: 'Onboard business', anyOf: ['platform-owner'] },
+  { to: '/app/businesses/new', label: 'Add business', anyOf: ['platform-owner'] },
   {
     to: '/app/users',
     label: 'Users & IAM',

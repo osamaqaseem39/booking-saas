@@ -4,6 +4,7 @@ import ConsoleLayout from './layout/ConsoleLayout';
 import RequireRoles from './layout/RequireRoles';
 import ArenaHubPage from './pages/ArenaHubPage';
 import BillingPage from './pages/BillingPage';
+import BusinessCreatePage from './pages/BusinessCreatePage';
 import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
 import BusinessesPage from './pages/BusinessesPage';
@@ -28,6 +29,14 @@ export default function App() {
           <Route path="/app" element={<ConsoleLayout />}>
             <Route index element={<OverviewPage />} />
             <Route path="businesses" element={<BusinessesPage />} />
+            <Route
+              path="businesses/new"
+              element={
+                <RequireRoles anyOf={['platform-owner']}>
+                  <BusinessCreatePage />
+                </RequireRoles>
+              }
+            />
             <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
             <Route path="locations" element={<LocationsPage />} />
             <Route
