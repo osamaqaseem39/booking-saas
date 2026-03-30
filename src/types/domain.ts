@@ -75,3 +75,4 @@ export interface NamedCourt {
   tenantId?: string;
   businessLocationId?: string | null;
 }
+
