@@ -148,12 +148,39 @@ export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
 
 export async function createBusinessLocation(body: {
   businessId: string;
+  branchId?: string;
+  arenaId?: string;
+  branchName?: string;
   locationType: string;
   facilityTypes?: string[];
   name: string;
   addressLine?: string;
   city?: string;
+  area?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
+  manager?: string;
+  workingHours?: Record<string, unknown>;
+  timezone?: string;
+  currency?: string;
+  status?: string;
+  location?: {
+    country?: string;
+    city?: string;
+    area?: string;
+    address?: string;
+    coordinates?: { lat: number; lng: number };
+  };
+  contact?: {
+    phone?: string;
+    manager?: string;
+  };
+  settings?: {
+    timezone?: string;
+    currency?: string;
+  };
 }): Promise<unknown> {
   return request('/businesses/locations', {
     method: 'POST',
@@ -164,12 +191,39 @@ export async function createBusinessLocation(body: {
 export async function updateBusinessLocation(
   locationId: string,
   body: {
+    branchId?: string;
+    arenaId?: string;
+    branchName?: string;
     locationType?: string;
     facilityTypes?: string[];
     name?: string;
     addressLine?: string;
     city?: string;
+    area?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
     phone?: string;
+    manager?: string;
+    workingHours?: Record<string, unknown>;
+    timezone?: string;
+    currency?: string;
+    status?: string;
+    location?: {
+      country?: string;
+      city?: string;
+      area?: string;
+      address?: string;
+      coordinates?: { lat: number; lng: number };
+    };
+    contact?: {
+      phone?: string;
+      manager?: string;
+    };
+    settings?: {
+      timezone?: string;
+      currency?: string;
+    };
     isActive?: boolean;
   },
 ): Promise<unknown> {
@@ -191,10 +245,30 @@ export async function deleteBusinessLocation(
 }
 
 export async function onboardBusiness(body: {
+  tenantId?: string;
   businessName: string;
   legalName?: string;
-  vertical: string;
-  admin: { fullName: string; email: string; phone?: string; password: string };
+  vertical?: string;
+  businessType?: string;
+  sportsOffered?: string[];
+  owner?: {
+    name: string;
+    email: string;
+    phone?: string;
+    password?: string;
+  };
+  admin?: { fullName: string; email: string; phone?: string; password: string };
+  subscription?: {
+    plan?: string;
+    status?: string;
+    billingCycle?: string;
+  };
+  settings?: {
+    timezone?: string;
+    currency?: string;
+    allowOnlinePayments?: boolean;
+  };
+  status?: string;
 }): Promise<unknown> {
   return request('/businesses/onboard', {
     method: 'POST',
@@ -208,6 +282,16 @@ export async function updateBusiness(
     businessName?: string;
     legalName?: string;
     vertical?: string;
+    businessType?: string;
+    sportsOffered?: string[];
+    owner?: { name?: string; email?: string; phone?: string };
+    subscription?: { plan?: string; status?: string; billingCycle?: string };
+    settings?: {
+      timezone?: string;
+      currency?: string;
+      allowOnlinePayments?: boolean;
+    };
+    status?: string;
   },
 ): Promise<BusinessRow> {
   return request<BusinessRow>(`/businesses/${businessId}`, {

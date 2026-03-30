@@ -32,10 +32,22 @@ export default function LocationCreatePage() {
   const [businessId, setBusinessId] = useState('');
   const [locationType, setLocationType] = useState('arena');
   const [customType, setCustomType] = useState('');
+  const [branchId, setBranchId] = useState('');
+  const [arenaId, setArenaId] = useState('');
+  const [branchName, setBranchName] = useState('');
   const [name, setName] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [city, setCity] = useState('');
+  const [area, setArea] = useState('');
+  const [country, setCountry] = useState('Pakistan');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [phone, setPhone] = useState('');
+  const [manager, setManager] = useState('');
+  const [timezone, setTimezone] = useState('Asia/Karachi');
+  const [currency, setCurrency] = useState('PKR');
+  const [status, setStatus] = useState('active');
+  const [workingHoursText, setWorkingHoursText] = useState('{}');
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
   const facilityOptions = FACILITIES_BY_LOCATION_TYPE[locationType] ?? [];
 
@@ -57,8 +69,35 @@ export default function LocationCreatePage() {
 
   function validateForm(): string | null {
     if (!businessId.trim()) return 'Business is required.';
+    if (!branchId.trim()) return 'Branch ID is required.';
+    if (!arenaId.trim()) return 'Arena ID is required.';
+    if (!branchName.trim()) return 'Branch name is required.';
     if (!name.trim()) return 'Location name is required.';
+    if (!country.trim()) return 'Country is required.';
     if (!city.trim()) return 'City is required.';
+    if (!area.trim()) return 'Area is required.';
+    if (!addressLine.trim()) return 'Address is required.';
+    if (!phone.trim()) return 'Phone is required.';
+    if (!manager.trim()) return 'Manager is required.';
+    if (!timezone.trim()) return 'Timezone is required.';
+    if (!currency.trim()) return 'Currency is required.';
+    if (!status.trim()) return 'Status is required.';
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      return 'Latitude must be a valid number between -90 and 90.';
+    }
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return 'Longitude must be a valid number between -180 and 180.';
+    }
+    try {
+      const parsed = JSON.parse(workingHoursText || '{}');
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return 'Working hours must be a JSON object.';
+      }
+    } catch {
+      return 'Working hours must be valid JSON.';
+    }
     if (locationType === 'custom' && !customType.trim()) {
       return 'Custom location type is required.';
     }
@@ -75,14 +114,44 @@ export default function LocationCreatePage() {
     setErr(null);
     try {
       const lt = locationType === 'custom' ? customType.trim().slice(0, 80) : locationType;
+      const workingHours = JSON.parse(workingHoursText || '{}') as Record<string, unknown>;
+      const lat = Number(latitude);
+      const lng = Number(longitude);
       await createBusinessLocation({
         businessId,
+        branchId: branchId.trim(),
+        arenaId: arenaId.trim(),
+        branchName: branchName.trim(),
         locationType: lt,
         facilityTypes: facilityTypes.length ? facilityTypes : undefined,
         name: name.trim(),
-        addressLine: addressLine.trim() || undefined,
-        city: city.trim() || undefined,
-        phone: phone.trim() || undefined,
+        addressLine: addressLine.trim(),
+        city: city.trim(),
+        area: area.trim(),
+        country: country.trim(),
+        latitude: lat,
+        longitude: lng,
+        phone: phone.trim(),
+        manager: manager.trim(),
+        workingHours,
+        timezone: timezone.trim(),
+        currency: currency.trim().toUpperCase(),
+        status: status.trim().toLowerCase(),
+        location: {
+          country: country.trim(),
+          city: city.trim(),
+          area: area.trim(),
+          address: addressLine.trim(),
+          coordinates: { lat, lng },
+        },
+        contact: {
+          phone: phone.trim(),
+          manager: manager.trim(),
+        },
+        settings: {
+          timezone: timezone.trim(),
+          currency: currency.trim().toUpperCase(),
+        },
       });
       navigate('/app/locations', { replace: true });
     } catch (e) {
@@ -125,6 +194,18 @@ export default function LocationCreatePage() {
           </select>
         </div>
         <div>
+          <label>Branch ID *</label>
+          <input value={branchId} onChange={(e) => setBranchId(e.target.value)} required />
+        </div>
+        <div>
+          <label>Arena ID *</label>
+          <input value={arenaId} onChange={(e) => setArenaId(e.target.value)} required />
+        </div>
+        <div>
+          <label>Branch name *</label>
+          <input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
+        </div>
+        <div>
           <label>Location type *</label>
           <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
             {LOCATION_TYPE_OPTIONS.map((o) => (
@@ -151,8 +232,8 @@ export default function LocationCreatePage() {
           <input value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div>
-          <label>Address (optional)</label>
-          <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} />
+          <label>Address *</label>
+          <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} required />
         </div>
         <div className="form-row-2">
           <div>
@@ -160,9 +241,61 @@ export default function LocationCreatePage() {
             <input value={city} onChange={(e) => setCity(e.target.value)} required />
           </div>
           <div>
-            <label>Phone (optional)</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <label>Area *</label>
+            <input value={area} onChange={(e) => setArea(e.target.value)} required />
           </div>
+        </div>
+        <div className="form-row-2">
+          <div>
+            <label>Country *</label>
+            <input value={country} onChange={(e) => setCountry(e.target.value)} required />
+          </div>
+          <div>
+            <label>Phone *</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          </div>
+        </div>
+        <div className="form-row-2">
+          <div>
+            <label>Latitude *</label>
+            <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
+          </div>
+          <div>
+            <label>Longitude *</label>
+            <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
+          </div>
+        </div>
+        <div className="form-row-2">
+          <div>
+            <label>Manager *</label>
+            <input value={manager} onChange={(e) => setManager(e.target.value)} required />
+          </div>
+          <div>
+            <label>Status *</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} required>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
+          </div>
+        </div>
+        <div className="form-row-2">
+          <div>
+            <label>Timezone *</label>
+            <input value={timezone} onChange={(e) => setTimezone(e.target.value)} required />
+          </div>
+          <div>
+            <label>Currency *</label>
+            <input value={currency} onChange={(e) => setCurrency(e.target.value)} required />
+          </div>
+        </div>
+        <div>
+          <label>Working hours JSON *</label>
+          <textarea
+            value={workingHoursText}
+            onChange={(e) => setWorkingHoursText(e.target.value)}
+            rows={4}
+            required
+          />
         </div>
         <div>
           <label>Facility types at this location</label>
@@ -194,8 +327,19 @@ export default function LocationCreatePage() {
           disabled={
             busy ||
             !businessId ||
+            !branchId.trim() ||
+            !arenaId.trim() ||
+            !branchName.trim() ||
             !name.trim() ||
+            !country.trim() ||
             !city.trim() ||
+            !area.trim() ||
+            !addressLine.trim() ||
+            !phone.trim() ||
+            !manager.trim() ||
+            !timezone.trim() ||
+            !currency.trim() ||
+            !status.trim() ||
             (locationType === 'custom' && !customType.trim())
           }
         >

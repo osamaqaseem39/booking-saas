@@ -27,6 +27,16 @@ export interface BusinessRow {
   businessName: string;
   legalName?: string | null;
   vertical: string;
+  businessType?: string | null;
+  sportsOffered?: string[] | null;
+  owner?: { name?: string; email?: string; phone?: string } | null;
+  subscription?:
+    | { plan?: string; status?: string; billingCycle?: string }
+    | null;
+  settings?:
+    | { timezone?: string; currency?: string; allowOnlinePayments?: boolean }
+    | null;
+  status?: string | null;
   createdAt?: string;
   memberships: BusinessMembershipRow[];
 }
@@ -34,6 +44,8 @@ export interface BusinessRow {
 export interface BusinessLocationRow {
   id: string;
   businessId: string;
+  branchId?: string | null;
+  arenaId?: string | null;
   /** Kind of site (arena, branch, …) — set on each location. */
   locationType?: string;
   /** Court / sub-facility kinds this location hosts (e.g. padel-court). */
@@ -41,7 +53,16 @@ export interface BusinessLocationRow {
   name: string;
   addressLine?: string | null;
   city?: string | null;
+  area?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   phone?: string | null;
+  manager?: string | null;
+  workingHours?: Record<string, unknown> | null;
+  timezone?: string | null;
+  currency?: string | null;
+  status?: string | null;
   isActive: boolean;
   createdAt: string;
   business: {
