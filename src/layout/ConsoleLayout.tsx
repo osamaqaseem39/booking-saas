@@ -19,7 +19,11 @@ export default function ConsoleLayout() {
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
 
   const roles = session?.roles ?? [];
-  const nav = navVisibleForRoles(roles);
+  const nav = navVisibleForRoles(roles).filter((item) => {
+    // Platform owner can onboard only once; hide the entry after first business exists.
+    if (item.to === '/app/onboard' && businesses.length > 0) return false;
+    return true;
+  });
   const canListBiz = roles.some(
     (r) => r === 'platform-owner' || r === 'business-admin',
   );
