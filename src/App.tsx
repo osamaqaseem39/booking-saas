@@ -12,6 +12,7 @@ import EndUsersPage from './pages/EndUsersPage';
 import LocationFacilitiesPage from './pages/LocationFacilitiesPage';
 import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
 import LocationCreatePage from './pages/LocationCreatePage';
+import LocationDetailPage from './pages/LocationDetailPage';
 import LocationEditPage from './pages/LocationEditPage';
 import LocationsPage from './pages/LocationsPage';
 import HealthPage from './pages/HealthPage';
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
             <Route path="locations" element={<LocationsPage />} />
             <Route path="locations/new" element={<LocationCreatePage />} />
+            <Route path="locations/:locationId" element={<LocationDetailPage />} />
             <Route path="locations/:locationId/edit" element={<LocationEditPage />} />
             <Route
               path="locations/:locationId/facilities"

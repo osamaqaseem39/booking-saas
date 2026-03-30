@@ -76,6 +76,7 @@ export default function LocationsPage() {
                 <th>City</th>
                 <th>Phone</th>
                 <th>Facilities</th>
+                <th>Details</th>
                 <th>Edit</th>
               </tr>
             </thead>
@@ -109,6 +110,9 @@ export default function LocationsPage() {
                     <Link to={`/app/locations/${r.id}/facilities`}>
                       Manage
                     </Link>
+                  </td>
+                  <td>
+                    <Link to={`/app/locations/${r.id}`}>View</Link>
                   </td>
                   <td>
                     <Link to={`/app/locations/${r.id}/edit`}>Edit</Link>
