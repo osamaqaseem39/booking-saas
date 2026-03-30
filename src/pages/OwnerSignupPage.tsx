@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../context/SessionContext';
 
+const OWNER_SIGNUP_HIDDEN_KEY = 'bukit_owner_signup_hidden';
+
 export default function OwnerSignupPage() {
   const navigate = useNavigate();
   const { userId, session, signIn, loading, error } = useSession();
@@ -94,6 +96,7 @@ export default function OwnerSignupPage() {
       }
 
       setSuccess('Owner account created. Signing you in...');
+      localStorage.setItem(OWNER_SIGNUP_HIDDEN_KEY, '1');
       await signIn(base, email.trim(), password);
     } catch (e) {
       setLocalError(e instanceof Error ? e.message : 'Owner sign up failed');

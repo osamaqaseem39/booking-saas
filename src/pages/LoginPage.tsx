@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../context/SessionContext';
 
+const OWNER_SIGNUP_HIDDEN_KEY = 'bukit_owner_signup_hidden';
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { userId, session, signIn, loading, error, tenantId, setTenantId } = useSession();
@@ -15,6 +17,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tenant, setTenant] = useState(tenantId);
+  const [showOwnerSignupLink] = useState(
+    () => localStorage.getItem(OWNER_SIGNUP_HIDDEN_KEY) !== '1',
+  );
   const [fieldErrors, setFieldErrors] = useState<{
     api?: string;
     email?: string;
@@ -184,11 +189,13 @@ export default function LoginPage() {
               {loading ? 'Signing in…' : 'Continue'}
             </button>
           </div>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Link to="/owner-signup" className="muted">
-              First time setup? Create owner account
-            </Link>
-          </div>
+          {showOwnerSignupLink && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <Link to="/owner-signup" className="muted">
+                First time setup? Create owner account
+              </Link>
+            </div>
+          )}
         </form>
       </div>
     </div>
