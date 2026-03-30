@@ -55,7 +55,22 @@ export default function LocationCreatePage() {
     })();
   }, []);
 
+  function validateForm(): string | null {
+    if (!businessId.trim()) return 'Business is required.';
+    if (!name.trim()) return 'Location name is required.';
+    if (!city.trim()) return 'City is required.';
+    if (locationType === 'custom' && !customType.trim()) {
+      return 'Custom location type is required.';
+    }
+    return null;
+  }
+
   async function onCreate() {
+    const validationError = validateForm();
+    if (validationError) {
+      setErr(validationError);
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -86,10 +101,21 @@ export default function LocationCreatePage() {
         </button>
       </div>
       {err && <div className="err-banner">{err}</div>}
-      <div className="form-grid" style={{ maxWidth: '560px' }}>
+      <form
+        className="form-grid"
+        style={{ maxWidth: '560px' }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onCreate();
+        }}
+      >
         <div>
-          <label>Business</label>
-          <select value={businessId} onChange={(e) => setBusinessId(e.target.value)}>
+          <label>Business *</label>
+          <select
+            value={businessId}
+            onChange={(e) => setBusinessId(e.target.value)}
+            required
+          >
             <option value="">Select…</option>
             {businesses.map((b) => (
               <option key={b.id} value={b.id}>
@@ -99,7 +125,7 @@ export default function LocationCreatePage() {
           </select>
         </div>
         <div>
-          <label>Location type</label>
+          <label>Location type *</label>
           <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
             {LOCATION_TYPE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -111,17 +137,18 @@ export default function LocationCreatePage() {
         </div>
         {locationType === 'custom' && (
           <div>
-            <label>Custom type (max 80 chars)</label>
+            <label>Custom type (max 80 chars) *</label>
             <input
               value={customType}
               onChange={(e) => setCustomType(e.target.value)}
               maxLength={80}
+              required
             />
           </div>
         )}
         <div>
-          <label>Location name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} />
+          <label>Location name *</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div>
           <label>Address (optional)</label>
@@ -129,11 +156,11 @@ export default function LocationCreatePage() {
         </div>
         <div className="form-row-2">
           <div>
-            <label>City</label>
-            <input value={city} onChange={(e) => setCity(e.target.value)} />
+            <label>City *</label>
+            <input value={city} onChange={(e) => setCity(e.target.value)} required />
           </div>
           <div>
-            <label>Phone</label>
+            <label>Phone (optional)</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
         </div>
@@ -162,19 +189,19 @@ export default function LocationCreatePage() {
           </div>
         </div>
         <button
-          type="button"
+          type="submit"
           className="btn-primary"
           disabled={
             busy ||
             !businessId ||
             !name.trim() ||
+            !city.trim() ||
             (locationType === 'custom' && !customType.trim())
           }
-          onClick={() => void onCreate()}
         >
           {busy ? 'Creating…' : 'Create location'}
         </button>
-      </div>
+      </form>
     </div>
   );
 }

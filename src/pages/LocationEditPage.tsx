@@ -80,8 +80,22 @@ export default function LocationEditPage() {
     setFacilityTypes((prev) => prev.filter((x) => facilityOptions.some((o) => o.value === x)));
   }, [locationType]);
 
+  function validateForm(): string | null {
+    if (!name.trim()) return 'Location name is required.';
+    if (!city.trim()) return 'City is required.';
+    if (locationType === 'custom' && !customType.trim()) {
+      return 'Custom location type is required.';
+    }
+    return null;
+  }
+
   async function onSave() {
     if (!locationId.trim()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      setErr(validationError);
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -133,9 +147,16 @@ export default function LocationEditPage() {
       {!location ? (
         <div className="empty-state">Location not found.</div>
       ) : (
-        <div className="form-grid" style={{ maxWidth: '560px' }}>
+        <form
+          className="form-grid"
+          style={{ maxWidth: '560px' }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSave();
+          }}
+        >
           <div>
-            <label>Location type</label>
+            <label>Location type *</label>
             <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
               {LOCATION_TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -147,13 +168,13 @@ export default function LocationEditPage() {
           </div>
           {locationType === 'custom' && (
             <div>
-              <label>Custom type (max 80 chars)</label>
-              <input value={customType} onChange={(e) => setCustomType(e.target.value)} maxLength={80} />
+              <label>Custom type (max 80 chars) *</label>
+              <input value={customType} onChange={(e) => setCustomType(e.target.value)} maxLength={80} required />
             </div>
           )}
           <div>
-            <label>Location name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} />
+            <label>Location name *</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
             <label>Address (optional)</label>
@@ -161,11 +182,11 @@ export default function LocationEditPage() {
           </div>
           <div className="form-row-2">
             <div>
-              <label>City</label>
-              <input value={city} onChange={(e) => setCity(e.target.value)} />
+              <label>City *</label>
+              <input value={city} onChange={(e) => setCity(e.target.value)} required />
             </div>
             <div>
-              <label>Phone</label>
+              <label>Phone (optional)</label>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
           </div>
@@ -201,10 +222,14 @@ export default function LocationEditPage() {
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
-              type="button"
+              type="submit"
               className="btn-primary"
-              disabled={busy || !name.trim() || (locationType === 'custom' && !customType.trim())}
-              onClick={() => void onSave()}
+              disabled={
+                busy ||
+                !name.trim() ||
+                !city.trim() ||
+                (locationType === 'custom' && !customType.trim())
+              }
             >
               {busy ? 'Saving…' : 'Save changes'}
             </button>
@@ -212,7 +237,7 @@ export default function LocationEditPage() {
               {deleting ? 'Deleting…' : 'Delete location'}
             </button>
           </div>
-        </div>
+        </form>
       )}
     </div>
   );
