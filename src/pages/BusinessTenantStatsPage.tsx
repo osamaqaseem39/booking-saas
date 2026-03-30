@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  listBookings,
   listBusinessLocations,
   listBusinesses,
-  listIamUsers,
-  listInvoices,
+  listBookingsForTenant,
+  listInvoicesForTenant,
 } from '../api/saasClient';
 import type { BusinessRow } from '../types/domain';
 
@@ -43,16 +42,19 @@ export default function BusinessTenantStatsPage() {
         const businesses = await listBusinesses();
         const selected = businesses.find((b) => b.id === businessId) ?? null;
         setBusiness(selected);
+        if (!selected) {
+          setCounts({ locations: 0, users: 0, bookings: 0, invoices: 0 });
+          return;
+        }
 
-        const [locations, users, bookings, invoices] = await Promise.all([
+        const [locations, bookings, invoices] = await Promise.all([
           listBusinessLocations(),
-          listIamUsers(),
-          listBookings(),
-          listInvoices(),
+          listBookingsForTenant(selected.tenantId),
+          listInvoicesForTenant(selected.tenantId),
         ]);
         setCounts({
-          locations: locations.length,
-          users: users.length,
+          locations: locations.filter((row) => row.businessId === selected.id).length,
+          users: selected.memberships?.length ?? 0,
           bookings: bookings.length,
           invoices: invoices.length,
         });
@@ -71,7 +73,7 @@ export default function BusinessTenantStatsPage() {
       </button>
 
       <h1 className="page-title" style={{ marginTop: '1rem' }}>
-        Tenant stats
+        Tenant Stats
       </h1>
 
       {err && <div className="err-banner">{err}</div>}

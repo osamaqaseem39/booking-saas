@@ -46,6 +46,16 @@ export default function BusinessesPage() {
     }
   }
 
+  function toProperCase(value?: string | null): string {
+    if (!value) return '—';
+    return value
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  }
+
   return (
     <div>
       <h1 className="page-title">Businesses & tenants</h1>
@@ -107,9 +117,9 @@ export default function BusinessesPage() {
                   <td>
                     <code style={{ fontSize: '0.75rem' }}>{b.tenantId}</code>
                   </td>
-                  <td>{b.vertical}</td>
-                  <td>{b.businessType ?? '—'}</td>
-                  <td>{b.status ?? 'active'}</td>
+                  <td>{toProperCase(b.vertical)}</td>
+                  <td>{toProperCase(b.businessType)}</td>
+                  <td>{toProperCase(b.status ?? 'active')}</td>
                   <td>{b.memberships?.length ?? 0}</td>
                   <td style={{ width: '260px' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -121,7 +131,7 @@ export default function BusinessesPage() {
                           navigate(`/app/businesses/${b.id}`);
                         }}
                       >
-                        Tenant stats
+                        Tenant Stats
                       </button>
                       <button
                         type="button"

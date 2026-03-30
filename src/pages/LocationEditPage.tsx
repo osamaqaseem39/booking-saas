@@ -6,6 +6,13 @@ import {
   updateBusinessLocation,
 } from '../api/saasClient';
 import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
+import {
+  getAreasByCountryStateCity,
+  getCitiesByCountryState,
+  getStatesByCountry,
+  inferStateFromCity,
+  LOCATION_HIERARCHY,
+} from '../constants/locationHierarchy';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
@@ -18,26 +25,28 @@ export default function LocationEditPage() {
   const [deleting, setDeleting] = useState(false);
   const [locationType, setLocationType] = useState('arena');
   const [customType, setCustomType] = useState('');
-  const [branchId, setBranchId] = useState('');
-  const [arenaId, setArenaId] = useState('');
   const [branchName, setBranchName] = useState('');
   const [name, setName] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [city, setCity] = useState('');
   const [area, setArea] = useState('');
   const [country, setCountry] = useState('Pakistan');
+  const [stateProvince, setStateProvince] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [phone, setPhone] = useState('');
   const [manager, setManager] = useState('');
   const [timezone, setTimezone] = useState('Asia/Karachi');
   const [currency, setCurrency] = useState('PKR');
-  const [status, setStatus] = useState('active');
   const [workingHoursText, setWorkingHoursText] = useState('{}');
   const [isActive, setIsActive] = useState(true);
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
   const [customFacilityType, setCustomFacilityType] = useState('');
   const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
+  const countryOptions = Object.keys(LOCATION_HIERARCHY);
+  const stateOptions = getStatesByCountry(country);
+  const cityOptions = getCitiesByCountryState(country, stateProvince);
+  const areaOptions = getAreasByCountryStateCity(country, stateProvince, city);
 
   const location = useMemo(
     () => rows.find((r) => r.id === locationId) ?? null,
@@ -57,25 +66,23 @@ export default function LocationEditPage() {
 
   useEffect(() => {
     if (!location) return;
-    setBranchId(location.branchId ?? '');
-    setArenaId(location.arenaId ?? '');
     setBranchName(location.name ?? '');
     setName(location.name);
     setAddressLine(location.addressLine ?? '');
     setCity(location.city ?? '');
     setArea(location.area ?? '');
     setCountry(location.country ?? 'Pakistan');
+    setStateProvince(inferStateFromCity(location.country ?? 'Pakistan', location.city ?? '', location.area ?? ''));
     setLatitude(location.latitude !== null && location.latitude !== undefined ? String(location.latitude) : '');
     setLongitude(location.longitude !== null && location.longitude !== undefined ? String(location.longitude) : '');
     setPhone(location.phone ?? '');
     setManager(location.manager ?? '');
     setTimezone(location.timezone ?? 'Asia/Karachi');
     setCurrency(location.currency ?? 'PKR');
-    setStatus(location.status ?? (location.isActive ? 'active' : 'inactive'));
     setWorkingHoursText(
       JSON.stringify(location.workingHours ?? {}, null, 2),
     );
-    setIsActive(location.isActive);
+    setIsActive((location.status ?? '').toLowerCase() === 'active' ? true : Boolean(location.isActive));
     setFacilityTypes(location.facilityTypes ?? []);
     const isPreset = LOCATION_TYPE_OPTIONS.some((o) => o.value === location.locationType);
     if (location.locationType && !isPreset) {
@@ -88,11 +95,10 @@ export default function LocationEditPage() {
   }, [location]);
 
   function validateForm(): string | null {
-    if (!branchId.trim()) return 'Branch ID is required.';
-    if (!arenaId.trim()) return 'Arena ID is required.';
     if (!branchName.trim()) return 'Branch name is required.';
     if (!name.trim()) return 'Location name is required.';
     if (!country.trim()) return 'Country is required.';
+    if (!stateProvince.trim()) return 'State / Province is required.';
     if (!city.trim()) return 'City is required.';
     if (!area.trim()) return 'Area is required.';
     if (!addressLine.trim()) return 'Address is required.';
@@ -100,7 +106,6 @@ export default function LocationEditPage() {
     if (!manager.trim()) return 'Manager is required.';
     if (!timezone.trim()) return 'Timezone is required.';
     if (!currency.trim()) return 'Currency is required.';
-    if (!status.trim()) return 'Status is required.';
     const lat = Number(latitude);
     const lng = Number(longitude);
     if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
@@ -138,8 +143,6 @@ export default function LocationEditPage() {
       const lat = Number(latitude);
       const lng = Number(longitude);
       await updateBusinessLocation(locationId, {
-        branchId: branchId.trim(),
-        arenaId: arenaId.trim(),
         branchName: branchName.trim(),
         locationType: lt,
         facilityTypes,
@@ -155,7 +158,7 @@ export default function LocationEditPage() {
         workingHours,
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
-        status: status.trim().toLowerCase(),
+        status: isActive ? 'active' : 'inactive',
         location: {
           country: country.trim(),
           city: city.trim(),
@@ -171,7 +174,7 @@ export default function LocationEditPage() {
           timezone: timezone.trim(),
           currency: currency.trim().toUpperCase(),
         },
-        isActive: status.trim().toLowerCase() === 'active' ? true : isActive,
+        isActive,
       });
       navigate('/app/locations', { replace: true });
     } catch (e) {
@@ -204,6 +207,24 @@ export default function LocationEditPage() {
     setCustomFacilityType('');
   }
 
+  function onCountryChange(nextCountry: string) {
+    setCountry(nextCountry);
+    setStateProvince('');
+    setCity('');
+    setArea('');
+  }
+
+  function onStateChange(nextState: string) {
+    setStateProvince(nextState);
+    setCity('');
+    setArea('');
+  }
+
+  function onCityChange(nextCity: string) {
+    setCity(nextCity);
+    setArea('');
+  }
+
   if (!locationId.trim()) return <p className="muted">Missing location id.</p>;
 
   return (
@@ -227,19 +248,11 @@ export default function LocationEditPage() {
           }}
         >
           <div>
-            <label>Branch ID *</label>
-            <input value={branchId} onChange={(e) => setBranchId(e.target.value)} required />
-          </div>
-          <div>
-            <label>Arena ID *</label>
-            <input value={arenaId} onChange={(e) => setArenaId(e.target.value)} required />
-          </div>
-          <div>
-            <label>Branch name *</label>
+            <label>Branch Name *</label>
             <input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
           </div>
           <div>
-            <label>Location type *</label>
+            <label>Location Type *</label>
             <select value={locationType} onChange={(e) => setLocationType(e.target.value)}>
               {LOCATION_TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -251,37 +264,82 @@ export default function LocationEditPage() {
           </div>
           {locationType === 'custom' && (
             <div>
-              <label>Custom type (max 80 chars) *</label>
+              <label>Custom Type (Max 80 Chars) *</label>
               <input value={customType} onChange={(e) => setCustomType(e.target.value)} maxLength={80} required />
             </div>
           )}
           <div>
-            <label>Location name *</label>
+            <label>Location Name *</label>
             <input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
-            <label>Address *</label>
+            <label>Address Line *</label>
             <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} required />
           </div>
           <div className="form-row-2">
             <div>
-              <label>City *</label>
-              <input value={city} onChange={(e) => setCity(e.target.value)} required />
+              <label>State / Province *</label>
+              <select
+                value={stateProvince}
+                onChange={(e) => onStateChange(e.target.value)}
+                required
+                disabled={!country}
+              >
+                <option value="">Select…</option>
+                {stateOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
-              <label>Area *</label>
-              <input value={area} onChange={(e) => setArea(e.target.value)} required />
+              <label>City *</label>
+              <select
+                value={city}
+                onChange={(e) => onCityChange(e.target.value)}
+                required
+                disabled={!stateProvince}
+              >
+                <option value="">Select…</option>
+                {cityOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="form-row-2">
             <div>
               <label>Country *</label>
-              <input value={country} onChange={(e) => setCountry(e.target.value)} required />
+              <select value={country} onChange={(e) => onCountryChange(e.target.value)} required>
+                <option value="">Select…</option>
+                {countryOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label>Phone *</label>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} required />
             </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Area *</label>
+              <select value={area} onChange={(e) => setArea(e.target.value)} required disabled={!city}>
+                <option value="">Select…</option>
+                {areaOptions.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div />
           </div>
           <div className="form-row-2">
             <div>
@@ -298,13 +356,15 @@ export default function LocationEditPage() {
               <label>Manager *</label>
               <input value={manager} onChange={(e) => setManager(e.target.value)} required />
             </div>
-            <div>
-              <label>Status *</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} required>
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
-              </select>
-            </div>
+            <label className="ui-switch">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+              />
+              <span className="ui-switch-track" />
+              <span className="ui-switch-text">Active Location</span>
+            </label>
           </div>
           <div className="form-row-2">
             <div>
@@ -313,7 +373,7 @@ export default function LocationEditPage() {
             </div>
             <div>
               <label>Currency *</label>
-              <input value={currency} onChange={(e) => setCurrency(e.target.value)} required />
+              <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} required />
             </div>
           </div>
           <div>
@@ -383,11 +443,10 @@ export default function LocationEditPage() {
               className="btn-primary"
               disabled={
                 busy ||
-                !branchId.trim() ||
-                !arenaId.trim() ||
                 !branchName.trim() ||
                 !name.trim() ||
                 !country.trim() ||
+                !stateProvince.trim() ||
                 !city.trim() ||
                 !area.trim() ||
                 !addressLine.trim() ||
@@ -395,7 +454,6 @@ export default function LocationEditPage() {
                 !manager.trim() ||
                 !timezone.trim() ||
                 !currency.trim() ||
-                !status.trim() ||
                 (locationType === 'custom' && !customType.trim())
               }
             >
