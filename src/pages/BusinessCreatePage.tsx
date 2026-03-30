@@ -7,19 +7,27 @@ export default function BusinessCreatePage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [tenantId, setTenantId] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
   const [vertical, setVertical] = useState('arena');
-  const [adminName, setAdminName] = useState('');
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPhone, setAdminPhone] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [businessType, setBusinessType] = useState('multi_branch');
+  const [sportsOfferedText, setSportsOfferedText] = useState('futsal, cricket, padel');
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState('');
+  const [subscriptionPlan, setSubscriptionPlan] = useState('premium');
+  const [subscriptionStatus, setSubscriptionStatus] = useState('active');
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [timezone, setTimezone] = useState('Asia/Karachi');
+  const [currency, setCurrency] = useState('PKR');
+  const [allowOnlinePayments, setAllowOnlinePayments] = useState(true);
+  const [status, setStatus] = useState('active');
   const [fieldErrors, setFieldErrors] = useState<{
     businessName?: string;
-    vertical?: string;
-    adminName?: string;
-    adminEmail?: string;
-    adminPassword?: string;
+    ownerName?: string;
+    ownerEmail?: string;
   }>({});
 
   const emailRe = /^\S+@\S+\.\S+$/;
@@ -27,14 +35,9 @@ export default function BusinessCreatePage() {
   function validate(): boolean {
     const next: typeof fieldErrors = {};
     if (!businessName.trim()) next.businessName = 'Business name is required';
-    if (!vertical.trim()) next.vertical = 'Vertical is required';
-    if (!adminName.trim()) next.adminName = 'Admin full name is required';
-    if (!adminEmail.trim()) next.adminEmail = 'Admin email is required';
-    else if (!emailRe.test(adminEmail.trim())) next.adminEmail = 'Invalid admin email';
-    if (!adminPassword.trim()) next.adminPassword = 'Admin password is required';
-    else if (adminPassword.trim().length < 8) {
-      next.adminPassword = 'Password must be at least 8 characters';
-    }
+    if (!ownerName.trim()) next.ownerName = 'Owner name is required';
+    if (!ownerEmail.trim()) next.ownerEmail = 'Owner email is required';
+    else if (!emailRe.test(ownerEmail.trim())) next.ownerEmail = 'Invalid owner email';
     setFieldErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -47,15 +50,32 @@ export default function BusinessCreatePage() {
     setErr(null);
     try {
       await onboardBusiness({
+        tenantId: tenantId.trim() || undefined,
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        vertical: vertical.trim(),
-        admin: {
-          fullName: adminName.trim(),
-          email: adminEmail.trim(),
-          phone: adminPhone.trim() || undefined,
-          password: adminPassword,
+        vertical: vertical.trim() || undefined,
+        businessType: businessType.trim() || undefined,
+        sportsOffered: sportsOfferedText
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        owner: {
+          name: ownerName.trim(),
+          email: ownerEmail.trim(),
+          phone: ownerPhone.trim() || undefined,
+          password: ownerPassword.trim() || undefined,
         },
+        subscription: {
+          plan: subscriptionPlan.trim() || undefined,
+          status: subscriptionStatus.trim() || undefined,
+          billingCycle: billingCycle.trim() || undefined,
+        },
+        settings: {
+          timezone: timezone.trim() || undefined,
+          currency: currency.trim() || undefined,
+          allowOnlinePayments,
+        },
+        status: status.trim() || undefined,
       });
       navigate('/app/businesses', { replace: true });
     } catch (e) {
@@ -89,6 +109,10 @@ export default function BusinessCreatePage() {
         style={{ maxWidth: '560px', marginTop: '1rem' }}
       >
         <div>
+          <label>Tenant ID (optional)</label>
+          <input value={tenantId} onChange={(e) => setTenantId(e.target.value)} />
+        </div>
+        <div>
           <label>Business name</label>
           <input
             value={businessName}
@@ -107,30 +131,84 @@ export default function BusinessCreatePage() {
         </div>
         <div>
           <label>Vertical</label>
-          <input
-            value={vertical}
-            onChange={(e) => setVertical(e.target.value)}
-            aria-invalid={!!fieldErrors.vertical}
-          />
-          {fieldErrors.vertical && (
-            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.vertical}
-            </div>
-          )}
+          <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
+            <option value="arena">arena</option>
+            <option value="gaming-zone">gaming-zone</option>
+            <option value="snooker">snooker</option>
+            <option value="table-tennis">table-tennis</option>
+          </select>
         </div>
         <h4 className="muted" style={{ margin: '0.5rem 0 0' }}>
-          Admin user
+          Business profile
+        </h4>
+        <div>
+          <label>Business type</label>
+          <input value={businessType} onChange={(e) => setBusinessType(e.target.value)} />
+        </div>
+        <div>
+          <label>Sports offered (comma separated)</label>
+          <input value={sportsOfferedText} onChange={(e) => setSportsOfferedText(e.target.value)} />
+        </div>
+        <div>
+          <label>Subscription plan</label>
+          <input value={subscriptionPlan} onChange={(e) => setSubscriptionPlan(e.target.value)} />
+        </div>
+        <div className="form-row-2">
+          <div>
+            <label>Subscription status</label>
+            <select value={subscriptionStatus} onChange={(e) => setSubscriptionStatus(e.target.value)}>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
+          </div>
+          <div>
+            <label>Billing cycle</label>
+            <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value)}>
+              <option value="monthly">monthly</option>
+              <option value="yearly">yearly</option>
+            </select>
+          </div>
+        </div>
+        <div className="form-row-2">
+          <div>
+            <label>Timezone</label>
+            <input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+          </div>
+          <div>
+            <label>Currency</label>
+            <input value={currency} onChange={(e) => setCurrency(e.target.value)} />
+          </div>
+        </div>
+        <div className="form-row-2">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <input
+              type="checkbox"
+              checked={allowOnlinePayments}
+              onChange={(e) => setAllowOnlinePayments(e.target.checked)}
+            />
+            Allow online payments
+          </label>
+          <div>
+            <label>Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
+          </div>
+        </div>
+        <h4 className="muted" style={{ margin: '0.5rem 0 0' }}>
+          Owner
         </h4>
         <div>
           <label>Full name</label>
           <input
-            value={adminName}
-            onChange={(e) => setAdminName(e.target.value)}
-            aria-invalid={!!fieldErrors.adminName}
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            aria-invalid={!!fieldErrors.ownerName}
           />
-          {fieldErrors.adminName && (
+          {fieldErrors.ownerName && (
             <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.adminName}
+              {fieldErrors.ownerName}
             </div>
           )}
         </div>
@@ -138,33 +216,27 @@ export default function BusinessCreatePage() {
           <label>Email</label>
           <input
             type="email"
-            value={adminEmail}
-            onChange={(e) => setAdminEmail(e.target.value)}
-            aria-invalid={!!fieldErrors.adminEmail}
+            value={ownerEmail}
+            onChange={(e) => setOwnerEmail(e.target.value)}
+            aria-invalid={!!fieldErrors.ownerEmail}
           />
-          {fieldErrors.adminEmail && (
+          {fieldErrors.ownerEmail && (
             <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.adminEmail}
+              {fieldErrors.ownerEmail}
             </div>
           )}
         </div>
         <div>
           <label>Phone (optional)</label>
-          <input value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} />
+          <input value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} />
         </div>
         <div>
-          <label>Admin password</label>
+          <label>Password (optional)</label>
           <input
             type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            aria-invalid={!!fieldErrors.adminPassword}
+            value={ownerPassword}
+            onChange={(e) => setOwnerPassword(e.target.value)}
           />
-          {fieldErrors.adminPassword && (
-            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.adminPassword}
-            </div>
-          )}
         </div>
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Creating…' : 'Create business'}

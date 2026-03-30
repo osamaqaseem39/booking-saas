@@ -94,6 +94,8 @@ export default function BusinessesPage() {
                 <th>Name</th>
                 <th>Tenant ID</th>
                 <th>Vertical</th>
+                <th>Type</th>
+                <th>Status</th>
                 <th>Members</th>
                 <th>Actions</th>
               </tr>
@@ -106,6 +108,8 @@ export default function BusinessesPage() {
                     <code style={{ fontSize: '0.75rem' }}>{b.tenantId}</code>
                   </td>
                   <td>{b.vertical}</td>
+                  <td>{b.businessType ?? '—'}</td>
+                  <td>{b.status ?? 'active'}</td>
                   <td>{b.memberships?.length ?? 0}</td>
                   <td style={{ width: '260px' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
