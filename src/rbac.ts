@@ -22,6 +22,11 @@ export const NAV_ITEMS: NavItem[] = [
     anyOf: ['platform-owner', 'business-admin'],
   },
   {
+    to: '/app/add-court',
+    label: 'Add court',
+    anyOf: ['platform-owner', 'business-admin', 'business-staff'],
+  },
+  {
     to: '/app/end-users',
     label: 'End users',
     anyOf: ['platform-owner'],

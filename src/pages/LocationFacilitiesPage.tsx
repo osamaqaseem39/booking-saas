@@ -7,7 +7,10 @@ import {
   listPadelCourts,
   listTurfCourts,
 } from '../api/saasClient';
-import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
+import {
+  courtSetupOptions,
+  isCourtSetupAllowedForLocation,
+} from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow, NamedCourt } from '../types/domain';
 
 function setupPath(locationId: string, facilityCode: string) {
@@ -127,14 +130,12 @@ export default function LocationFacilitiesPage() {
             Add facility (setup form)
           </h3>
           <ul className="muted" style={{ lineHeight: 1.7 }}>
-            {LOCATION_FACILITY_TYPE_OPTIONS.map((o) => {
-              const allowed =
-                !location.facilityTypes?.length ||
-                location.facilityTypes.includes(o.value);
+            {courtSetupOptions().map((o) => {
+              const allowed = isCourtSetupAllowedForLocation(location, o.code);
               return (
-                <li key={o.value}>
+                <li key={o.code}>
                   {allowed ? (
-                    <Link to={setupPath(locationId, o.value)}>{o.label}</Link>
+                    <Link to={setupPath(locationId, o.code)}>{o.label}</Link>
                   ) : (
                     <span style={{ opacity: 0.55 }}>
                       {o.label}{' '}

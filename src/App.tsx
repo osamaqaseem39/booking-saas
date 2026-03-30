@@ -10,6 +10,7 @@ import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
+import AddCourtPage from './pages/AddCourtPage';
 import LocationFacilitiesPage from './pages/LocationFacilitiesPage';
 import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
 import LocationCreatePage from './pages/LocationCreatePage';
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
             <Route path="businesses/:businessId/edit" element={<BusinessEditPage />} />
             <Route path="locations" element={<LocationsPage />} />
+            <Route path="add-court" element={<AddCourtPage />} />
             <Route path="locations/new" element={<LocationCreatePage />} />
             <Route path="locations/:locationId" element={<LocationDetailPage />} />
             <Route path="locations/:locationId/edit" element={<LocationEditPage />} />

@@ -7,31 +7,17 @@ import {
   listBusinessLocations,
 } from '../api/saasClient';
 import { TurfCourtSetupForm } from '../components/TurfCourtSetupForm';
-import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
+import {
+  isCourtSetupAllowedForLocation,
+  LOCATION_FACILITY_TYPE_OPTIONS,
+  TURF_COURT_SETUP_CODE,
+} from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
-
-/** Combined turf pitch: not a location “facility type”, but still creatable when Futsal and/or Arena Cricket are enabled. */
-const TURF_SETUP_CODE = 'turf-court';
 
 const CODES = new Set([
   ...LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
-  TURF_SETUP_CODE,
+  TURF_COURT_SETUP_CODE,
 ]);
-
-function isFacilitySetupAllowed(
-  location: BusinessLocationRow | undefined,
-  code: string,
-): boolean {
-  if (!location) return false;
-  const allowed = location.facilityTypes ?? [];
-  if (allowed.length === 0) return true;
-  if (code === TURF_SETUP_CODE) {
-    return (
-      allowed.includes('futsal-field') || allowed.includes('cricket-indoor')
-    );
-  }
-  return allowed.includes(code);
-}
 
 export default function LocationFacilitySetupPage() {
   const { locationId = '', facilityCode = '' } = useParams<{
@@ -53,9 +39,9 @@ export default function LocationFacilitySetupPage() {
   );
 
   const label = useMemo(() => {
-    if (facilityCode === TURF_SETUP_CODE) {
+    if (facilityCode === TURF_COURT_SETUP_CODE) {
       return {
-        value: TURF_SETUP_CODE,
+        value: TURF_COURT_SETUP_CODE,
         label: 'Turf court (Futsal + Cricket)',
       };
     }
@@ -124,7 +110,8 @@ export default function LocationFacilitySetupPage() {
     );
   }
 
-  const typeAllowed = location && isFacilitySetupAllowed(location, facilityCode);
+  const typeAllowed =
+    location && isCourtSetupAllowedForLocation(location, facilityCode);
 
   return (
     <div>
@@ -143,7 +130,7 @@ export default function LocationFacilitySetupPage() {
           This location does not include “{facilityCode}”. Edit the location’s
           facility types on the Locations page, then try again.
         </div>
-      ) : facilityCode === TURF_SETUP_CODE ? (
+      ) : facilityCode === TURF_COURT_SETUP_CODE ? (
         <>
           <p className="muted">
             Location: <strong>{location.name}</strong>. Configure the combined
