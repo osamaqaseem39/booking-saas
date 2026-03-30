@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { deleteIamUser, listIamUsers } from '../api/saasClient';
 import type { IamUserRow } from '../types/domain';
 
 export default function UsersPage() {
-  const navigate = useNavigate();
   const [rows, setRows] = useState<IamUserRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,9 +47,9 @@ export default function UsersPage() {
       <h1 className="page-title">Users & IAM</h1>
       {err && <div className="err-banner">{err}</div>}
       <div style={{ marginBottom: '1rem' }}>
-        <button type="button" className="btn-primary" onClick={() => navigate('/app/users/new')}>
+        <Link to="/app/users/new" className="btn-primary">
           Add user
-        </button>
+        </Link>
       </div>
 
       <div className="table-wrap">
@@ -78,8 +77,12 @@ export default function UsersPage() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <Link to={`/app/users/${u.id}`}>View</Link>
-                      <Link to={`/app/users/${u.id}/edit`}>Edit</Link>
+                      <Link to={`/app/users/${u.id}`} className="action-link">
+                        View
+                      </Link>
+                      <Link to={`/app/users/${u.id}/edit`} className="action-link">
+                        Edit
+                      </Link>
                       <button
                         type="button"
                         className="btn-danger"

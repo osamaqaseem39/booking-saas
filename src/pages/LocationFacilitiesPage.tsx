@@ -106,8 +106,10 @@ export default function LocationFacilitiesPage() {
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: '0.75rem' }}>
-        <Link to="/app/locations">← Locations</Link>
+      <p className="page-toolbar">
+        <Link to="/app/locations" className="btn-ghost btn-compact">
+          ← Locations
+        </Link>
       </p>
       <h1 className="page-title">Location facilities</h1>
       {loading ? (
@@ -129,25 +131,30 @@ export default function LocationFacilitiesPage() {
           <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>
             Add facility (setup form)
           </h3>
-          <ul className="muted" style={{ lineHeight: 1.7 }}>
+          <div className="facility-setup-grid">
             {courtSetupOptions().map((o) => {
               const allowed = isCourtSetupAllowedForLocation(location, o.code);
-              return (
-                <li key={o.code}>
-                  {allowed ? (
-                    <Link to={setupPath(locationId, o.code)}>{o.label}</Link>
-                  ) : (
-                    <span style={{ opacity: 0.55 }}>
-                      {o.label}{' '}
-                      <span style={{ fontSize: '0.85rem' }}>
-                        (enable under location facility types first)
-                      </span>
-                    </span>
-                  )}
-                </li>
+              return allowed ? (
+                <Link
+                  key={o.code}
+                  to={setupPath(locationId, o.code)}
+                  className="btn-primary"
+                >
+                  {o.label}
+                </Link>
+              ) : (
+                <button
+                  key={o.code}
+                  type="button"
+                  className="btn-primary"
+                  disabled
+                  title="Enable this facility type on the location first (Locations → Edit → facility types)."
+                >
+                  {o.label}
+                </button>
               );
             })}
-          </ul>
+          </div>
 
           <h3 style={{ fontSize: '1rem', marginTop: '1.5rem' }}>
             At this location

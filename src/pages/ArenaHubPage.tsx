@@ -220,7 +220,11 @@ export default function ArenaHubPage() {
         Lists use your session headers and active tenant. Courts are tied to a{' '}
         <strong>business location</strong>; use{' '}
         <code>?businessLocationId=</code> on each list call to scope a venue, or
-        open <Link to="/app/locations">Locations → Manage</Link> for the hub UI.
+        open{' '}
+        <Link to="/app/locations" className="btn-ghost btn-compact">
+          Locations → Manage
+        </Link>{' '}
+        for the hub UI.
         Mutations require <code>platform-owner</code> or{' '}
         <code>business-admin</code>.
       </p>

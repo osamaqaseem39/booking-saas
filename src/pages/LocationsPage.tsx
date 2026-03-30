@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   deleteBusinessLocation,
   listBusinessLocations,
@@ -11,7 +11,6 @@ import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
 export default function LocationsPage() {
-  const navigate = useNavigate();
   const { session } = useSession();
   const isOwner = session?.roles?.includes('platform-owner');
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
@@ -99,9 +98,9 @@ export default function LocationsPage() {
       {err && <div className="err-banner">{err}</div>}
 
       <div style={{ marginTop: '1rem' }}>
-        <button type="button" className="btn-primary" onClick={() => navigate('/app/locations/new')}>
+        <Link to="/app/locations/new" className="btn-primary">
           Add location
-        </button>
+        </Link>
       </div>
 
       <div className="connection-panel location-list-toolbar">

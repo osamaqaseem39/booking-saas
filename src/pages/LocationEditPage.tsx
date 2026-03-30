@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   deleteBusinessLocation,
   listBusinessLocations,
@@ -257,9 +257,9 @@ export default function LocationEditPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
         <h1 className="page-title">Edit location</h1>
-        <button type="button" className="btn-ghost" onClick={() => navigate('/app/locations')}>
+        <Link to="/app/locations" className="btn-ghost btn-compact">
           Back to list
-        </button>
+        </Link>
       </div>
       {err && <div className="err-banner">{err}</div>}
       {loading ? (

@@ -47,8 +47,10 @@ export default function UserDetailPage() {
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: '0.75rem' }}>
-        <Link to="/app/users">← Users</Link>
+      <p className="page-toolbar">
+        <Link to="/app/users" className="btn-ghost btn-compact">
+          ← Users
+        </Link>
       </p>
       <h1 className="page-title">User details</h1>
       {err && <div className="err-banner">{err}</div>}
@@ -76,14 +78,10 @@ export default function UserDetailPage() {
               <code>{(user.roles ?? []).join(', ') || '—'}</code>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => navigate(`/app/users/${user.id}/edit`)}
-            >
+          <div className="page-actions-row" style={{ marginTop: 0 }}>
+            <Link to={`/app/users/${user.id}/edit`} className="btn-primary">
               Edit user
-            </button>
+            </Link>
             <button type="button" className="btn-danger" disabled={deleting} onClick={() => void onDelete()}>
               {deleting ? 'Deleting…' : 'Delete user'}
             </button>

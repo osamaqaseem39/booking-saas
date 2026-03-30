@@ -97,9 +97,19 @@ export default function LocationFacilitySetupPage() {
   if (!validCode) {
     return (
       <div>
-        <p className="muted">
-          <Link to="/app/locations">← Locations</Link>
-        </p>
+        <div className="page-toolbar-row">
+          <Link to="/app/locations" className="btn-ghost btn-compact">
+            ← Locations
+          </Link>
+          {locationId ? (
+            <Link
+              to={`/app/locations/${locationId}/facilities`}
+              className="btn-ghost btn-compact"
+            >
+              ← Location facilities
+            </Link>
+          ) : null}
+        </div>
         <div className="err-banner">Unknown facility type.</div>
       </div>
     );
@@ -110,8 +120,11 @@ export default function LocationFacilitySetupPage() {
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: '0.75rem' }}>
-        <Link to={`/app/locations/${locationId}/facilities`}>
+      <p className="page-toolbar">
+        <Link
+          to={`/app/locations/${locationId}/facilities`}
+          className="btn-ghost btn-compact"
+        >
           ← Facilities for this location
         </Link>
       </p>

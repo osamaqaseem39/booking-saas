@@ -66,8 +66,10 @@ export default function LocationDetailPage() {
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: '0.75rem' }}>
-        <Link to="/app/locations">← Locations</Link>
+      <p className="page-toolbar">
+        <Link to="/app/locations" className="btn-ghost btn-compact">
+          ← Locations
+        </Link>
       </p>
       <h1 className="page-title">Location details</h1>
       {err && <div className="err-banner">{err}</div>}
@@ -136,9 +138,16 @@ export default function LocationDetailPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
-            <Link to={`/app/locations/${location.id}/edit`}>Edit location</Link>
-            <Link to={`/app/locations/${location.id}/facilities`}>Manage facilities</Link>
+          <div className="page-actions-row">
+            <Link to={`/app/locations/${location.id}/edit`} className="btn-primary">
+              Edit location
+            </Link>
+            <Link
+              to={`/app/locations/${location.id}/facilities`}
+              className="btn-ghost"
+            >
+              Manage facilities
+            </Link>
           </div>
         </>
       )}

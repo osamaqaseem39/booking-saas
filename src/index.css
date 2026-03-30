@@ -81,6 +81,74 @@ a.btn-primary:hover {
   filter: brightness(1.08);
 }
 
+a.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+a.btn-ghost:hover {
+  background: #243040;
+}
+
+.btn-primary.btn-compact,
+.btn-ghost.btn-compact,
+a.btn-primary.btn-compact,
+a.btn-ghost.btn-compact {
+  padding: 0.38rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.page-toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.page-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.page-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.facility-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  max-width: 900px;
+}
+
+.facility-setup-grid .btn-primary {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  min-height: 2.85rem;
+}
+
+.facility-setup-grid button.btn-primary:disabled {
+  cursor: not-allowed;
+  white-space: normal;
+  line-height: 1.25;
+}
+
 .btn-primary.btn-primary-lg {
   padding: 0.85rem 1.85rem;
   font-size: 1.05rem;
@@ -95,16 +163,10 @@ a.btn-primary:hover {
 .add-court-nav {
   margin-bottom: 0.75rem;
   font-size: 0.85rem;
-}
-
-.add-court-nav a {
-  color: var(--muted);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.add-court-nav a:hover {
-  color: var(--accent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .add-court-nav-sep {
