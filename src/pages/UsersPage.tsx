@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { deleteIamUser, listIamUsers } from '../api/saasClient';
 import type { IamUserRow } from '../types/domain';
 
 export default function UsersPage() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<IamUserRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,9 @@ export default function UsersPage() {
       <h1 className="page-title">Users & IAM</h1>
       {err && <div className="err-banner">{err}</div>}
       <div style={{ marginBottom: '1rem' }}>
-        <Link to="/app/users/new">Create user</Link>
+        <button type="button" className="btn-primary" onClick={() => navigate('/app/users/new')}>
+          Add user
+        </button>
       </div>
 
       <div className="table-wrap">

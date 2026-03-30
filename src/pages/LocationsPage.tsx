@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
+  deleteBusinessLocation,
   listBusinessLocations,
   listBusinesses,
 } from '../api/saasClient';
@@ -8,12 +9,14 @@ import { useSession } from '../context/SessionContext';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
 export default function LocationsPage() {
+  const navigate = useNavigate();
   const { session } = useSession();
   const isOwner = session?.roles?.includes('platform-owner');
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = () => {
     void (async () => {
@@ -38,6 +41,21 @@ export default function LocationsPage() {
     load();
   }, []);
 
+  async function onDelete(locationId: string) {
+    const yes = window.confirm('Delete this location? This cannot be undone.');
+    if (!yes) return;
+    setDeletingId(locationId);
+    setErr(null);
+    try {
+      await deleteBusinessLocation(locationId);
+      load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div>
       <h1 className="page-title">Locations</h1>
@@ -52,7 +70,9 @@ export default function LocationsPage() {
       {err && <div className="err-banner">{err}</div>}
 
       <div style={{ marginTop: '1rem' }}>
-        <Link to="/app/locations/new">Add location</Link>
+        <button type="button" className="btn-primary" onClick={() => navigate('/app/locations/new')}>
+          Add location
+        </button>
       </div>
 
       <h3 style={{ fontSize: '1rem', marginTop: '1.75rem' }}>All locations</h3>
@@ -75,9 +95,7 @@ export default function LocationsPage() {
                 <th>Location</th>
                 <th>City</th>
                 <th>Phone</th>
-                <th>Facilities</th>
-                <th>Details</th>
-                <th>Edit</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -106,16 +124,21 @@ export default function LocationsPage() {
                   <td>{r.name}</td>
                   <td>{r.city ?? '—'}</td>
                   <td>{r.phone ?? '—'}</td>
-                  <td>
-                    <Link to={`/app/locations/${r.id}/facilities`}>
-                      Manage
-                    </Link>
-                  </td>
-                  <td>
-                    <Link to={`/app/locations/${r.id}`}>View</Link>
-                  </td>
-                  <td>
-                    <Link to={`/app/locations/${r.id}/edit`}>Edit</Link>
+                  <td style={{ minWidth: '220px' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link to={`/app/locations/${r.id}/facilities`}>Manage</Link>
+                      <Link to={`/app/locations/${r.id}`}>View</Link>
+                      <Link to={`/app/locations/${r.id}/edit`}>Edit</Link>
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                        disabled={deletingId === r.id}
+                        onClick={() => void onDelete(r.id)}
+                      >
+                        {deletingId === r.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

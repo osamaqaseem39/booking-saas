@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { listEndUsers } from '../api/saasClient';
 import type { IamUserRow } from '../types/domain';
 
 export default function EndUsersPage() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<IamUserRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,11 @@ export default function EndUsersPage() {
         platform). Platform owner only.
       </p>
       {err && <div className="err-banner">{err}</div>}
+      <div style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>
+        <button type="button" className="btn-primary" onClick={() => navigate('/app/users/new')}>
+          Add user
+        </button>
+      </div>
       <div className="table-wrap" style={{ marginTop: '1rem' }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
@@ -42,6 +49,7 @@ export default function EndUsersPage() {
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Roles</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -54,6 +62,12 @@ export default function EndUsersPage() {
                     <code style={{ fontSize: '0.75rem' }}>
                       {(u.roles ?? []).join(', ')}
                     </code>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link to={`/app/users/${u.id}`}>View</Link>
+                      <Link to={`/app/users/${u.id}/edit`}>Edit</Link>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -119,6 +119,17 @@ export default function BusinessTenantStatsPage() {
               <strong style={{ fontSize: '1.25rem' }}>{counts.invoices}</strong>
             </div>
           </div>
+          {business && (
+            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => navigate(`/app/businesses/${business.id}/edit`)}
+              >
+                Edit business
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

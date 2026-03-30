@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { listBusinesses } from '../api/saasClient';
+import { deleteBusiness, listBusinesses } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { useNavigate } from 'react-router-dom';
 import type { BusinessRow } from '../types/domain';
@@ -9,6 +9,7 @@ export default function BusinessesPage() {
   const [rows, setRows] = useState<BusinessRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { session, setTenantId } = useSession();
   const canCreateBusiness = (session?.roles ?? []).includes('platform-owner');
   const totalMemberships = rows.reduce((sum, row) => sum + (row.memberships?.length ?? 0), 0);
@@ -29,6 +30,21 @@ export default function BusinessesPage() {
   useEffect(() => {
     void reloadBusinesses();
   }, []);
+
+  async function onDelete(businessId: string) {
+    const yes = window.confirm('Delete this business? This cannot be undone.');
+    if (!yes) return;
+    setDeletingId(businessId);
+    setErr(null);
+    try {
+      await deleteBusiness(businessId);
+      await reloadBusinesses();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div>
@@ -91,17 +107,35 @@ export default function BusinessesPage() {
                   </td>
                   <td>{b.vertical}</td>
                   <td>{b.memberships?.length ?? 0}</td>
-                  <td style={{ width: '140px' }}>
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => {
-                        setTenantId(b.tenantId);
-                        navigate(`/app/businesses/${b.id}`);
-                      }}
-                    >
-                      Tenant stats
-                    </button>
+                  <td style={{ width: '260px' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => {
+                          setTenantId(b.tenantId);
+                          navigate(`/app/businesses/${b.id}`);
+                        }}
+                      >
+                        Tenant stats
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => navigate(`/app/businesses/${b.id}/edit`)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                        disabled={deletingId === b.id}
+                        onClick={() => void onDelete(b.id)}
+                      >
+                        {deletingId === b.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -5,6 +5,7 @@ import RequireRoles from './layout/RequireRoles';
 import ArenaHubPage from './pages/ArenaHubPage';
 import BillingPage from './pages/BillingPage';
 import BusinessCreatePage from './pages/BusinessCreatePage';
+import BusinessEditPage from './pages/BusinessEditPage';
 import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
 import BusinessesPage from './pages/BusinessesPage';
@@ -44,6 +45,7 @@ export default function App() {
               }
             />
             <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
+            <Route path="businesses/:businessId/edit" element={<BusinessEditPage />} />
             <Route path="locations" element={<LocationsPage />} />
             <Route path="locations/new" element={<LocationCreatePage />} />
             <Route path="locations/:locationId" element={<LocationDetailPage />} />

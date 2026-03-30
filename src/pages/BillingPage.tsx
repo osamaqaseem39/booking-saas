@@ -7,6 +7,7 @@ export default function BillingPage() {
   const [err, setErr] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState('');
   const [amount, setAmount] = useState('1000');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = () => {
     void (async () => {
@@ -30,7 +31,13 @@ export default function BillingPage() {
         In-memory invoices per API process. Scoped by active tenant.
       </p>
       {err && <div className="err-banner">{err}</div>}
-      <div className="form-row-2" style={{ maxWidth: '480px', marginBottom: '1rem' }}>
+      <div className="toolbar" style={{ marginBottom: '0.75rem' }}>
+        <span className="muted">{rows.length} invoice(s)</span>
+        <button type="button" className="btn-ghost" onClick={load}>
+          Refresh
+        </button>
+      </div>
+      <div className="form-row-2" style={{ maxWidth: '480px', marginBottom: '0.5rem' }}>
         <div>
           <label>Booking ID</label>
           <input value={bookingId} onChange={(e) => setBookingId(e.target.value)} />
@@ -59,7 +66,7 @@ export default function BillingPage() {
           })();
         }}
       >
-        Issue invoice
+        Add invoice
       </button>
       <div className="table-wrap">
         {rows.length === 0 ? (
@@ -72,6 +79,7 @@ export default function BillingPage() {
                 <th>Booking</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -89,12 +97,34 @@ export default function BillingPage() {
                     {r.amount} {r.currency}
                   </td>
                   <td>{r.status}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                      onClick={() => setSelectedId(r.id)}
+                    >
+                      View
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+      {selectedId && (
+        <div className="connection-panel" style={{ marginTop: '1rem' }}>
+          <div className="detail-row">
+            <span>Selected invoice</span>
+            <span>{selectedId}</span>
+          </div>
+          <div className="detail-row">
+            <span>Booking ID</span>
+            <span>{rows.find((r) => r.id === selectedId)?.bookingId ?? '—'}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

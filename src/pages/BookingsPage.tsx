@@ -229,14 +229,19 @@ export default function BookingsPage() {
         <span className="muted">
           {loading ? 'Loading…' : `${bookings.length} booking(s)`}
         </span>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => setCreateOpen(true)}
-          disabled={!tenantId.trim()}
-        >
-          New booking
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="button" className="btn-ghost" onClick={() => void refresh()} disabled={loading}>
+            Refresh
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setCreateOpen(true)}
+            disabled={!tenantId.trim()}
+          >
+            Add booking
+          </button>
+        </div>
       </div>
       {error && <div className="err-banner">{error}</div>}
 
@@ -254,6 +259,7 @@ export default function BookingsPage() {
                     <th>Status</th>
                     <th>Payment</th>
                     <th>Total</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,6 +282,32 @@ export default function BookingsPage() {
                         </span>
                       </td>
                       <td>{b.pricing.totalAmount.toLocaleString()} PKR</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedId(b.bookingId);
+                            }}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedId(b.bookingId);
+                            }}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

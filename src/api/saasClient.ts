@@ -202,6 +202,28 @@ export async function onboardBusiness(body: {
   });
 }
 
+export async function updateBusiness(
+  businessId: string,
+  body: {
+    businessName?: string;
+    legalName?: string;
+    vertical?: string;
+  },
+): Promise<BusinessRow> {
+  return request<BusinessRow>(`/businesses/${businessId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteBusiness(
+  businessId: string,
+): Promise<{ deleted: true; businessId: string }> {
+  return request<{ deleted: true; businessId: string }>(`/businesses/${businessId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function listIamUsers(): Promise<IamUserRow[]> {
   return request<IamUserRow[]>('/iam/users', { method: 'GET' });
 }
@@ -375,6 +397,24 @@ export async function createTurfCourt(body: {
   });
 }
 
+export async function updateTurfCourt(
+  id: string,
+  body: { name?: string; sportMode?: 'futsal_only' | 'cricket_only' | 'both' },
+): Promise<NamedCourt> {
+  return request<NamedCourt>(`/arena/turf-courts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteTurfCourt(
+  id: string,
+): Promise<{ deleted: true; id: string }> {
+  return request<{ deleted: true; id: string }>(`/arena/turf-courts/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createPadelCourt(body: {
   businessLocationId: string;
   name: string;
@@ -382,6 +422,24 @@ export async function createPadelCourt(body: {
   return request<NamedCourt>('/arena/padel-court', {
     method: 'POST',
     body: JSON.stringify(body),
+  });
+}
+
+export async function updatePadelCourt(
+  id: string,
+  body: { name?: string },
+): Promise<NamedCourt> {
+  return request<NamedCourt>(`/arena/padel-court/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deletePadelCourt(
+  id: string,
+): Promise<{ deleted: true; id: string }> {
+  return request<{ deleted: true; id: string }>(`/arena/padel-court/${id}`, {
+    method: 'DELETE',
   });
 }
 
@@ -397,6 +455,24 @@ export async function createFutsalField(body: {
   });
 }
 
+export async function updateFutsalField(
+  id: string,
+  body: { name?: string; description?: string; dimensions?: string },
+): Promise<NamedCourt> {
+  return request<NamedCourt>(`/arena/futsal-field/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteFutsalField(
+  id: string,
+): Promise<{ deleted: true; id: string }> {
+  return request<{ deleted: true; id: string }>(`/arena/futsal-field/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createCricketIndoorCourt(body: {
   businessLocationId: string;
   name: string;
@@ -406,6 +482,24 @@ export async function createCricketIndoorCourt(body: {
   return request<NamedCourt>('/arena/cricket-indoor', {
     method: 'POST',
     body: JSON.stringify(body),
+  });
+}
+
+export async function updateCricketIndoorCourt(
+  id: string,
+  body: { name?: string; description?: string; laneCount?: number },
+): Promise<NamedCourt> {
+  return request<NamedCourt>(`/arena/cricket-indoor/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteCricketIndoorCourt(
+  id: string,
+): Promise<{ deleted: true; id: string }> {
+  return request<{ deleted: true; id: string }>(`/arena/cricket-indoor/${id}`, {
+    method: 'DELETE',
   });
 }
 
