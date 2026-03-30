@@ -21,8 +21,8 @@ const LS_ADMIN_LEGACY = 'bukit_saas_admin_user_id';
 
 export function getApiBase(): string {
   return (
-    localStorage.getItem(LS_API) ||
     import.meta.env.VITE_API_URL ||
+    localStorage.getItem(LS_API) ||
     'http://localhost:3000'
   ).replace(/\/$/, '');
 }

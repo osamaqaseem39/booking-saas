@@ -7,8 +7,8 @@ export default function LoginPage() {
   const { userId, session, signIn, loading, error } = useSession();
   const [api, setApi] = useState(
     () =>
-      localStorage.getItem('bukit_saas_api_url') ||
       import.meta.env.VITE_API_URL ||
+      localStorage.getItem('bukit_saas_api_url') ||
       'http://localhost:3000',
   );
   const [uid, setUid] = useState(userId);
