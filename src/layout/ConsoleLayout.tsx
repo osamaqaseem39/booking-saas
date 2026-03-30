@@ -52,9 +52,13 @@ export default function ConsoleLayout() {
 
   useEffect(() => {
     if (!businesses.length) return;
+    const nextTenant = businesses[0]?.tenantId;
+    if (!nextTenant) return;
+
     const valid = businesses.some((b) => b.tenantId === tenantId);
-    if (!tenantId.trim() || !valid) {
-      setTenantId(businesses[0]!.tenantId);
+    const tenantIdSafe = (tenantId ?? '').toString().trim();
+    if (!tenantIdSafe || !valid) {
+      setTenantId(nextTenant);
     }
   }, [businesses, tenantId, setTenantId]);
 

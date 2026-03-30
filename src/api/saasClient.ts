@@ -39,13 +39,19 @@ export function persistConnection(opts: {
   tenantId: string;
   token: string;
 }): void {
-  localStorage.setItem(LS_API, opts.apiBase.trim().replace(/\/$/, ''));
-  localStorage.setItem(LS_TENANT, opts.tenantId.trim());
-  localStorage.setItem(LS_TOKEN, opts.token.trim());
+  // Defensive: sometimes API responses / state updates can introduce `undefined`
+  // at runtime even if TypeScript types say `string`.
+  const apiBase = (opts.apiBase ?? '').toString().trim().replace(/\/$/, '');
+  const tenantId = (opts.tenantId ?? '').toString().trim();
+  const token = (opts.token ?? '').toString().trim();
+
+  localStorage.setItem(LS_API, apiBase);
+  localStorage.setItem(LS_TENANT, tenantId);
+  localStorage.setItem(LS_TOKEN, token);
 }
 
 export function setTenantIdStorage(tenantId: string): void {
-  localStorage.setItem(LS_TENANT, tenantId.trim());
+  localStorage.setItem(LS_TENANT, (tenantId ?? '').toString().trim());
 }
 
 function headers(json = true): HeadersInit {

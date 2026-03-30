@@ -82,8 +82,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTenantId = useCallback((v: string) => {
-    setTenantIdState(v);
-    setTenantIdStorage(v);
+    // Defensive: `v` can be `undefined` at runtime if API data is missing.
+    const next = (v ?? '').toString();
+    setTenantIdState(next);
+    setTenantIdStorage(next);
   }, []);
 
   const signIn = useCallback(async (api: string, email: string, password: string) => {
