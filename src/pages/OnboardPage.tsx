@@ -3,13 +3,19 @@ import { useEffect, useState } from 'react';
 import { listBusinesses, onboardBusiness } from '../api/saasClient';
 import { useNavigate } from 'react-router-dom';
 
+const VERTICAL_OPTIONS = [
+  { value: 'arena', label: 'Arena' },
+  { value: 'gaming-zone', label: 'Gaming Zone' },
+  { value: 'snooker', label: 'Snooker' },
+  { value: 'table-tennis', label: 'Table Tennis' },
+];
+
 export default function OnboardPage() {
   const navigate = useNavigate();
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
   const [vertical, setVertical] = useState('arena');
   const [businessType, setBusinessType] = useState('multi_branch');
-  const [sportsOfferedText, setSportsOfferedText] = useState('futsal, cricket, padel');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
@@ -75,10 +81,6 @@ export default function OnboardPage() {
         legalName: legalName.trim() || undefined,
         vertical: vertical.trim() || undefined,
         businessType: businessType.trim() || undefined,
-        sportsOffered: sportsOfferedText
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
         owner: {
           name: ownerName.trim(),
           email: ownerEmail.trim(),
@@ -92,7 +94,7 @@ export default function OnboardPage() {
         },
         settings: {
           timezone: timezone.trim() || undefined,
-          currency: currency.trim() || undefined,
+          currency: currency.trim().toUpperCase() || undefined,
           allowOnlinePayments,
         },
         status: status.trim() || undefined,
@@ -139,146 +141,125 @@ export default function OnboardPage() {
       <form
         onSubmit={onSubmit}
         className="form-grid"
-        style={{ maxWidth: '480px', marginTop: '1rem' }}
+        style={{ maxWidth: '920px', marginTop: '1rem' }}
       >
-        <div>
-          <label>Business name</label>
-          <input
-            name="businessName"
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            aria-invalid={!!fieldErrors.businessName}
-          />
-          {fieldErrors.businessName && (
-            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.businessName}
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Business Info</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Business name</label>
+              <input
+                name="businessName"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                aria-invalid={!!fieldErrors.businessName}
+              />
             </div>
-          )}
-        </div>
-        <div>
-          <label>Legal name (optional)</label>
-          <input
-            name="legalName"
-            value={legalName}
-            onChange={(e) => setLegalName(e.target.value)}
-            aria-invalid={!!fieldErrors.legalName}
-          />
-        </div>
-        <div>
-          <label>Vertical</label>
-          <select name="vertical" value={vertical} onChange={(e) => setVertical(e.target.value)}>
-            <option value="arena">arena</option>
-            <option value="gaming-zone">gaming-zone</option>
-            <option value="snooker">snooker</option>
-            <option value="table-tennis">table-tennis</option>
-          </select>
-        </div>
-        <div>
-          <label>Business type</label>
-          <input value={businessType} onChange={(e) => setBusinessType(e.target.value)} />
-        </div>
-        <div>
-          <label>Sports offered (comma separated)</label>
-          <input value={sportsOfferedText} onChange={(e) => setSportsOfferedText(e.target.value)} />
-        </div>
-        <div>
-          <label>Subscription plan</label>
-          <input value={subscriptionPlan} onChange={(e) => setSubscriptionPlan(e.target.value)} />
-        </div>
-        <div className="form-row-2">
-          <div>
-            <label>Subscription status</label>
-            <select value={subscriptionStatus} onChange={(e) => setSubscriptionStatus(e.target.value)}>
-              <option value="active">active</option>
-              <option value="inactive">inactive</option>
-            </select>
+            <div>
+              <label>Legal name (optional)</label>
+              <input
+                name="legalName"
+                value={legalName}
+                onChange={(e) => setLegalName(e.target.value)}
+                aria-invalid={!!fieldErrors.legalName}
+              />
+            </div>
           </div>
-          <div>
-            <label>Billing cycle</label>
-            <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value)}>
-              <option value="monthly">monthly</option>
-              <option value="yearly">yearly</option>
-            </select>
+          <div className="form-row-2">
+            <div>
+              <label>Vertical</label>
+              <select name="vertical" value={vertical} onChange={(e) => setVertical(e.target.value)}>
+                {VERTICAL_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Business type</label>
+              <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
+                <option value="single_branch">Single Branch</option>
+                <option value="multi_branch">Multi Branch</option>
+                <option value="franchise">Franchise</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div className="form-row-2">
-          <div>
-            <label>Timezone</label>
-            <input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Owner</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Full name</label>
+              <input name="ownerName" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
+            </div>
+            <div>
+              <label>Email</label>
+              <input name="ownerEmail" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label>Currency</label>
-            <input value={currency} onChange={(e) => setCurrency(e.target.value)} />
+          <div className="form-row-2">
+            <div>
+              <label>Phone (optional)</label>
+              <input name="ownerPhone" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} />
+            </div>
+            <div>
+              <label>Password (optional)</label>
+              <input name="ownerPassword" type="password" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} />
+            </div>
           </div>
         </div>
-        <div className="form-row-2">
+        <div className="connection-panel" style={{ margin: 0 }}>
+          <h2>Subscription & Settings</h2>
+          <div className="form-row-2">
+            <div>
+              <label>Subscription plan</label>
+              <select value={subscriptionPlan} onChange={(e) => setSubscriptionPlan(e.target.value)}>
+                <option value="basic">Basic</option>
+                <option value="standard">Standard</option>
+                <option value="premium">Premium</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+            </div>
+            <div>
+              <label>Subscription status</label>
+              <select value={subscriptionStatus} onChange={(e) => setSubscriptionStatus(e.target.value)}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Billing cycle</label>
+              <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value)}>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div>
+              <label>Status</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-row-2">
+            <div>
+              <label>Timezone</label>
+              <input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+            </div>
+            <div>
+              <label>Currency</label>
+              <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+            </div>
+          </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <input
-              type="checkbox"
-              checked={allowOnlinePayments}
-              onChange={(e) => setAllowOnlinePayments(e.target.checked)}
-            />
+            <input type="checkbox" checked={allowOnlinePayments} onChange={(e) => setAllowOnlinePayments(e.target.checked)} />
             Allow online payments
           </label>
-          <div>
-            <label>Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="active">active</option>
-              <option value="inactive">inactive</option>
-            </select>
-          </div>
-        </div>
-
-        <h4 className="muted" style={{ margin: '0.5rem 0 0' }}>
-          Owner
-        </h4>
-
-        <div>
-          <label>Full name</label>
-          <input
-            name="ownerName"
-            value={ownerName}
-            onChange={(e) => setOwnerName(e.target.value)}
-            aria-invalid={!!fieldErrors.ownerName}
-          />
-          {fieldErrors.ownerName && (
-            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.ownerName}
-            </div>
-          )}
-        </div>
-        <div>
-          <label>Email</label>
-          <input
-            name="ownerEmail"
-            type="email"
-            value={ownerEmail}
-            onChange={(e) => setOwnerEmail(e.target.value)}
-            aria-invalid={!!fieldErrors.ownerEmail}
-          />
-          {fieldErrors.ownerEmail && (
-            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              {fieldErrors.ownerEmail}
-            </div>
-          )}
-        </div>
-        <div>
-          <label>Phone (optional)</label>
-          <input
-            name="ownerPhone"
-            value={ownerPhone}
-            onChange={(e) => setOwnerPhone(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Password (optional)</label>
-          <input
-            name="ownerPassword"
-            type="password"
-            value={ownerPassword}
-            onChange={(e) => setOwnerPassword(e.target.value)}
-          />
         </div>
 
         <button

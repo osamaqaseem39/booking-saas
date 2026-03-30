@@ -8,22 +8,6 @@ import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTyp
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessRow } from '../types/domain';
 
-const FACILITIES_BY_LOCATION_TYPE: Record<string, { value: string; label: string }[]> = {
-  arena: LOCATION_FACILITY_TYPE_OPTIONS,
-  'gaming-zone': [
-    { value: 'gaming-pc', label: 'Gaming PC' },
-    { value: 'xbox', label: 'Xbox' },
-    { value: 'ps5', label: 'PS5' },
-    { value: 'ps4', label: 'PS4' },
-    { value: 'vr', label: 'VR' },
-  ],
-  snooker: [
-    { value: 'snooker-table', label: 'Snooker Table' },
-    { value: 'billiard', label: 'Billiard' },
-  ],
-  'table-tennis': [{ value: 'table-tennis-table', label: 'Table Tennis Table' }],
-};
-
 export default function LocationCreatePage() {
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
@@ -49,11 +33,8 @@ export default function LocationCreatePage() {
   const [status, setStatus] = useState('active');
   const [workingHoursText, setWorkingHoursText] = useState('{}');
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
-  const facilityOptions = FACILITIES_BY_LOCATION_TYPE[locationType] ?? [];
-
-  useEffect(() => {
-    setFacilityTypes((prev) => prev.filter((x) => facilityOptions.some((o) => o.value === x)));
-  }, [locationType]);
+  const [customFacilityType, setCustomFacilityType] = useState('');
+  const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
 
   useEffect(() => {
     void (async () => {
@@ -159,6 +140,13 @@ export default function LocationCreatePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function addCustomFacilityType() {
+    const next = customFacilityType.trim().toLowerCase();
+    if (!next) return;
+    setFacilityTypes((prev) => (prev.includes(next) ? prev : [...prev, next]));
+    setCustomFacilityType('');
   }
 
   return (
@@ -299,9 +287,6 @@ export default function LocationCreatePage() {
         </div>
         <div>
           <label>Facility types at this location</label>
-          {!facilityOptions.length && (
-            <p className="muted">Select a supported location type to see facility options.</p>
-          )}
           <div className="checkbox-grid">
             {facilityOptions.map((o) => (
               <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -320,6 +305,31 @@ export default function LocationCreatePage() {
               </label>
             ))}
           </div>
+          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+            <input
+              value={customFacilityType}
+              onChange={(e) => setCustomFacilityType(e.target.value)}
+              placeholder="Custom facility code (e.g. xbox, snooker-table)"
+            />
+            <button type="button" className="btn-ghost" onClick={addCustomFacilityType}>
+              Add custom
+            </button>
+          </div>
+          {facilityTypes.length > 0 && (
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {facilityTypes.map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  className="btn-ghost"
+                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                  onClick={() => setFacilityTypes((prev) => prev.filter((x) => x !== code))}
+                >
+                  {code} ×
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button
           type="submit"
