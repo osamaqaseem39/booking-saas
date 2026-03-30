@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listBusinessLocations } from '../api/saasClient';
 import {
-  courtSetupOptions,
   isCourtSetupAllowedForLocation,
+  TURF_COURT_SETUP_CODE,
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
@@ -34,83 +34,65 @@ export default function AddCourtPage() {
     [locations, locationId],
   );
 
-  const options = courtSetupOptions();
+  const turfAllowed =
+    !!location && isCourtSetupAllowedForLocation(location, TURF_COURT_SETUP_CODE);
+  const turfHref =
+    locationId && turfAllowed ? setupPath(locationId, TURF_COURT_SETUP_CODE) : '';
+  const showLocationPicker = locations.length > 1;
 
   return (
-    <div>
-      <p className="muted" style={{ marginBottom: '0.75rem' }}>
+    <div className="add-court-page">
+      <nav className="add-court-nav" aria-label="Breadcrumb">
         <Link to="/app/locations">← Locations</Link>
-        {' · '}
+        <span className="add-court-nav-sep" aria-hidden>
+          ·
+        </span>
         <Link to="/app/arena">Arena courts</Link>
-      </p>
+      </nav>
       <h1 className="page-title">Add court</h1>
-      <p className="muted" style={{ maxWidth: '42rem' }}>
-        Pick a location, then open the setup form for the court type you want.
-        Turf uses the full Futsal + Cricket form; other types use shorter forms.
-      </p>
       {err && <div className="err-banner">{err}</div>}
 
-      <div className="form-grid" style={{ maxWidth: '480px', marginTop: '1.25rem' }}>
-        <div>
-          <label>Location</label>
+      {showLocationPicker && (
+        <div className="add-court-location">
+          <label htmlFor="add-court-location">Location</label>
           <select
+            id="add-court-location"
             value={locationId}
             onChange={(e) => setLocationId(e.target.value)}
-            disabled={locations.length === 0}
           >
-            {locations.length === 0 ? (
-              <option value="">No locations</option>
-            ) : (
-              [...locations]
-                .sort((a, b) =>
-                  a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
-                )
-                .map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                    {l.city ? ` · ${l.city}` : ''}
-                  </option>
-                ))
-            )}
+            {[...locations]
+              .sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+              )
+              .map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                  {l.city ? ` · ${l.city}` : ''}
+                </option>
+              ))}
           </select>
         </div>
-      </div>
-
-      {locationId && location && (
-        <>
-          <h2
-            style={{
-              fontSize: '0.95rem',
-              marginTop: '1.5rem',
-              marginBottom: '0.5rem',
-            }}
-          >
-            Setup forms
-          </h2>
-          <ul className="items-list" style={{ maxWidth: '36rem' }}>
-            {options.map((o) => {
-              const allowed = isCourtSetupAllowedForLocation(location, o.code);
-              return (
-                <li key={o.code}>
-                  {allowed ? (
-                    <Link to={setupPath(locationId, o.code)}>{o.label}</Link>
-                  ) : (
-                    <span style={{ opacity: 0.55 }}>
-                      {o.label}
-                      <span
-                        className="muted"
-                        style={{ fontSize: '0.82rem', marginLeft: '0.35rem' }}
-                      >
-                        (enable under location facility types first)
-                      </span>
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </>
       )}
+
+      <div className="add-court-cta">
+        {turfHref ? (
+          <Link to={turfHref} className="btn-primary btn-primary-lg">
+            Add turf
+          </Link>
+        ) : (
+          <button type="button" className="btn-primary btn-primary-lg" disabled>
+            Add turf
+          </button>
+        )}
+        {locations.length === 0 && !err && (
+          <p className="muted add-court-hint">Create a location first to add a turf court.</p>
+        )}
+        {location && !turfAllowed && (
+          <p className="muted add-court-hint">
+            Turn on Futsal or Arena Cricket for this location, then you can add turf.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -660,10 +660,52 @@ export async function deleteTurfCourt(
   });
 }
 
-export async function createPadelCourt(body: {
+/** Matches API `CreatePadelCourtDto` (optional fields omitted when unset). */
+export type CreatePadelCourtBody = {
   businessLocationId: string;
   name: string;
-}): Promise<NamedCourt> {
+  arenaLabel?: string;
+  courtStatus?: 'active' | 'maintenance';
+  description?: string;
+  imageUrls?: string[];
+  ceilingHeightValue?: number;
+  ceilingHeightUnit?: 'ft' | 'm';
+  coveredType?: 'indoor' | 'semi_covered';
+  glassWalls?: boolean;
+  wallType?: 'full_glass' | 'glass_mesh';
+  lighting?: string;
+  ventilation?: string;
+  lengthM?: number;
+  widthM?: number;
+  surfaceType?: 'synthetic_turf' | 'acrylic';
+  matchType?: 'singles' | 'doubles';
+  maxPlayers?: number;
+  pricePerSlot?: number;
+  peakPricing?: { weekdayEvening?: number; weekend?: number };
+  membershipPrice?: number;
+  slotDurationMinutes?: 60 | 90;
+  bufferBetweenSlotsMinutes?: number;
+  extras?: {
+    racketRental?: boolean;
+    ballRental?: boolean;
+    coachingAvailable?: boolean;
+  };
+  amenities?: {
+    seating?: boolean;
+    changingRoom?: boolean;
+    parking?: boolean;
+  };
+  rules?: {
+    maxPlayers?: number;
+    gameRules?: string;
+    cancellationPolicy?: string;
+  };
+  isActive?: boolean;
+};
+
+export async function createPadelCourt(
+  body: CreatePadelCourtBody,
+): Promise<NamedCourt> {
   return request<NamedCourt>('/arena/padel-court', {
     method: 'POST',
     body: JSON.stringify(body),

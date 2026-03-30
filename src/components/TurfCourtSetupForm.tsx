@@ -344,14 +344,14 @@ export function TurfCourtSetupForm({
   }
 
   return (
-    <form
-      className="form-grid turf-setup-form"
-      style={{ maxWidth: '720px', marginTop: '1rem' }}
-      onSubmit={(e) => void onSubmit(e)}
-    >
-      {err && <div className="err-banner">{err}</div>}
+    <div className="turf-setup-form-wrap">
+      <form
+        className="form-grid turf-setup-form"
+        onSubmit={(e) => void onSubmit(e)}
+      >
+        {err && <div className="err-banner turf-setup-form-error">{err}</div>}
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>1. Basic information</h4>
         <div className="form-grid">
           <div>
@@ -399,9 +399,9 @@ export function TurfCourtSetupForm({
             />
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>2. Structure details</h4>
         <div className="form-grid">
           <div className="form-row-2">
@@ -533,9 +533,9 @@ export function TurfCourtSetupForm({
             </select>
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>3. Dimensions (common — meters)</h4>
         <div className="form-row-2">
           <div>
@@ -559,9 +559,9 @@ export function TurfCourtSetupForm({
             />
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>4. Surface details</h4>
         <div className="form-grid">
           <div>
@@ -601,9 +601,9 @@ export function TurfCourtSetupForm({
             </select>
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>5. Supported sports</h4>
         <div className="turf-sport-switches">
           <label className="ui-switch">
@@ -625,10 +625,10 @@ export function TurfCourtSetupForm({
             <span className="ui-switch-text">Cricket</span>
           </label>
         </div>
-      </div>
+        </div>
 
       {showFutsal && (
-        <div className="detail-section">
+        <div className="turf-setup-card">
           <h4>6A. Futsal settings</h4>
           <div className="form-grid">
             <div>
@@ -686,7 +686,7 @@ export function TurfCourtSetupForm({
       )}
 
       {showCricket && (
-        <div className="detail-section">
+        <div className="turf-setup-card">
           <h4>6B. Cricket settings</h4>
           <div className="form-grid">
             <div>
@@ -754,7 +754,7 @@ export function TurfCourtSetupForm({
         </div>
       )}
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>7. Pricing (per sport)</h4>
         <div className="form-grid">
           {showFutsal && (
@@ -828,9 +828,9 @@ export function TurfCourtSetupForm({
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>8. Slot settings</h4>
         <div className="form-grid">
           <div>
@@ -869,9 +869,9 @@ export function TurfCourtSetupForm({
             </select>
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>9. Amenities</h4>
         <div className="turf-setup-checkrow turf-setup-checkrow--wrap">
           <label className="turf-setup-inline">
@@ -915,9 +915,9 @@ export function TurfCourtSetupForm({
             Seating area
           </label>
         </div>
-      </div>
+        </div>
 
-      <div className="detail-section">
+        <div className="turf-setup-card">
         <h4>10. Rules &amp; restrictions</h4>
         <div className="form-grid">
           <div>
@@ -946,15 +946,18 @@ export function TurfCourtSetupForm({
             />
           </div>
         </div>
-      </div>
+        </div>
 
-      <button
-        type="submit"
-        className="btn-primary"
-        disabled={saving || !name.trim()}
-      >
-        {saving ? 'Saving…' : 'Create turf court'}
-      </button>
-    </form>
+        <div className="turf-setup-form-actions">
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={saving || !name.trim()}
+          >
+            {saving ? 'Saving…' : 'Create turf court'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

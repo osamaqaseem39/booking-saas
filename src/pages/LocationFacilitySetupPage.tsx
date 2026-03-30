@@ -3,9 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   createCricketIndoorCourt,
   createFutsalField,
-  createPadelCourt,
   listBusinessLocations,
 } from '../api/saasClient';
+import { PadelCourtSetupForm } from '../components/PadelCourtSetupForm';
 import { TurfCourtSetupForm } from '../components/TurfCourtSetupForm';
 import {
   isCourtSetupAllowedForLocation,
@@ -67,12 +67,7 @@ export default function LocationFacilitySetupPage() {
     setSaving(true);
     setErr(null);
     try {
-      if (facilityCode === 'padel-court') {
-        await createPadelCourt({
-          businessLocationId: locationId,
-          name: name.trim(),
-        });
-      } else if (facilityCode === 'futsal-field') {
+      if (facilityCode === 'futsal-field') {
         await createFutsalField({
           businessLocationId: locationId,
           name: name.trim(),
@@ -131,8 +126,8 @@ export default function LocationFacilitySetupPage() {
           facility types on the Locations page, then try again.
         </div>
       ) : facilityCode === TURF_COURT_SETUP_CODE ? (
-        <>
-          <p className="muted">
+        <div className="turf-setup-page">
+          <p className="muted turf-setup-page-intro">
             Location: <strong>{location.name}</strong>. Configure the combined
             turf court (Futsal + Cricket); all sections map to the booking API.
           </p>
@@ -143,13 +138,26 @@ export default function LocationFacilitySetupPage() {
               navigate(`/app/locations/${locationId}/facilities`)
             }
           />
+        </div>
+      ) : facilityCode === 'padel-court' ? (
+        <>
+          <p className="muted">
+            Location: <strong>{location.name}</strong>. Dedicated padel court
+            setup (structure, dimensions, pricing, slots, extras, and rules).
+          </p>
+          <PadelCourtSetupForm
+            locationId={locationId}
+            locations={locations}
+            onCreated={() =>
+              navigate(`/app/locations/${locationId}/facilities`)
+            }
+          />
         </>
       ) : (
         <>
           <p className="muted">
-            Location: <strong>{location.name}</strong>. This form sends the
-            minimum required fields; use the API for full padel setup (pricing,
-            amenities, rules, …).
+            Location: <strong>{location.name}</strong>. Add the basic details
+            for this facility; you can refine more fields later if needed.
           </p>
           {err && <div className="err-banner">{err}</div>}
           <form

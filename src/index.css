@@ -66,6 +66,81 @@ button:disabled {
   filter: brightness(1.08);
 }
 
+a.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+a.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-primary.btn-primary-lg {
+  padding: 0.85rem 1.85rem;
+  font-size: 1.05rem;
+  min-width: 12rem;
+  border-radius: var(--radius);
+}
+
+.add-court-page {
+  max-width: 32rem;
+}
+
+.add-court-nav {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.add-court-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.add-court-nav a:hover {
+  color: var(--accent);
+}
+
+.add-court-nav-sep {
+  color: var(--border);
+  margin: 0 0.4rem;
+}
+
+.add-court-location {
+  margin-top: 1.25rem;
+  max-width: 480px;
+}
+
+.add-court-location label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.add-court-cta {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.add-court-hint {
+  margin: 0;
+  max-width: 26rem;
+  line-height: 1.45;
+}
+
 .btn-ghost {
   background: var(--surface2);
   color: var(--text);
@@ -223,6 +298,19 @@ label {
   font-size: 0.85rem;
   color: var(--muted);
   font-weight: 600;
+}
+
+/** Business / location long forms: spacing between card groups */
+.form-page-locations {
+  gap: 1rem;
+}
+
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  margin-top: 0.35rem;
 }
 
 .connection-grid {
@@ -441,8 +529,55 @@ table.data tbody tr:last-child td {
   gap: 0.75rem;
 }
 
-.turf-setup-form .detail-section h4 {
+.turf-setup-form-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.turf-setup-form {
+  width: 100%;
+  max-width: 720px;
+  gap: 1rem;
+}
+
+.turf-setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.35rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.turf-setup-form .turf-setup-card h4 {
+  margin: 0 0 0.85rem;
   font-size: 0.78rem;
+}
+
+.turf-setup-form-error {
+  width: 100%;
+  text-align: center;
+}
+
+.turf-setup-form-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.25rem;
+}
+
+.turf-setup-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.turf-setup-page-intro {
+  text-align: center;
+  max-width: 34rem;
+  margin-bottom: 0;
 }
 
 .turf-setup-checkrow {

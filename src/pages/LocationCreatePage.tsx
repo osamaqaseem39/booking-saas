@@ -205,7 +205,7 @@ export default function LocationCreatePage() {
       </p>
       {err && <div className="err-banner">{err}</div>}
       <form
-        className="form-grid"
+        className="form-grid form-page-locations"
         style={{ maxWidth: '920px', margin: '1rem auto 0' }}
         onSubmit={(e) => {
           e.preventDefault();
@@ -213,7 +213,7 @@ export default function LocationCreatePage() {
         }}
       >
         <div className="connection-panel" style={{ margin: 0 }}>
-          <h2>Location Basics</h2>
+          <h2>Location Info</h2>
           <div className="form-row-2">
             <div>
               <label>Business *</label>
@@ -269,7 +269,7 @@ export default function LocationCreatePage() {
         </div>
 
         <div className="connection-panel" style={{ margin: 0 }}>
-          <h2>Address & Contact</h2>
+          <h2>Address &amp; Contact</h2>
           <div className="form-row-2">
             <div>
               <label>Address Line *</label>
@@ -386,7 +386,7 @@ export default function LocationCreatePage() {
         </div>
 
         <div className="connection-panel" style={{ margin: 0 }}>
-          <h2>Operations & Facilities</h2>
+          <h2>Operations &amp; Facilities</h2>
           <div className="form-row-2">
             <label className="ui-switch">
               <input

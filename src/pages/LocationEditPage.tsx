@@ -35,6 +35,7 @@ export default function LocationEditPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
   const navigate = useNavigate();
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -74,11 +75,15 @@ export default function LocationEditPage() {
 
   useEffect(() => {
     void (async () => {
+      setLoading(true);
+      setErr(null);
       try {
         const locs = await listBusinessLocations();
         setRows(locs);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load location');
+      } finally {
+        setLoading(false);
       }
     })();
   }, [locationId]);
@@ -257,220 +262,290 @@ export default function LocationEditPage() {
         </button>
       </div>
       {err && <div className="err-banner">{err}</div>}
-      {!location ? (
+      {loading ? (
+        <div className="empty-state">Loading…</div>
+      ) : !location ? (
         <div className="empty-state">Location not found.</div>
       ) : (
-        <form
-          className="form-grid"
-          style={{ maxWidth: '560px' }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            void onSave();
-          }}
-        >
-          <div>
-            <label>Branch Name *</label>
-            <input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
-          </div>
-          <div>
-            <label>Location Type *</label>
-            <select value={locationType} onChange={(e) => onLocationTypeChange(e.target.value)}>
-              {LOCATION_TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-              <option value="custom">Custom…</option>
-            </select>
-          </div>
-          {locationType === 'custom' && (
-            <div>
-              <label>Custom Type (Max 80 Chars) *</label>
-              <input value={customType} onChange={(e) => setCustomType(e.target.value)} maxLength={80} required />
+        <>
+          <p className="muted" style={{ maxWidth: '920px', margin: '0 auto' }}>
+            Update location profile, address, media, hours, and facility types — same layout as{' '}
+            <strong>Add location</strong>.
+          </p>
+          <form
+            className="form-grid form-page-locations"
+            style={{ maxWidth: '920px', margin: '1rem auto 0' }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onSave();
+            }}
+          >
+            <div className="connection-panel" style={{ margin: 0 }}>
+              <h2>Location Info</h2>
+              <div className="form-row-2">
+                <div>
+                  <label>Branch name *</label>
+                  <input
+                    value={branchName}
+                    onChange={(e) => setBranchName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>Location type *</label>
+                  <select
+                    value={locationType}
+                    onChange={(e) => onLocationTypeChange(e.target.value)}
+                  >
+                    {LOCATION_TYPE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+              </div>
+              {locationType === 'custom' && (
+                <div className="form-row-2">
+                  <div>
+                    <label>Custom type (max 80 chars) *</label>
+                    <input
+                      value={customType}
+                      onChange={(e) => setCustomType(e.target.value)}
+                      maxLength={80}
+                      required
+                    />
+                  </div>
+                  <div />
+                </div>
+              )}
+              <div>
+                <label>Location name *</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
             </div>
-          )}
-          <div>
-            <label>Location Name *</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div>
-            <label>Address Line *</label>
-            <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} required />
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>State / Province *</label>
-              <select
-                value={stateProvince}
-                onChange={(e) => onStateChange(e.target.value)}
-                required
-                disabled={!country}
-              >
-                <option value="">Select…</option>
-                {stateOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+
+            <div className="connection-panel" style={{ margin: 0 }}>
+              <h2>Address &amp; Contact</h2>
+              <div className="form-row-2">
+                <div>
+                  <label>Address line *</label>
+                  <input
+                    value={addressLine}
+                    onChange={(e) => setAddressLine(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>Manager *</label>
+                  <input value={manager} onChange={(e) => setManager(e.target.value)} required />
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>State / province *</label>
+                  <select
+                    value={stateProvince}
+                    onChange={(e) => onStateChange(e.target.value)}
+                    required
+                    disabled={!country}
+                  >
+                    <option value="">Select…</option>
+                    {stateOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>City *</label>
+                  <select
+                    value={city}
+                    onChange={(e) => onCityChange(e.target.value)}
+                    required
+                    disabled={!stateProvince}
+                  >
+                    <option value="">Select…</option>
+                    {cityOptions.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Country *</label>
+                  <select
+                    value={country}
+                    onChange={(e) => onCountryChange(e.target.value)}
+                    required
+                  >
+                    <option value="">Select…</option>
+                    {countryOptions.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Area *</label>
+                  <select
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    required
+                    disabled={!city}
+                  >
+                    <option value="">Select…</option>
+                    {areaOptions.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Phone *</label>
+                  <input value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                </div>
+                <div>
+                  <span />
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Latitude *</label>
+                  <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
+                </div>
+                <div>
+                  <label>Longitude *</label>
+                  <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
+                </div>
+              </div>
             </div>
-            <div>
-              <label>City *</label>
-              <select
-                value={city}
-                onChange={(e) => onCityChange(e.target.value)}
-                required
-                disabled={!stateProvince}
-              >
-                <option value="">Select…</option>
-                {cityOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+
+            <div className="connection-panel" style={{ margin: 0 }}>
+              <h2>Media</h2>
+              <div className="form-row-2">
+                <div>
+                  <label>Logo URL</label>
+                  <input
+                    type="url"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="https://…"
+                  />
+                  <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
+                    Main image for this location. Leave empty to clear.
+                  </p>
+                </div>
+                <div />
+              </div>
+              <div>
+                <label>Gallery (one image URL per line)</label>
+                <textarea
+                  value={galleryText}
+                  onChange={(e) => setGalleryText(e.target.value)}
+                  rows={4}
+                  placeholder="https://…"
+                  style={{ width: '100%', minHeight: '5rem' }}
+                />
+              </div>
             </div>
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>Country *</label>
-              <select value={country} onChange={(e) => onCountryChange(e.target.value)} required>
-                <option value="">Select…</option>
-                {countryOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Phone *</label>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} required />
-            </div>
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>Area *</label>
-              <select value={area} onChange={(e) => setArea(e.target.value)} required disabled={!city}>
-                <option value="">Select…</option>
-                {areaOptions.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div />
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>Latitude *</label>
-              <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
-            </div>
-            <div>
-              <label>Longitude *</label>
-              <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
-            </div>
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>Manager *</label>
-              <input value={manager} onChange={(e) => setManager(e.target.value)} required />
-            </div>
-            <label className="ui-switch">
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-              />
-              <span className="ui-switch-track" />
-              <span className="ui-switch-text">Active location</span>
-            </label>
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>Timezone *</label>
-              <input value={timezone} onChange={(e) => setTimezone(e.target.value)} required />
-            </div>
-            <div>
-              <label>Currency *</label>
-              <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} required />
-            </div>
-          </div>
-          <div>
-            <label>Logo URL</label>
-            <input
-              type="url"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://…"
-            />
-            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-              Main image for this location. Leave empty to clear.
-            </p>
-          </div>
-          <div>
-            <label>Gallery (one image URL per line)</label>
-            <textarea
-              value={galleryText}
-              onChange={(e) => setGalleryText(e.target.value)}
-              rows={4}
-              placeholder="https://…"
-              style={{ width: '100%', minHeight: '5rem' }}
-            />
-          </div>
-          <div>
-            <WorkingHoursEditor value={workingHours} onChange={setWorkingHours} />
-          </div>
-          <div>
-            <label>Facility types at this location</label>
-            {!isArenaType && (
-              <p className="muted" style={{ margin: '0.4rem 0 0.65rem' }}>
-                Facility court switches apply to <strong>Arena</strong> type only.
-              </p>
-            )}
-            <div className="checkbox-grid">
-              {facilityOptions.map((o) => (
-                <label key={o.value} className="ui-switch">
+
+            <div className="connection-panel" style={{ margin: 0 }}>
+              <h2>Operations &amp; Facilities</h2>
+              <div className="form-row-2">
+                <label className="ui-switch">
                   <input
                     type="checkbox"
-                    checked={facilityTypes.includes(o.value)}
-                    onChange={(e) => toggleFacilityType(o.value, e.target.checked)}
-                    disabled={!isArenaType}
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
                   />
                   <span className="ui-switch-track" />
-                  <span className="ui-switch-text">{o.label}</span>
+                  <span className="ui-switch-text">Active location</span>
                 </label>
-              ))}
+                <div>
+                  <label>Timezone *</label>
+                  <input value={timezone} onChange={(e) => setTimezone(e.target.value)} required />
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Currency *</label>
+                  <input
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                    required
+                  />
+                </div>
+                <div>
+                  <WorkingHoursEditor value={workingHours} onChange={setWorkingHours} />
+                </div>
+              </div>
+              <div>
+                <label>Facility types at this location</label>
+                {!isArenaType && (
+                  <p className="muted" style={{ margin: '0.4rem 0 0.65rem' }}>
+                    Facility court switches apply to <strong>Arena</strong> type only.
+                  </p>
+                )}
+                <div className="checkbox-grid">
+                  {facilityOptions.map((o) => (
+                    <label key={o.value} className="ui-switch">
+                      <input
+                        type="checkbox"
+                        checked={facilityTypes.includes(o.value)}
+                        onChange={(e) => toggleFacilityType(o.value, e.target.checked)}
+                        disabled={!isArenaType}
+                      />
+                      <span className="ui-switch-track" />
+                      <span className="ui-switch-text">{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={
-                busy ||
-                !branchName.trim() ||
-                !name.trim() ||
-                !country.trim() ||
-                !stateProvince.trim() ||
-                !city.trim() ||
-                !area.trim() ||
-                !addressLine.trim() ||
-                !phone.trim() ||
-                !manager.trim() ||
-                !timezone.trim() ||
-                !currency.trim() ||
-                (locationType === 'custom' && !customType.trim())
-              }
-            >
-              {busy ? 'Saving…' : 'Save changes'}
-            </button>
-            <button type="button" className="btn-danger" disabled={deleting} onClick={() => void onDelete()}>
-              {deleting ? 'Deleting…' : 'Delete location'}
-            </button>
-          </div>
-        </form>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={
+                  busy ||
+                  !branchName.trim() ||
+                  !name.trim() ||
+                  !country.trim() ||
+                  !stateProvince.trim() ||
+                  !city.trim() ||
+                  !area.trim() ||
+                  !addressLine.trim() ||
+                  !phone.trim() ||
+                  !manager.trim() ||
+                  !timezone.trim() ||
+                  !currency.trim() ||
+                  (locationType === 'custom' && !customType.trim())
+                }
+              >
+                {busy ? 'Saving…' : 'Save changes'}
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                disabled={deleting}
+                onClick={() => void onDelete()}
+              >
+                {deleting ? 'Deleting…' : 'Delete location'}
+              </button>
+            </div>
+          </form>
+        </>
       )}
     </div>
   );
