@@ -19,6 +19,7 @@ export default function ConsoleLayout() {
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
 
   const roles = session?.roles ?? [];
+  const isPlatformOwner = roles.includes('platform-owner');
   const nav = navVisibleForRoles(roles);
   const canListBiz = roles.some(
     (r) => r === 'platform-owner' || r === 'business-admin',
@@ -123,30 +124,32 @@ export default function ConsoleLayout() {
       </nav>
       <div className="console-main">
         <header className="console-topbar">
-          <div className="tenant-select">
-            <span className="muted" style={{ fontSize: '0.75rem' }}>
-              Active tenant
-            </span>
-            {businesses.length > 0 ? (
-              <select
-                value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
-              >
-                {businesses.map((b) => (
-                  <option key={b.id} value={b.tenantId}>
-                    {b.businessName} · {b.tenantId.slice(0, 8)}…
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
-                placeholder="Tenant UUID"
-                style={{ minWidth: '260px' }}
-              />
-            )}
-          </div>
+          {!isPlatformOwner && (
+            <div className="tenant-select">
+              <span className="muted" style={{ fontSize: '0.75rem' }}>
+                Active tenant
+              </span>
+              {businesses.length > 0 ? (
+                <select
+                  value={tenantId}
+                  onChange={(e) => setTenantId(e.target.value)}
+                >
+                  {businesses.map((b) => (
+                    <option key={b.id} value={b.tenantId}>
+                      {b.businessName} · {b.tenantId.slice(0, 8)}…
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={tenantId}
+                  onChange={(e) => setTenantId(e.target.value)}
+                  placeholder="Tenant UUID"
+                  style={{ minWidth: '260px' }}
+                />
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span className="muted" style={{ fontSize: '0.8rem' }}>
               {session.fullName}
