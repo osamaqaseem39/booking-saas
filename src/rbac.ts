@@ -22,13 +22,13 @@ export const NAV_ITEMS: NavItem[] = [
     anyOf: ['platform-owner', 'business-admin'],
   },
   {
-    to: '/app/add-facility',
+    to: '/app/Facilites',
     label: 'Facilities',
     anyOf: ['platform-owner', 'business-admin'],
   },
   {
     to: '/app/end-users',
-    label: 'End users',
+    label: 'Customers',
     anyOf: ['platform-owner'],
   },
   {

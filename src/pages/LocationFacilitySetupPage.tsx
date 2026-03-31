@@ -86,7 +86,7 @@ export default function LocationFacilitySetupPage() {
             lanes !== undefined && !Number.isNaN(lanes) ? lanes : undefined,
         });
       }
-      navigate(`/app/locations/${locationId}/facilities`);
+      navigate('/app/Facilites');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -98,17 +98,9 @@ export default function LocationFacilitySetupPage() {
     return (
       <div>
         <div className="page-toolbar-row">
-          <Link to="/app/add-facility" className="btn-ghost btn-compact">
+          <Link to="/app/Facilites" className="btn-ghost btn-compact">
             ← Main facility page
           </Link>
-          {locationId ? (
-            <Link
-              to={`/app/locations/${locationId}/facilities`}
-              className="btn-ghost btn-compact"
-            >
-              ← Location facilities
-            </Link>
-          ) : null}
         </div>
         <div className="err-banner">Unknown facility type.</div>
       </div>
@@ -124,11 +116,8 @@ export default function LocationFacilitySetupPage() {
         <Link to="/app/locations" className="btn-ghost btn-compact">
           ← Locations
         </Link>
-        <Link
-          to={`/app/locations/${locationId}/facilities`}
-          className="btn-ghost btn-compact"
-        >
-          ← Facilities for this location
+        <Link to="/app/Facilites" className="btn-ghost btn-compact">
+          ← Main facility page
         </Link>
       </div>
       <h1 className="page-title">
@@ -150,9 +139,7 @@ export default function LocationFacilitySetupPage() {
           <TurfCourtSetupForm
             locationId={locationId}
             locations={locations}
-            onCreated={() =>
-              navigate(`/app/locations/${locationId}/facilities`)
-            }
+            onCreated={() => navigate('/app/Facilites')}
           />
         </div>
       ) : facilityCode === 'padel-court' ? (
@@ -164,9 +151,7 @@ export default function LocationFacilitySetupPage() {
           <PadelCourtSetupForm
             locationId={locationId}
             locations={locations}
-            onCreated={() =>
-              navigate(`/app/locations/${locationId}/facilities`)
-            }
+            onCreated={() => navigate('/app/Facilites')}
           />
         </>
       ) : (

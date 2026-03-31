@@ -50,6 +50,7 @@ export default function LocationEditPage() {
   );
   const [isActive, setIsActive] = useState(true);
   const [logoUrl, setLogoUrl] = useState('');
+  const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
   const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
@@ -97,6 +98,7 @@ export default function LocationEditPage() {
     setWorkingHours((location.workingHours as Record<string, unknown> | null) ?? {});
     setIsActive((location.status ?? '').toLowerCase() === 'active');
     setLogoUrl(location.logo ?? '');
+    setBannerImageUrl(location.bannerImage ?? '');
     setGalleryUrls(location.gallery ?? []);
     setFacilityTypes(location.facilityTypes ?? []);
     const isPreset = LOCATION_TYPE_OPTIONS.some((o) => o.value === location.locationType);
@@ -169,6 +171,7 @@ export default function LocationEditPage() {
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
         logo: logoUrl.trim(),
+        bannerImage: bannerImageUrl.trim(),
         gallery: galleryUrls.map((u) => u.trim()).filter(Boolean),
         status: isActive ? 'active' : 'inactive',
         location: {
@@ -430,7 +433,16 @@ export default function LocationEditPage() {
                     Main image for this location. Leave empty to clear.
                   </p>
                 </div>
-                <div />
+                <div>
+                  <ImageUpload
+                    label="Banner image"
+                    value={bannerImageUrl}
+                    onChange={setBannerImageUrl}
+                  />
+                  <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
+                    Wide cover image shown in location header areas.
+                  </p>
+                </div>
               </div>
               <ImageGallery label="Location image gallery" value={galleryUrls} onChange={setGalleryUrls} />
             </div>

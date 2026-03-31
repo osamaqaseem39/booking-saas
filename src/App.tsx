@@ -10,7 +10,6 @@ import BookingsPage from './pages/BookingsPage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
 import AddFacilityPage from './pages/AddFacilityPage';
-import LocationFacilitiesPage from './pages/LocationFacilitiesPage';
 import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
 import LocationCreatePage from './pages/LocationCreatePage';
 import LocationDetailPage from './pages/LocationDetailPage';
@@ -47,14 +46,14 @@ export default function App() {
             <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
             <Route path="businesses/:businessId/edit" element={<BusinessEditPage />} />
             <Route path="locations" element={<LocationsPage />} />
-            <Route path="add-facility" element={<AddFacilityPage />} />
-            <Route path="add-court" element={<Navigate to="/app/add-facility" replace />} />
+            <Route path="Facilites" element={<AddFacilityPage />} />
+            <Route path="add-court" element={<Navigate to="/app/Facilites" replace />} />
             <Route path="locations/new" element={<LocationCreatePage />} />
             <Route path="locations/:locationId" element={<LocationDetailPage />} />
             <Route path="locations/:locationId/edit" element={<LocationEditPage />} />
             <Route
               path="locations/:locationId/facilities"
-              element={<LocationFacilitiesPage />}
+              element={<Navigate to="/app/Facilites" replace />}
             />
             <Route
               path="locations/:locationId/facilities/setup/:facilityCode"
@@ -82,7 +81,7 @@ export default function App() {
             <Route path="users/:userId/edit" element={<UserEditPage />} />
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="billing" element={<BillingPage />} />
-            <Route path="arena" element={<Navigate to="/app/add-facility" replace />} />
+            <Route path="arena" element={<Navigate to="/app/Facilites" replace />} />
             <Route path="health" element={<HealthPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/app" replace />} />

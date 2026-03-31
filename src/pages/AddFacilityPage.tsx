@@ -137,14 +137,6 @@ export default function AddFacilityPage() {
         </p>
       ) : null}
 
-      {location ? (
-        <div className="page-actions-row" style={{ marginBottom: '0.5rem' }}>
-          <Link to={`/app/locations/${location.id}/facilities`} className="btn-ghost">
-            Open location facilities page
-          </Link>
-        </div>
-      ) : null}
-
       <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>Add facility</h3>
       <div className="facility-setup-grid">
         {visibleSetupOptions.map((o) => {

@@ -43,6 +43,7 @@ export default function LocationCreatePage() {
   const [currency, setCurrency] = useState('PKR');
   const [isActive, setIsActive] = useState(true);
   const [logoUrl, setLogoUrl] = useState('');
+  const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [workingHours, setWorkingHours] = useState<Record<string, unknown>>(
     createDefaultWorkingHoursPayload(),
@@ -128,6 +129,7 @@ export default function LocationCreatePage() {
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
         ...(logoUrl.trim() ? { logo: logoUrl.trim() } : {}),
+        ...(bannerImageUrl.trim() ? { bannerImage: bannerImageUrl.trim() } : {}),
         ...(galleryUrls.length > 0
           ? { gallery: galleryUrls.map((u) => u.trim()).filter(Boolean) }
           : {}),
@@ -360,7 +362,13 @@ export default function LocationCreatePage() {
             <div>
               <ImageUpload label="Logo" value={logoUrl} onChange={setLogoUrl} />
             </div>
-            <div />
+            <div>
+              <ImageUpload
+                label="Banner image"
+                value={bannerImageUrl}
+                onChange={setBannerImageUrl}
+              />
+            </div>
           </div>
           <ImageGallery label="Location image gallery" value={galleryUrls} onChange={setGalleryUrls} />
         </div>

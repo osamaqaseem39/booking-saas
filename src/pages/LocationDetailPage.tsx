@@ -143,7 +143,7 @@ export default function LocationDetailPage() {
               Edit location
             </Link>
             <Link
-              to={`/app/locations/${location.id}/facilities`}
+              to="/app/Facilites"
               className="btn-ghost"
             >
               Manage facilities

@@ -110,7 +110,7 @@ export default function LocationFacilitiesPage() {
         <Link to="/app/locations" className="btn-ghost btn-compact">
           ← Locations
         </Link>
-        <Link to="/app/add-facility" className="btn-ghost btn-compact">
+        <Link to="/app/Facilites" className="btn-ghost btn-compact">
           ← Main facility page
         </Link>
       </div>

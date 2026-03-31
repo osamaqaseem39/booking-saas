@@ -13,7 +13,12 @@ export default function EndUsersPage() {
       setLoading(true);
       setErr(null);
       try {
-        setRows(await listEndUsers());
+        const all = await listEndUsers();
+        setRows(
+          all.filter((u) =>
+            (u.roles ?? []).some((role) => role === 'customer-end-user'),
+          ),
+        );
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {
@@ -24,10 +29,10 @@ export default function EndUsersPage() {
 
   return (
     <div>
-      <h1 className="page-title">End users</h1>
+      <h1 className="page-title">Customers</h1>
       <p className="muted">
-        Users who have the <code>customer-end-user</code> role (consumers on the
-        platform). Platform owner only.
+        Only users who have the <code>customer-end-user</code> role are shown
+        here. Platform owner only.
       </p>
       {err && <div className="err-banner">{err}</div>}
       <div style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>
@@ -39,7 +44,7 @@ export default function EndUsersPage() {
         {loading ? (
           <div className="empty-state">Loading…</div>
         ) : rows.length === 0 ? (
-          <div className="empty-state">No end users yet.</div>
+          <div className="empty-state">No customers yet.</div>
         ) : (
           <table className="data">
             <thead>
