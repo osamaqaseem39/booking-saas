@@ -18,7 +18,12 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/app/locations',
-    label: 'Facilites',
+    label: 'Locations',
+    anyOf: ['platform-owner', 'business-admin'],
+  },
+  {
+    to: '/app/add-facility',
+    label: 'Facilities',
     anyOf: ['platform-owner', 'business-admin'],
   },
   {

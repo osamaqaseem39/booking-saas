@@ -106,11 +106,14 @@ export default function LocationFacilitiesPage() {
 
   return (
     <div>
-      <p className="page-toolbar">
+      <div className="page-toolbar-row">
+        <Link to="/app/locations" className="btn-ghost btn-compact">
+          ← Locations
+        </Link>
         <Link to="/app/add-facility" className="btn-ghost btn-compact">
           ← Main facility page
         </Link>
-      </p>
+      </div>
       <h1 className="page-title">Location facilities</h1>
       {loading ? (
         <div className="empty-state">Loading…</div>

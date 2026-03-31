@@ -120,14 +120,17 @@ export default function LocationFacilitySetupPage() {
 
   return (
     <div>
-      <p className="page-toolbar">
+      <div className="page-toolbar-row">
+        <Link to="/app/locations" className="btn-ghost btn-compact">
+          ← Locations
+        </Link>
         <Link
           to={`/app/locations/${locationId}/facilities`}
           className="btn-ghost btn-compact"
         >
           ← Facilities for this location
         </Link>
-      </p>
+      </div>
       <h1 className="page-title">
         New {label?.label ?? facilityCode}
       </h1>
