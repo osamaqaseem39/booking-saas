@@ -18,44 +18,6 @@ function setupPath(locationId: string, facilityCode: string) {
   return `/app/locations/${locationId}/facilities/setup/${facilityCode}`;
 }
 
-function TableBlock({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: NamedCourt[];
-}) {
-  return (
-    <div style={{ marginBottom: '1.25rem' }}>
-      <h3 style={{ fontSize: '1rem', margin: '0 0 0.5rem' }}>{title}</h3>
-      <div className="table-wrap">
-        {rows.length === 0 ? (
-          <div className="empty-state">None yet</div>
-        ) : (
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.name}</td>
-                  <td>
-                    <code style={{ fontSize: '0.7rem' }}>{r.id}</code>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function AddFacilityPage() {
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [locationId, setLocationId] = useState('');
@@ -119,15 +81,25 @@ export default function AddFacilityPage() {
   }, [locationId]);
 
   const showLocationPicker = locations.length > 1;
+  const visibleSetupOptions = useMemo(() => {
+    if (!location) return [];
+    return courtSetupOptions().filter((o) =>
+      isCourtSetupAllowedForLocation(location, o.code),
+    );
+  }, [location]);
+  const allFacilities = useMemo(
+    () => [
+      ...turf.map((r) => ({ ...r, type: 'Turf court' })),
+      ...padel.map((r) => ({ ...r, type: 'Padel court' })),
+      ...futsal.map((r) => ({ ...r, type: 'Futsal field' })),
+      ...cricket.map((r) => ({ ...r, type: 'Cricket indoor' })),
+    ],
+    [cricket, futsal, padel, turf],
+  );
 
   return (
     <div>
-      <p className="page-toolbar">
-        <Link to="/app/locations" className="btn-ghost btn-compact">
-          ← Locations
-        </Link>
-      </p>
-      <h1 className="page-title">Add facility</h1>
+      <h1 className="page-title">Facilities</h1>
       {err && <div className="err-banner">{err}</div>}
 
       {locations.length === 0 && !err ? (
@@ -175,23 +147,12 @@ export default function AddFacilityPage() {
 
       <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>Add facility</h3>
       <div className="facility-setup-grid">
-        {courtSetupOptions().map((o) => {
-          const allowed = isCourtSetupAllowedForLocation(location, o.code);
-          return allowed && locationId ? (
+        {visibleSetupOptions.map((o) => {
+          return locationId ? (
             <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">
               {o.label}
             </Link>
-          ) : (
-            <button
-              key={o.code}
-              type="button"
-              className="btn-primary"
-              disabled
-              title="Enable this facility type on the location first (Locations -> Edit -> facility types)."
-            >
-              {o.label}
-            </button>
-          );
+          ) : null;
         })}
       </div>
 
@@ -220,17 +181,35 @@ export default function AddFacilityPage() {
         </div>
       </div>
 
-      <h3 style={{ fontSize: '1rem', marginTop: '1.5rem' }}>Facilities list</h3>
-      {loading ? (
-        <div className="empty-state">Loading…</div>
-      ) : (
-        <>
-          <TableBlock title="Turf courts" rows={turf} />
-          <TableBlock title="Padel courts" rows={padel} />
-          <TableBlock title="Futsal fields" rows={futsal} />
-          <TableBlock title="Cricket indoor" rows={cricket} />
-        </>
-      )}
+      <h3 style={{ fontSize: '1rem', marginTop: '1.5rem' }}>All facilities</h3>
+      <div className="table-wrap">
+        {loading ? (
+          <div className="empty-state">Loading…</div>
+        ) : allFacilities.length === 0 ? (
+          <div className="empty-state">None yet</div>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Name</th>
+                <th>ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allFacilities.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.type}</td>
+                  <td>{row.name}</td>
+                  <td>
+                    <code style={{ fontSize: '0.7rem' }}>{row.id}</code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
