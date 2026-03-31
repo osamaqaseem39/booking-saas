@@ -98,8 +98,8 @@ export default function LocationFacilitySetupPage() {
     return (
       <div>
         <div className="page-toolbar-row">
-          <Link to="/app/locations" className="btn-ghost btn-compact">
-            ← Locations
+          <Link to="/app/add-facility" className="btn-ghost btn-compact">
+            ← Main facility page
           </Link>
           {locationId ? (
             <Link

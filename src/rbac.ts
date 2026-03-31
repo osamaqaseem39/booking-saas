@@ -18,13 +18,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/app/locations',
-    label: 'Locations',
+    label: 'Facilites',
     anyOf: ['platform-owner', 'business-admin'],
-  },
-  {
-    to: '/app/add-facility',
-    label: 'Add facility',
-    anyOf: ['platform-owner', 'business-admin', 'business-staff'],
   },
   {
     to: '/app/end-users',

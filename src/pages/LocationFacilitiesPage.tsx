@@ -107,8 +107,8 @@ export default function LocationFacilitiesPage() {
   return (
     <div>
       <p className="page-toolbar">
-        <Link to="/app/locations" className="btn-ghost btn-compact">
-          ← Locations
+        <Link to="/app/add-facility" className="btn-ghost btn-compact">
+          ← Main facility page
         </Link>
       </p>
       <h1 className="page-title">Location facilities</h1>
