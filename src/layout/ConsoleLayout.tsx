@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Navigate, Outlet } from 'react-router-dom';
 import { listBusinesses } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { navVisibleForRoles } from '../rbac';
 import type { BusinessRow } from '../types/domain';
 
 export default function ConsoleLayout() {
-  const navigate = useNavigate();
   const {
     userId,
     session,
@@ -26,13 +25,6 @@ export default function ConsoleLayout() {
   const canListBiz = roles.some(
     (r) => r === 'platform-owner' || r === 'business-admin',
   );
-
-  useEffect(() => {
-    if (!userId.trim()) {
-      navigate('/login', { replace: true });
-      return;
-    }
-  }, [userId, navigate]);
 
   useEffect(() => {
     if (!canListBiz || !userId.trim()) {
@@ -60,10 +52,6 @@ export default function ConsoleLayout() {
       setTenantId(nextTenant);
     }
   }, [businesses, tenantId, setTenantId]);
-
-  if (!userId.trim()) {
-    return null;
-  }
 
   if (loading && !session) {
     return (

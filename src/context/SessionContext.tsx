@@ -41,7 +41,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [userId, setUserIdState] = useState('');
   const [tenantId, setTenantIdState] = useState(getTenantId);
   const [session, setSession] = useState<SessionUser | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => Boolean(getToken().trim()));
   const [error, setError] = useState<string | null>(null);
   const [token, setTokenState] = useState(getToken);
 

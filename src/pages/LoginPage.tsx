@@ -7,44 +7,21 @@ const OWNER_SIGNUP_HIDDEN_KEY = 'bukit_owner_signup_hidden';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { userId, session, signIn, loading, error, tenantId, setTenantId } = useSession();
-  const [api, setApi] = useState(
-    () =>
-      import.meta.env.VITE_API_URL ||
-      localStorage.getItem('bukit_saas_api_url') ||
-      'http://localhost:3000',
-  );
+  const { userId, session, signIn, loading, error, apiBase } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [tenant, setTenant] = useState(tenantId);
   const [showOwnerSignupLink] = useState(
     () => localStorage.getItem(OWNER_SIGNUP_HIDDEN_KEY) !== '1',
   );
   const [fieldErrors, setFieldErrors] = useState<{
-    api?: string;
     email?: string;
     password?: string;
-    tenantId?: string;
   }>({});
 
-  const uuidRe =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const emailRe = /^\S+@\S+\.\S+$/;
 
   function validate(): boolean {
     const next: typeof fieldErrors = {};
-
-    const apiTrim = api.trim();
-    if (!apiTrim) {
-      next.api = 'API base URL is required';
-    } else {
-      try {
-        // Require a scheme so we can safely build request URLs.
-        new URL(apiTrim);
-      } catch {
-        next.api = 'Use a full URL (e.g. http://localhost:3000)';
-      }
-    }
 
     const emailTrim = email.trim();
     if (!emailTrim) {
@@ -60,15 +37,6 @@ export default function LoginPage() {
       next.password = 'Password must be at least 8 characters';
     }
 
-    const tenantTrim = tenant.trim();
-    if (
-      tenantTrim &&
-      tenantTrim !== 'public' &&
-      !uuidRe.test(tenantTrim)
-    ) {
-      next.tenantId = 'Invalid tenant UUID format';
-    }
-
     setFieldErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -77,9 +45,8 @@ export default function LoginPage() {
     e.preventDefault();
     if (!validate()) return;
 
-    setTenantId(tenant.trim());
     try {
-      await signIn(api.replace(/\/$/, ''), email.trim(), password);
+      await signIn(apiBase, email.trim(), password);
       // Navigation happens via the effect once the session is loaded.
     } catch {
       // Error is surfaced by SessionContext.
@@ -97,28 +64,10 @@ export default function LoginPage() {
       <div className="login-card">
         <h1>Bukit SaaS console</h1>
         <p className="muted">
-          Sign in with <code>email + password</code>. Requests use a JWT
-          token under <code>Authorization: Bearer ...</code>, plus{' '}
-          <code>X-Tenant-Id</code> for tenant scoping.
+          Sign in with <code>email + password</code>.
         </p>
         <form onSubmit={onSubmit}>
           <div className="form-grid" style={{ marginTop: '1.25rem' }}>
-            <div>
-              <label htmlFor="api">API base URL</label>
-              <input
-                id="api"
-                name="api"
-                value={api}
-                onChange={(e) => setApi(e.target.value)}
-                placeholder="http://localhost:3000"
-                aria-invalid={!!fieldErrors.api}
-              />
-              {fieldErrors.api && (
-                <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.api}
-                </div>
-              )}
-            </div>
             <div>
               <label htmlFor="email">Email</label>
               <input
@@ -153,22 +102,6 @@ export default function LoginPage() {
               {fieldErrors.password && (
                 <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
                   {fieldErrors.password}
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor="tenant">Tenant ID (optional)</label>
-              <input
-                id="tenant"
-                name="tenantId"
-                value={tenant}
-                onChange={(e) => setTenant(e.target.value)}
-                placeholder="Tenant UUID (or leave blank)"
-                aria-invalid={!!fieldErrors.tenantId}
-              />
-              {fieldErrors.tenantId && (
-                <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.tenantId}
                 </div>
               )}
             </div>
