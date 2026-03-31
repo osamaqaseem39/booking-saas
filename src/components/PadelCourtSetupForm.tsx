@@ -256,14 +256,11 @@ export function PadelCourtSetupForm({
   }
 
   return (
-    <form
-      className="form-grid turf-setup-form"
-      style={{ maxWidth: '720px', marginTop: '1rem' }}
-      onSubmit={(e) => void onSubmit(e)}
-    >
-      {err && <div className="err-banner">{err}</div>}
+    <div className="turf-setup-form-wrap">
+      <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
+        {err && <div className="err-banner turf-setup-form-error">{err}</div>}
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>1. Basic information</h4>
         <div className="form-grid">
           <div>
@@ -317,7 +314,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>2. Structure details</h4>
         <p className="muted" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>
           Fixed padel-specific structure (ceiling height is required for lobs).
@@ -403,7 +400,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>3. Dimensions (meters)</h4>
         <p className="muted" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>
           Standard padel is ~20m × ~10m; adjust if your court differs.
@@ -432,7 +429,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>4. Surface</h4>
         <div>
           <label>Surface type</label>
@@ -451,7 +448,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>5. Game settings</h4>
         <div className="form-grid">
           <div>
@@ -479,7 +476,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>6. Pricing</h4>
         <div className="form-grid">
           <div>
@@ -527,7 +524,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>7. Slot settings</h4>
         <div className="form-grid">
           <div>
@@ -556,7 +553,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>8. Extras</h4>
         <div className="turf-setup-checkrow turf-setup-checkrow--wrap">
           <label className="turf-setup-inline">
@@ -586,7 +583,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>9. Amenities</h4>
         <div className="turf-setup-checkrow turf-setup-checkrow--wrap">
           <label className="turf-setup-inline">
@@ -616,7 +613,7 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <div className="detail-section">
+      <div className="turf-setup-card">
         <h4>10. Rules</h4>
         <p className="muted" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>
           Max players: <strong>{maxPlayers.trim() || '4'}</strong> (editable in
@@ -645,13 +642,16 @@ export function PadelCourtSetupForm({
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="btn-primary"
-        disabled={saving || !name.trim()}
-      >
-        {saving ? 'Saving…' : 'Create padel court'}
-      </button>
-    </form>
+      <div className="turf-setup-form-actions">
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={saving || !name.trim()}
+        >
+          {saving ? 'Saving…' : 'Create padel court'}
+        </button>
+      </div>
+      </form>
+    </div>
   );
 }
