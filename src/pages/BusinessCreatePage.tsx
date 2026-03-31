@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { onboardBusiness } from '../api/saasClient';
 
 const BUSINESS_TYPE_OPTIONS = [
@@ -127,13 +127,9 @@ export default function BusinessCreatePage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
         <h1 className="page-title">Add business</h1>
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => navigate('/app/businesses')}
-        >
+        <Link to="/app/businesses" className="btn-ghost btn-compact">
           Back to list
-        </button>
+        </Link>
       </div>
       <p className="muted">
         Create business profile, owner, subscription, and settings.

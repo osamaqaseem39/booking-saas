@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { deleteBusiness, listBusinesses } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
-import { useNavigate } from 'react-router-dom';
 import type { BusinessRow } from '../types/domain';
 
 export default function BusinessesPage() {
-  const navigate = useNavigate();
   const [rows, setRows] = useState<BusinessRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,13 +82,9 @@ export default function BusinessesPage() {
       )}
       {canCreateBusiness && (
         <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate('/app/businesses/new')}
-          >
+          <Link to="/app/businesses/new" className="btn-primary">
             Add business
-          </button>
+          </Link>
         </div>
       )}
       {err && <div className="err-banner">{err}</div>}
@@ -122,23 +117,19 @@ export default function BusinessesPage() {
                   <td>{b.memberships?.length ?? 0}</td>
                   <td style={{ width: '260px' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        onClick={() => {
-                          setTenantId(b.tenantId);
-                          navigate(`/app/businesses/${b.id}`);
-                        }}
+                      <Link
+                        to={`/app/businesses/${b.id}`}
+                        className="action-link"
+                        onClick={() => setTenantId(b.tenantId)}
                       >
                         Tenant Stats
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        onClick={() => navigate(`/app/businesses/${b.id}/edit`)}
+                      </Link>
+                      <Link
+                        to={`/app/businesses/${b.id}/edit`}
+                        className="action-link"
                       >
                         Edit
-                      </button>
+                      </Link>
                       <button
                         type="button"
                         className="btn-danger"

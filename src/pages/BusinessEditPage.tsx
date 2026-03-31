@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { deleteBusiness, listBusinesses, updateBusiness } from '../api/saasClient';
 import type { BusinessRow } from '../types/domain';
 
@@ -121,9 +121,9 @@ export default function BusinessEditPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
         <h1 className="page-title">Edit business</h1>
-        <button type="button" className="btn-ghost" onClick={() => navigate('/app/businesses')}>
+        <Link to="/app/businesses" className="btn-ghost btn-compact">
           Back to list
-        </button>
+        </Link>
       </div>
       {err && <div className="err-banner">{err}</div>}
       {loading ? (

@@ -382,6 +382,49 @@ label {
   margin-top: 0.35rem;
 }
 
+.image-upload {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.image-upload-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.image-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-upload-error {
+  color: var(--danger);
+  margin: 0;
+}
+
+.image-upload-preview {
+  width: 100%;
+  max-width: 280px;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.image-upload-preview--single {
+  margin-top: 0.2rem;
+}
+
+.image-gallery-item {
+  display: grid;
+  gap: 0.45rem;
+  align-items: start;
+}
+
 .connection-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

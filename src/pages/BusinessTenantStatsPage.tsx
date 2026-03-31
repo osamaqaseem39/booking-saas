@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   listBusinessLocations,
   listBusinesses,
@@ -17,7 +17,6 @@ type Counts = {
 
 export default function BusinessTenantStatsPage() {
   const { businessId = '' } = useParams();
-  const navigate = useNavigate();
   const [business, setBusiness] = useState<BusinessRow | null>(null);
   const [counts, setCounts] = useState<Counts>({
     locations: 0,
@@ -68,9 +67,9 @@ export default function BusinessTenantStatsPage() {
 
   return (
     <div>
-      <button type="button" className="btn-ghost" onClick={() => navigate('/app/businesses')}>
+      <Link to="/app/businesses" className="btn-ghost btn-compact">
         Back to businesses
-      </button>
+      </Link>
 
       <h1 className="page-title" style={{ marginTop: '1rem' }}>
         Tenant Stats
@@ -112,14 +111,13 @@ export default function BusinessTenantStatsPage() {
             </div>
           </div>
           {business && (
-            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
-              <button
-                type="button"
+            <div className="page-actions-row">
+              <Link
+                to={`/app/businesses/${business.id}/edit`}
                 className="btn-primary"
-                onClick={() => navigate(`/app/businesses/${business.id}/edit`)}
               >
                 Edit business
-              </button>
+              </Link>
             </div>
           )}
         </>

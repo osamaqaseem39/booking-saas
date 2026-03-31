@@ -17,19 +17,10 @@ import {
   inferStateFromCity,
   LOCATION_HIERARCHY,
 } from '../constants/locationHierarchy';
+import ImageGallery from '../components/ImageGallery';
+import ImageUpload from '../components/ImageUpload';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow } from '../types/domain';
-
-function splitGalleryInput(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
-
-function joinGalleryForInput(urls: string[] | undefined | null): string {
-  return (urls ?? []).join('\n');
-}
 
 export default function LocationEditPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
@@ -59,7 +50,7 @@ export default function LocationEditPage() {
   );
   const [isActive, setIsActive] = useState(true);
   const [logoUrl, setLogoUrl] = useState('');
-  const [galleryText, setGalleryText] = useState('');
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
   const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
   const countryOptions = Object.keys(LOCATION_HIERARCHY);
@@ -106,7 +97,7 @@ export default function LocationEditPage() {
     setWorkingHours((location.workingHours as Record<string, unknown> | null) ?? {});
     setIsActive((location.status ?? '').toLowerCase() === 'active');
     setLogoUrl(location.logo ?? '');
-    setGalleryText(joinGalleryForInput(location.gallery));
+    setGalleryUrls(location.gallery ?? []);
     setFacilityTypes(location.facilityTypes ?? []);
     const isPreset = LOCATION_TYPE_OPTIONS.some((o) => o.value === location.locationType);
     if (location.locationType && !isPreset) {
@@ -178,7 +169,7 @@ export default function LocationEditPage() {
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
         logo: logoUrl.trim(),
-        gallery: splitGalleryInput(galleryText),
+        gallery: galleryUrls.map((u) => u.trim()).filter(Boolean),
         status: isActive ? 'active' : 'inactive',
         location: {
           country: country.trim(),
@@ -434,29 +425,14 @@ export default function LocationEditPage() {
               <h2>Media</h2>
               <div className="form-row-2">
                 <div>
-                  <label>Logo URL</label>
-                  <input
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://…"
-                  />
+                  <ImageUpload label="Logo" value={logoUrl} onChange={setLogoUrl} />
                   <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
                     Main image for this location. Leave empty to clear.
                   </p>
                 </div>
                 <div />
               </div>
-              <div>
-                <label>Gallery (one image URL per line)</label>
-                <textarea
-                  value={galleryText}
-                  onChange={(e) => setGalleryText(e.target.value)}
-                  rows={4}
-                  placeholder="https://…"
-                  style={{ width: '100%', minHeight: '5rem' }}
-                />
-              </div>
+              <ImageGallery label="Location image gallery" value={galleryUrls} onChange={setGalleryUrls} />
             </div>
 
             <div className="connection-panel" style={{ margin: 0 }}>

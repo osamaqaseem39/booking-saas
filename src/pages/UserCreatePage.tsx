@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createIamUser } from '../api/saasClient';
 
 export default function UserCreatePage() {
@@ -33,9 +33,9 @@ export default function UserCreatePage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
         <h1 className="page-title">Add user</h1>
-        <button type="button" className="btn-ghost" onClick={() => navigate('/app/users')}>
+        <Link to="/app/users" className="btn-ghost btn-compact">
           Back to list
-        </button>
+        </Link>
       </div>
       <p className="muted">Create an IAM user account for console access.</p>
       {err && <div className="err-banner">{err}</div>}

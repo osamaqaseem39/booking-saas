@@ -60,6 +60,7 @@ export interface BusinessLocationRow {
   timezone?: string | null;
   currency?: string | null;
   logo?: string | null;
+  bannerImage?: string | null;
   gallery?: string[];
   status?: string | null;
   /** Derived from `status` on the server; use `status` when updating. */

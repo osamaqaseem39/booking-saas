@@ -18,6 +18,7 @@ const LS_API = 'bukit_saas_api_url';
 const LS_TENANT = 'bukit_saas_tenant_id';
 const LS_TOKEN = 'bukit_saas_token';
 const LS_REFRESH = 'bukit_saas_refresh_token';
+const IMAGE_UPLOAD_URL = import.meta.env.VITE_IMAGE_UPLOAD_URL || '';
 
 const TOKENS_UPDATED = 'bukit_saas_tokens_updated';
 
@@ -36,6 +37,44 @@ export function getApiBase(): string {
     localStorage.getItem(LS_API) ||
     'http://localhost:3000'
   ).replace(/\/$/, '');
+}
+
+export interface UploadImageResult {
+  url: string;
+  filename?: string;
+  size?: number;
+}
+
+export async function uploadImageApi(file: File): Promise<UploadImageResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  if (IMAGE_UPLOAD_URL) {
+    const res = await fetch(IMAGE_UPLOAD_URL, {
+      method: 'POST',
+      body: formData,
+      credentials: 'omit',
+    });
+    const json = (await res.json()) as {
+      success?: boolean;
+      message?: string;
+      data?: { url?: string; filename?: string; size?: number };
+    };
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.message || 'Image upload failed');
+    }
+    const data = json?.data;
+    return {
+      url: data?.url ?? '',
+      filename: data?.filename,
+      size: data?.size,
+    };
+  }
+
+  return request<{ url: string; filename?: string; size?: number }>('/auth/upload', {
+    method: 'POST',
+    body: formData,
+  });
 }
 
 export function getTenantId(): string {
@@ -276,6 +315,7 @@ export async function createBusinessLocation(body: {
   timezone?: string;
   currency?: string;
   logo?: string;
+  bannerImage?: string;
   gallery?: string[];
   status?: string;
   location?: {
@@ -319,6 +359,7 @@ export async function updateBusinessLocation(
     timezone?: string;
     currency?: string;
     logo?: string;
+    bannerImage?: string;
     gallery?: string[];
     status?: string;
     location?: {

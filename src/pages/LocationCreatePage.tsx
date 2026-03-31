@@ -15,15 +15,10 @@ import {
   getStatesByCountry,
   LOCATION_HIERARCHY,
 } from '../constants/locationHierarchy';
+import ImageGallery from '../components/ImageGallery';
+import ImageUpload from '../components/ImageUpload';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessRow } from '../types/domain';
-
-function splitGalleryInput(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
 
 export default function LocationCreatePage() {
   const navigate = useNavigate();
@@ -48,7 +43,7 @@ export default function LocationCreatePage() {
   const [currency, setCurrency] = useState('PKR');
   const [isActive, setIsActive] = useState(true);
   const [logoUrl, setLogoUrl] = useState('');
-  const [galleryText, setGalleryText] = useState('');
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [workingHours, setWorkingHours] = useState<Record<string, unknown>>(
     createDefaultWorkingHoursPayload(),
   );
@@ -133,8 +128,8 @@ export default function LocationCreatePage() {
         timezone: timezone.trim(),
         currency: currency.trim().toUpperCase(),
         ...(logoUrl.trim() ? { logo: logoUrl.trim() } : {}),
-        ...(splitGalleryInput(galleryText).length > 0
-          ? { gallery: splitGalleryInput(galleryText) }
+        ...(galleryUrls.length > 0
+          ? { gallery: galleryUrls.map((u) => u.trim()).filter(Boolean) }
           : {}),
         status: isActive ? 'active' : 'inactive',
         location: {
@@ -196,9 +191,9 @@ export default function LocationCreatePage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
         <h1 className="page-title">Add location</h1>
-        <button type="button" className="btn-ghost" onClick={() => navigate('/app/locations')}>
+        <Link to="/app/locations" className="btn-ghost btn-compact">
           Back to list
-        </button>
+        </Link>
       </div>
       <p className="muted">
         Create location profile, contact details, geolocation, and facility types.
@@ -363,26 +358,11 @@ export default function LocationCreatePage() {
           <h2>Media</h2>
           <div className="form-row-2">
             <div>
-              <label>Logo URL</label>
-              <input
-                type="url"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://…"
-              />
+              <ImageUpload label="Logo" value={logoUrl} onChange={setLogoUrl} />
             </div>
             <div />
           </div>
-          <div>
-            <label>Gallery (one image URL per line)</label>
-            <textarea
-              value={galleryText}
-              onChange={(e) => setGalleryText(e.target.value)}
-              rows={4}
-              placeholder="https://…"
-              style={{ width: '100%', minHeight: '5rem' }}
-            />
-          </div>
+          <ImageGallery label="Location image gallery" value={galleryUrls} onChange={setGalleryUrls} />
         </div>
 
         <div className="connection-panel" style={{ margin: 0 }}>

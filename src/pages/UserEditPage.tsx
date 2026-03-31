@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   assignRole,
   deleteIamUser,
@@ -107,9 +107,9 @@ export default function UserEditPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
         <h1 className="page-title">Edit user</h1>
-        <button type="button" className="btn-ghost" onClick={() => navigate('/app/users')}>
+        <Link to="/app/users" className="btn-ghost btn-compact">
           Back to list
-        </button>
+        </Link>
       </div>
       {err && <div className="err-banner">{err}</div>}
       {!user ? (
