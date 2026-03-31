@@ -108,3 +108,37 @@ export interface CourtOption {
   id: string;
   label: string;
 }
+
+export interface BookingAvailabilityRecord {
+  date: string;
+  startTime: string;
+  endTime: string;
+  sportType?: BookingSportType;
+  availableCourts: Array<{
+    kind: CourtKind;
+    id: string;
+    name: string;
+  }>;
+  bookedSlots: Array<{
+    kind: CourtKind;
+    courtId: string;
+    startTime: string;
+    endTime: string;
+    bookingId: string;
+    itemId: string;
+    status: BookingItemStatus;
+  }>;
+}
+
+export interface CourtSlotsRecord {
+  date: string;
+  kind: CourtKind;
+  courtId: string;
+  slots: Array<{
+    startTime: string;
+    endTime: string;
+    bookingId: string;
+    itemId: string;
+    status: BookingItemStatus;
+  }>;
+}

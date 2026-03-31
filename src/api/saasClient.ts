@@ -1,7 +1,10 @@
 import type {
+  BookingAvailabilityRecord,
   BookingRecord,
   BookingSportType,
+  CourtKind,
   CourtOption,
+  CourtSlotsRecord,
   CreateBookingPayload,
   UpdateBookingPayload,
 } from '../types/booking';
@@ -556,6 +559,35 @@ export async function updateBooking(
     method: 'PATCH',
     body: JSON.stringify(body),
   });
+}
+
+export async function getBookingAvailability(params: {
+  date: string;
+  startTime: string;
+  endTime: string;
+  sportType?: BookingSportType;
+}): Promise<BookingAvailabilityRecord> {
+  const q = new URLSearchParams();
+  q.set('date', params.date);
+  q.set('startTime', params.startTime);
+  q.set('endTime', params.endTime);
+  if (params.sportType) q.set('sportType', params.sportType);
+  return request<BookingAvailabilityRecord>(`/bookings/availability?${q.toString()}`, {
+    method: 'GET',
+  });
+}
+
+export async function getCourtBookedSlots(params: {
+  courtKind: CourtKind;
+  courtId: string;
+  date: string;
+}): Promise<CourtSlotsRecord> {
+  const q = new URLSearchParams();
+  q.set('date', params.date);
+  return request<CourtSlotsRecord>(
+    `/bookings/courts/${params.courtKind}/${params.courtId}/slots?${q.toString()}`,
+    { method: 'GET' },
+  );
 }
 
 export async function listInvoices(): Promise<InvoiceRow[]> {
