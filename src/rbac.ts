@@ -33,7 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/app/users',
-    label: 'Users & IAM',
+    label: 'Business users',
     anyOf: ['platform-owner', 'business-admin'],
   },
   {

@@ -78,6 +78,7 @@ export interface IamUserRow {
   fullName: string;
   email: string;
   phone?: string | null;
+  createdAt?: string;
   roles?: string[];
 }
 

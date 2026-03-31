@@ -37,7 +37,7 @@ export default function UserCreatePage() {
           Back to list
         </Link>
       </div>
-      <p className="muted">Create an IAM user account for console access.</p>
+      <p className="muted">Create a business user account for console access.</p>
       {err && <div className="err-banner">{err}</div>}
       <form
         className="form-grid"

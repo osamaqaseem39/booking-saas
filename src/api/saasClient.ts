@@ -458,8 +458,19 @@ export async function deleteBusiness(
   });
 }
 
-export async function listIamUsers(): Promise<IamUserRow[]> {
-  return request<IamUserRow[]>('/iam/users', { method: 'GET' });
+export async function listIamUsers(params?: {
+  search?: string;
+  sortBy?: 'fullName' | 'email' | 'createdAt';
+  sortOrder?: 'ASC' | 'DESC';
+}): Promise<IamUserRow[]> {
+  const q = new URLSearchParams();
+  const search = params?.search?.trim();
+  if (search) q.set('search', search);
+  if (params?.sortBy) q.set('sortBy', params.sortBy);
+  if (params?.sortOrder) q.set('sortOrder', params.sortOrder);
+  const query = q.toString();
+  const path = query ? `/iam/users?${query}` : '/iam/users';
+  return request<IamUserRow[]>(path, { method: 'GET' });
 }
 
 /** Platform owner only — users with customer-end-user role. */

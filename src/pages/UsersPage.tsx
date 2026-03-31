@@ -8,13 +8,16 @@ export default function UsersPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'fullName' | 'email'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
   const reload = () => {
     void (async () => {
       setLoading(true);
       setErr(null);
       try {
-        setRows(await listIamUsers());
+        setRows(await listIamUsers({ search, sortBy, sortOrder }));
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load users');
       } finally {
@@ -25,7 +28,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     reload();
-  }, []);
+  }, [search, sortBy, sortOrder]);
 
   async function onDelete(userId: string) {
     const yes = window.confirm('Delete this user? This cannot be undone.');
@@ -44,12 +47,40 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="page-title">Users & IAM</h1>
+      <h1 className="page-title">Business users</h1>
       {err && <div className="err-banner">{err}</div>}
       <div style={{ marginBottom: '1rem' }}>
         <Link to="/app/users/new" className="btn-primary">
           Add user
         </Link>
+      </div>
+      <div
+        style={{
+          marginBottom: '1rem',
+          display: 'flex',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, phone"
+          style={{ minWidth: '280px' }}
+        />
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+          <option value="createdAt">Newest</option>
+          <option value="fullName">Name</option>
+          <option value="email">Email</option>
+        </select>
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+        >
+          <option value="DESC">Desc</option>
+          <option value="ASC">Asc</option>
+        </select>
       </div>
 
       <div className="table-wrap">
