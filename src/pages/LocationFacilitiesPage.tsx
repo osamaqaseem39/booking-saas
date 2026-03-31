@@ -110,7 +110,7 @@ export default function LocationFacilitiesPage() {
         <Link to="/app/locations" className="btn-ghost btn-compact">
           ← Locations
         </Link>
-        <Link to="/app/Facilites" className="btn-ghost btn-compact">
+        <Link to="/app/add-facility" className="btn-ghost btn-compact">
           ← Main facility page
         </Link>
       </div>
@@ -135,7 +135,11 @@ export default function LocationFacilitiesPage() {
             Add facility (setup form)
           </h3>
           <div className="facility-setup-grid">
-            {courtSetupOptions().map((o) => {
+            {courtSetupOptions()
+              .filter(
+                (o) => o.code !== 'futsal-field' && o.code !== 'cricket-indoor',
+              )
+              .map((o) => {
               const allowed = isCourtSetupAllowedForLocation(location, o.code);
               return allowed ? (
                 <Link
