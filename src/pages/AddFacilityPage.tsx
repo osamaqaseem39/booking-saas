@@ -153,19 +153,6 @@ export default function AddFacilityPage() {
       return a.id.localeCompare(b.id) * dir;
     });
   }, [allFacilities, query, sortBy, sortDir, typeFilter]);
-  const statCards = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const row of filteredFacilities) {
-      counts.set(row.type, (counts.get(row.type) ?? 0) + 1);
-    }
-    if (counts.size === 0) {
-      for (const o of visibleSetupOptions) {
-        counts.set(o.label, 0);
-      }
-    }
-    return [...counts.entries()].map(([label, count]) => ({ label, count }));
-  }, [filteredFacilities, visibleSetupOptions]);
-
   return (
     <div>
       <h1 className="page-title">Facilities</h1>
@@ -320,19 +307,6 @@ export default function AddFacilityPage() {
             <input value={String(filteredFacilities.length)} readOnly />
           </div>
         </div>
-      </div>
-
-      <div className="connection-grid" style={{ marginTop: '1rem' }}>
-        {statCards.map((s) => (
-          <div
-            key={s.label}
-            className="connection-panel"
-            style={{ margin: 0, padding: '0.9rem 1rem' }}
-          >
-            <h2>{s.label}</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{s.count}</strong>
-          </div>
-        ))}
       </div>
 
       <div className="table-wrap">
