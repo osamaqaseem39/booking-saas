@@ -51,11 +51,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Billing',
     anyOf: ['platform-owner', 'business-admin', 'business-staff'],
   },
-  {
-    to: '/app/arena',
-    label: 'Arena courts',
-    anyOf: ['platform-owner', 'business-admin', 'business-staff'],
-  },
   { to: '/app/health', label: 'API health', anyOf: ['authenticated'] },
 ];
 

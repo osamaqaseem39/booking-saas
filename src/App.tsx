@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './context/SessionContext';
 import ConsoleLayout from './layout/ConsoleLayout';
 import RequireRoles from './layout/RequireRoles';
-import ArenaHubPage from './pages/ArenaHubPage';
 import BillingPage from './pages/BillingPage';
 import BusinessCreatePage from './pages/BusinessCreatePage';
 import BusinessEditPage from './pages/BusinessEditPage';
@@ -82,7 +81,6 @@ export default function App() {
             <Route path="users/:userId/edit" element={<UserEditPage />} />
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="billing" element={<BillingPage />} />
-            <Route path="arena" element={<ArenaHubPage />} />
             <Route path="health" element={<HealthPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/app" replace />} />

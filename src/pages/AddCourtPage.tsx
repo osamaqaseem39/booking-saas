@@ -52,12 +52,6 @@ export default function AddCourtPage() {
         <Link to="/app/locations" className="btn-ghost btn-compact">
           ← Locations
         </Link>
-        <span className="add-court-nav-sep" aria-hidden>
-          ·
-        </span>
-        <Link to="/app/arena" className="btn-ghost btn-compact">
-          Arena courts
-        </Link>
       </nav>
       <h1 className="page-title">Add court</h1>
       {err && <div className="err-banner">{err}</div>}
