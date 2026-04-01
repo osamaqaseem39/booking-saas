@@ -49,43 +49,54 @@ export default function UsersPage() {
     <div>
       <h1 className="page-title">Business users</h1>
       {err && <div className="err-banner">{err}</div>}
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.75rem' }}>
         <Link to="/app/users/new" className="btn-primary">
           Add user
         </Link>
       </div>
-      <div
-        style={{
-          marginBottom: '1rem',
-          display: 'flex',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-        }}
-      >
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, phone"
-          style={{ minWidth: '280px' }}
-        />
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
-          <option value="createdAt">Newest</option>
-          <option value="fullName">Name</option>
-          <option value="email">Email</option>
-        </select>
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+      <div className="connection-panel" style={{ margin: 0, marginBottom: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(220px, 1fr) 180px 140px',
+            gap: '0.75rem',
+            alignItems: 'end',
+          }}
         >
-          <option value="DESC">Desc</option>
-          <option value="ASC">Asc</option>
-        </select>
+          <label>
+            <span className="muted">Search</span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name, email, or phone"
+            />
+          </label>
+          <label>
+            <span className="muted">Sort by</span>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+              <option value="createdAt">Newest</option>
+              <option value="fullName">Name</option>
+              <option value="email">Email</option>
+            </select>
+          </label>
+          <label>
+            <span className="muted">Order</span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+            >
+              <option value="DESC">Descending</option>
+              <option value="ASC">Ascending</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div className="table-wrap">
         {loading ? (
           <div className="empty-state">Loading…</div>
+        ) : rows.length === 0 ? (
+          <div className="empty-state">No business users found.</div>
         ) : (
           <table className="data">
             <thead>
