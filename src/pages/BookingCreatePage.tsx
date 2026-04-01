@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   createBooking,
   createIamUser,
+  getCourtSlotGrid,
   listBookings,
   listBookingsForTenant,
   listBusinessLocations,
@@ -216,6 +217,13 @@ function getWorkingDayWindow(
   return { closed, open, close };
 }
 
+function applyMinLeadTimeToStarts(slots: string[], bookingDate: string): string[] {
+  const today = localDateYmd();
+  if (bookingDate !== today) return slots;
+  const minM = timeToMinutes(nextHalfHourTime());
+  return slots.filter((t) => timeToMinutes(t) >= minM);
+}
+
 function remainingDaySlotsInWindow(
   date: string,
   openTime: string,
@@ -279,7 +287,60 @@ export default function BookingCreatePage() {
   const [tax, setTax] = useState('0');
   const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
+  /** Per line: server slot grid (free-only, working hours + hides booked) vs local fallback. */
+  const [lineSlotSource, setLineSlotSource] = useState<
+    Record<number, { starts: string[]; source: 'api' | 'local' }>
+  >({});
   const bookingDateChoices = useMemo(() => nextSevenDays(), []);
+
+  const slotGridFetchKey = useMemo(
+    () =>
+      `${tenantId.trim()}|${bookingDate}|${lines
+        .map((l) => `${l.courtKind}:${l.courtId}`)
+        .join(';')}`,
+    [tenantId, bookingDate, lines],
+  );
+
+  useEffect(() => {
+    if (!tenantId.trim()) {
+      setLineSlotSource({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const next: Record<number, { starts: string[]; source: 'api' | 'local' }> = {};
+      for (let idx = 0; idx < lines.length; idx += 1) {
+        const ln = lines[idx];
+        if (!ln.courtId.trim()) {
+          continue;
+        }
+        try {
+          const grid = await getCourtSlotGrid({
+            courtKind: ln.courtKind,
+            courtId: ln.courtId.trim(),
+            date: bookingDate,
+            useWorkingHours: true,
+            availableOnly: true,
+          });
+          if (cancelled) return;
+          if (grid.locationClosed) {
+            next[idx] = { starts: [], source: 'api' };
+            continue;
+          }
+          const starts = grid.segments
+            .filter((s) => s.state === 'free')
+            .map((s) => s.startTime);
+          next[idx] = { starts, source: 'api' };
+        } catch {
+          next[idx] = { starts: [], source: 'local' };
+        }
+      }
+      if (!cancelled) setLineSlotSource(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slotGridFetchKey]);
 
   useEffect(() => {
     if (bookingDateChoices.length === 0) return;
@@ -746,13 +807,17 @@ export default function BookingCreatePage() {
                 (location?.workingHours as Record<string, unknown> | null) ?? null,
                 bookingDate,
               );
-              const startSlots = dayWindow.closed
+              const fallbackSlots = dayWindow.closed
                 ? []
                 : remainingDaySlotsInWindow(
                     bookingDate,
                     dayWindow.open,
                     dayWindow.close,
                   );
+              const src = lineSlotSource[idx];
+              const baseStarts =
+                src?.source === 'api' ? src.starts : fallbackSlots;
+              const startSlots = applyMinLeadTimeToStarts(baseStarts, bookingDate);
               const totalSlides = Math.max(
                 1,
                 Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),

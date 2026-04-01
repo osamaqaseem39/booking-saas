@@ -143,3 +143,31 @@ export interface CourtSlotsRecord {
     status: BookingItemStatus;
   }>;
 }
+
+export type CourtSlotGridSegment =
+  | {
+      startTime: string;
+      endTime: string;
+      state: 'free';
+    }
+  | {
+      startTime: string;
+      endTime: string;
+      state: 'booked';
+      bookingId: string;
+      itemId: string;
+      status: BookingItemStatus;
+    };
+
+export interface CourtSlotGridRecord {
+  date: string;
+  kind: CourtKind;
+  courtId: string;
+  segmentMinutes: 30;
+  gridStartTime: string;
+  gridEndTime: string;
+  workingHoursApplied?: boolean;
+  locationClosed?: boolean;
+  availableOnly?: boolean;
+  segments: CourtSlotGridSegment[];
+}

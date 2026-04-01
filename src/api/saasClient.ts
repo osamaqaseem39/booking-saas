@@ -4,6 +4,7 @@ import type {
   BookingSportType,
   CourtKind,
   CourtOption,
+  CourtSlotGridRecord,
   CourtSlotsRecord,
   CreateBookingPayload,
   UpdateBookingPayload,
@@ -595,6 +596,30 @@ export async function getCourtBookedSlots(params: {
   q.set('date', params.date);
   return request<CourtSlotsRecord>(
     `/bookings/courts/${params.courtKind}/${params.courtId}/slots?${q.toString()}`,
+    { method: 'GET' },
+  );
+}
+
+/** 30-minute segments for one facility/court for a day (or optional time window). */
+export async function getCourtSlotGrid(params: {
+  courtKind: CourtKind;
+  courtId: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  /** Align grid to location working hours (ignored if start/end are set). */
+  useWorkingHours?: boolean;
+  /** Only free segments — use for booking pickers so booked times are omitted. */
+  availableOnly?: boolean;
+}): Promise<CourtSlotGridRecord> {
+  const q = new URLSearchParams();
+  q.set('date', params.date);
+  if (params.startTime) q.set('startTime', params.startTime);
+  if (params.endTime) q.set('endTime', params.endTime);
+  if (params.useWorkingHours) q.set('useWorkingHours', 'true');
+  if (params.availableOnly) q.set('availableOnly', 'true');
+  return request<CourtSlotGridRecord>(
+    `/bookings/courts/${params.courtKind}/${params.courtId}/slot-grid?${q.toString()}`,
     { method: 'GET' },
   );
 }
