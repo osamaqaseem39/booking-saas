@@ -50,6 +50,15 @@ function minutesToTime(v: number): string {
   return `${pad2(hh)}:${pad2(mm)}`;
 }
 
+function to12Hour(time24: string): string {
+  const [hRaw, mRaw] = time24.split(':');
+  const h = Number(hRaw || 0);
+  const m = Number(mRaw || 0);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${pad2(m)} ${suffix}`;
+}
+
 function makePassword(): string {
   const rand = Math.random().toString(36).slice(2, 8);
   return `Walkin!${rand}9`;
@@ -633,13 +642,16 @@ export default function BookingCreatePage() {
                       </select>
                       {location && (
                         <div className="muted" style={{ marginTop: '0.3rem' }}>
-                          Working hours: {dayWindow.closed ? 'Closed' : `${dayWindow.open} - ${dayWindow.close}`}
+                          Working hours:{' '}
+                          {dayWindow.closed
+                            ? 'Closed'
+                            : `${to12Hour(dayWindow.open)} - ${to12Hour(dayWindow.close)}`}
                         </div>
                       )}
                     </div>
                     <div className="form-row-2">
                       <div>
-                        <label>Start time ({startTime})</label>
+                        <label>Start time ({to12Hour(startTime)})</label>
                         {startSlots.length > 0 && (
                           <div
                             style={{
@@ -715,7 +727,7 @@ export default function BookingCreatePage() {
                                   setLines(next);
                                 }}
                               >
-                                {slot}
+                                {to12Hour(slot)}
                               </button>
                             );
                           })}
@@ -767,7 +779,7 @@ export default function BookingCreatePage() {
                           </button>
                         </div>
                         <div className="muted" style={{ marginTop: '0.35rem' }}>
-                          End time: {endTime}
+                          End time: {to12Hour(endTime)}
                         </div>
                       </div>
                     </div>
