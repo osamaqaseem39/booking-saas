@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 type Weekday =
   | 'monday'
@@ -140,22 +140,14 @@ type Props = {
 };
 
 export default function WorkingHoursEditor({ value, onChange }: Props) {
-  const parsedValue = useMemo(() => toWeeklySchedule(value), [value]);
-  const [schedule, setSchedule] = useState<WeeklySchedule>(parsedValue);
-
-  useEffect(() => {
-    setSchedule(parsedValue);
-  }, [parsedValue]);
-
-  useEffect(() => {
-    onChange(weeklyScheduleToPayload(schedule));
-  }, [onChange, schedule]);
+  const schedule = useMemo(() => toWeeklySchedule(value), [value]);
 
   function updateDay(day: Weekday, next: Partial<DaySchedule>) {
-    setSchedule((prev) => ({
-      ...prev,
-      [day]: { ...prev[day], ...next },
-    }));
+    const nextSchedule: WeeklySchedule = {
+      ...schedule,
+      [day]: { ...schedule[day], ...next },
+    };
+    onChange(weeklyScheduleToPayload(nextSchedule));
   }
 
   return (
