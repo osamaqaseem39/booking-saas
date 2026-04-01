@@ -96,6 +96,10 @@ export interface NamedCourt {
   name: string;
   tenantId?: string;
   businessLocationId?: string | null;
+  /** Facility-level lifecycle status where available (e.g. active, maintenance). */
+  courtStatus?: string;
+  /** Facility active flag where available. */
+  isActive?: boolean;
 }
 
 export interface BusinessDashboardBusinessRow {

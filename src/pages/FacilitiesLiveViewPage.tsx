@@ -15,12 +15,17 @@ type FacilityCard = {
   name: string;
   type: 'turf' | 'padel' | 'futsal' | 'cricket';
   locationId?: string | null;
+  facilityStatus?: string;
+  facilityIsActive?: boolean;
 };
 
-function statusClass(status: string | undefined, isActive: boolean): string {
+function statusClass(status: string | undefined, isActive: boolean | undefined): string {
   const s = (status ?? '').toLowerCase();
-  if (s === 'active' || isActive) return 'badge badge-confirmed';
+  if (s === 'maintenance') return 'badge badge-cancelled';
   if (s === 'inactive') return 'badge badge-cancelled';
+  if (s === 'active') return 'badge badge-confirmed';
+  if (isActive === true) return 'badge badge-confirmed';
+  if (isActive === false) return 'badge badge-cancelled';
   return 'badge badge-neutral';
 }
 
@@ -47,24 +52,32 @@ export default function FacilitiesLiveViewPage() {
           name: r.name,
           type: 'turf' as const,
           locationId: r.businessLocationId,
+          facilityStatus: r.courtStatus,
+          facilityIsActive: r.isActive,
         })),
         ...padelRows.map((r) => ({
           id: r.id,
           name: r.name,
           type: 'padel' as const,
           locationId: r.businessLocationId,
+          facilityStatus: r.courtStatus,
+          facilityIsActive: r.isActive,
         })),
         ...futsalRows.map((r) => ({
           id: r.id,
           name: r.name,
           type: 'futsal' as const,
           locationId: r.businessLocationId,
+          facilityStatus: r.courtStatus,
+          facilityIsActive: r.isActive,
         })),
         ...cricketRows.map((r) => ({
           id: r.id,
           name: r.name,
           type: 'cricket' as const,
           locationId: r.businessLocationId,
+          facilityStatus: r.courtStatus,
+          facilityIsActive: r.isActive,
         })),
       ];
     },
@@ -206,11 +219,16 @@ export default function FacilitiesLiveViewPage() {
                   <strong>{facility.name}</strong>
                   <span
                     className={statusClass(
-                      location?.status ?? undefined,
-                      location?.isActive ?? false,
+                      facility.facilityStatus,
+                      facility.facilityIsActive,
                     )}
                   >
-                    {location?.status ?? (location?.isActive ? 'active' : 'unknown')}
+                    {facility.facilityStatus ??
+                      (facility.facilityIsActive === true
+                        ? 'active'
+                        : facility.facilityIsActive === false
+                          ? 'inactive'
+                          : 'unknown')}
                   </span>
                 </div>
                 <p className="muted owner-live-facility-address">
@@ -252,7 +270,12 @@ export default function FacilitiesLiveViewPage() {
                     </p>
                     <p className="muted owner-live-facility-address">
                       <strong>Status:</strong>{' '}
-                      {location?.status ?? (location?.isActive ? 'active' : 'unknown')}
+                      {facility.facilityStatus ??
+                        (facility.facilityIsActive === true
+                          ? 'active'
+                          : facility.facilityIsActive === false
+                            ? 'inactive'
+                            : 'unknown')}
                     </p>
                   </div>
                 )}
