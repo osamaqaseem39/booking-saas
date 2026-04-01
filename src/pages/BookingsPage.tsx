@@ -4,17 +4,21 @@ import {
   getBookingAvailability,
   getCourtBookedSlots,
   listBookings,
+  listCourtOptions,
+  listIamUsers,
   updateBooking,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import type {
   BookingRecord,
   BookingSportType,
+  CourtOption,
   BookingStatus,
   CourtKind,
   PaymentMethod,
   PaymentStatus,
 } from '../types/booking';
+import type { IamUserRow } from '../types/domain';
 
 function badgeClass(status: string): string {
   const s = status.toLowerCase();
@@ -27,6 +31,24 @@ function badgeClass(status: string): string {
   return 'badge badge-neutral';
 }
 
+function titleCaseWords(v: string): string {
+  return v
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function to12Hour(time24: string): string {
+  const [hRaw, mRaw] = time24.split(':');
+  const h = Number(hRaw || 0);
+  const m = Number(mRaw || 0);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
 export default function BookingsPage() {
   const navigate = useNavigate();
   const { tenantId } = useSession();
@@ -34,6 +56,8 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+  const [courtsMap, setCourtsMap] = useState<Record<string, string>>({});
   const [availabilitySport, setAvailabilitySport] =
     useState<BookingSportType>('futsal');
   const [availabilityDate, setAvailabilityDate] = useState(() =>
@@ -79,6 +103,37 @@ export default function BookingsPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const users: IamUserRow[] = await listIamUsers();
+        const map: Record<string, string> = {};
+        for (const u of users) {
+          map[u.id] = u.fullName || u.email || u.id;
+        }
+        setUsersMap(map);
+      } catch {
+        setUsersMap({});
+      }
+    })();
+    void (async () => {
+      try {
+        const all = await Promise.all([
+          listCourtOptions('futsal'),
+          listCourtOptions('cricket'),
+          listCourtOptions('padel'),
+        ]);
+        const map: Record<string, string> = {};
+        for (const row of all.flat() as CourtOption[]) {
+          map[row.id] = row.label.split('—').slice(1).join('—').trim() || row.label;
+        }
+        setCourtsMap(map);
+      } catch {
+        setCourtsMap({});
+      }
+    })();
+  }, []);
 
 
   async function patchBooking(patch: Parameters<typeof updateBooking>[1]) {
@@ -353,12 +408,16 @@ export default function BookingsPage() {
               <div className="detail-section">
                 <h4>Summary</h4>
                 <div className="detail-row">
-                  <span>ID</span>
-                  <span>{selected.bookingId}</span>
+                  <span>Booking</span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    #{selected.bookingId.slice(0, 8)}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span>User</span>
-                  <span>{selected.userId}</span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    {usersMap[selected.userId] ?? `User ${selected.userId.slice(0, 8)}`}
+                  </span>
                 </div>
               </div>
               <div className="detail-section">
@@ -367,11 +426,11 @@ export default function BookingsPage() {
                   {selected.items.map((it) => (
                     <li key={it.id}>
                       <div>
-                        <strong>{it.courtKind}</strong>
+                        <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
                       </div>
                       <div className="muted">
-                        {it.startTime}–{it.endTime} · {it.price}{' '}
-                        <span className={badgeClass(it.status)}>{it.status}</span>
+                        {to12Hour(it.startTime)} - {to12Hour(it.endTime)} · {it.price} PKR{' '}
+                        <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
                       </div>
                       <button
                         type="button"
@@ -411,7 +470,7 @@ export default function BookingsPage() {
                         ] as const
                       ).map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {titleCaseWords(s)}
                         </option>
                       ))}
                     </select>
@@ -432,7 +491,7 @@ export default function BookingsPage() {
                         ['pending', 'paid', 'failed', 'refunded'] as const
                       ).map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {titleCaseWords(s)}
                         </option>
                       ))}
                     </select>
@@ -452,7 +511,7 @@ export default function BookingsPage() {
                       {(['cash', 'card', 'jazzcash', 'easypaisa'] as const).map(
                         (s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {titleCaseWords(s)}
                           </option>
                         ),
                       )}
