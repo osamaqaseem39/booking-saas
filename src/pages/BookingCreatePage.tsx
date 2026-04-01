@@ -69,6 +69,7 @@ type BookingLine = {
   durationMins: number;
   price: string;
   status: BookingItemStatus;
+  slotPage: number;
 };
 
 function defaultLine(): BookingLine {
@@ -80,6 +81,7 @@ function defaultLine(): BookingLine {
     durationMins: 60,
     price: '5000',
     status: 'reserved',
+    slotPage: 0,
   };
 }
 
@@ -212,6 +214,7 @@ function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }>
 }
 
 export default function BookingCreatePage() {
+  const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
   const { tenantId } = useSession();
   const [error, setError] = useState<string | null>(null);
@@ -586,6 +589,19 @@ export default function BookingCreatePage() {
                     dayWindow.open,
                     dayWindow.close,
                   );
+              const totalSlides = Math.max(
+                1,
+                Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),
+              );
+              const currentSlide = Math.min(
+                Math.max(ln.slotPage, 0),
+                totalSlides - 1,
+              );
+              const slideStart = currentSlide * INTERVALS_PER_SLIDE;
+              const visibleSlots = startSlots.slice(
+                slideStart,
+                slideStart + INTERVALS_PER_SLIDE,
+              );
               return (
                 <div key={idx} className="item-editor">
                   <div className="item-editor-head">
@@ -624,18 +640,63 @@ export default function BookingCreatePage() {
                     <div className="form-row-2">
                       <div>
                         <label>Start time ({startTime})</label>
+                        {startSlots.length > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginTop: '0.35rem',
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                              disabled={currentSlide === 0}
+                              onClick={() => {
+                                const next = [...lines];
+                                next[idx] = {
+                                  ...ln,
+                                  slotPage: Math.max(0, currentSlide - 1),
+                                };
+                                setLines(next);
+                              }}
+                            >
+                              Prev
+                            </button>
+                            <span className="muted" style={{ fontSize: '0.78rem' }}>
+                              Slide {currentSlide + 1} / {totalSlides}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                              disabled={currentSlide >= totalSlides - 1}
+                              onClick={() => {
+                                const next = [...lines];
+                                next[idx] = {
+                                  ...ln,
+                                  slotPage: Math.min(totalSlides - 1, currentSlide + 1),
+                                };
+                                setLines(next);
+                              }}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
                         <div
                           style={{
                             display: 'flex',
                             gap: '0.4rem',
                             flexWrap: 'nowrap',
-                            overflowX: 'auto',
+                            overflowX: 'hidden',
                             paddingBottom: '0.25rem',
                             marginTop: '0.35rem',
-                            scrollSnapType: 'x mandatory',
                           }}
                         >
-                          {startSlots.slice(0, 20).map((slot) => {
+                          {visibleSlots.map((slot) => {
                             const active = slot === startTime;
                             return (
                               <button
@@ -647,7 +708,6 @@ export default function BookingCreatePage() {
                                   borderRadius: '999px',
                                   fontSize: '0.88rem',
                                   flex: '0 0 auto',
-                                  scrollSnapAlign: 'start',
                                 }}
                                 onClick={() => {
                                   const next = [...lines];
@@ -659,11 +719,6 @@ export default function BookingCreatePage() {
                               </button>
                             );
                           })}
-                          {startSlots.length > 20 && (
-                            <span className="muted" style={{ fontSize: '0.78rem' }}>
-                              +{startSlots.length - 20} more slots
-                            </span>
-                          )}
                           {startSlots.length === 0 && (
                             <span className="muted" style={{ fontSize: '0.78rem' }}>
                               No slots available in working hours for this day.
