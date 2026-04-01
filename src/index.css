@@ -1227,6 +1227,40 @@ table.data tbody tr:last-child td {
   gap: 0.42rem;
 }
 
+.owner-live-facility-square {
+  min-height: 230px;
+  align-content: start;
+  cursor: pointer;
+  transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.owner-live-facility-square:hover {
+  border-color: rgba(45, 212, 191, 0.45);
+  transform: translateY(-1px);
+}
+
+.owner-live-facility-square:focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.55);
+  outline-offset: 2px;
+}
+
+.owner-live-facility-square.expanded {
+  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.28);
+}
+
+.owner-live-expand-hint {
+  margin-top: auto;
+  font-size: 0.72rem;
+}
+
+.owner-live-facility-details {
+  margin-top: 0.2rem;
+  border-top: 1px dashed rgba(45, 212, 191, 0.22);
+  padding-top: 0.38rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
 .owner-live-facility-head {
   display: flex;
   justify-content: space-between;

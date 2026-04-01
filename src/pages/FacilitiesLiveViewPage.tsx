@@ -32,6 +32,7 @@ export default function FacilitiesLiveViewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   const buildFacilityCards = useCallback(
     (
@@ -182,8 +183,25 @@ export default function FacilitiesLiveViewPage() {
               ? locations.find((loc) => loc.id === facility.locationId)
               : undefined;
             const business = location ? businessById.get(location.businessId) : undefined;
+            const cardId = `${facility.type}-${facility.id}`;
+            const isExpanded = expandedCardId === cardId;
             return (
-              <article key={`${facility.type}-${facility.id}`} className="owner-live-facility-card">
+              <article
+                key={cardId}
+                className={`owner-live-facility-card owner-live-facility-square${isExpanded ? ' expanded' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  setExpandedCardId((cur) => (cur === cardId ? null : cardId))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedCardId((cur) => (cur === cardId ? null : cardId));
+                  }
+                }}
+                aria-expanded={isExpanded}
+              >
                 <div className="owner-live-facility-head">
                   <strong>{facility.name}</strong>
                   <span
@@ -214,9 +232,30 @@ export default function FacilitiesLiveViewPage() {
                   <span>{business?.bookingCount ?? 0} bookings</span>
                   <span>{business?.pendingBookingCount ?? 0} pending</span>
                 </div>
-                <p className="muted owner-live-facility-address" style={{ marginTop: 0 }}>
-                  Facility ID: {facility.id}
-                </p>
+                {!isExpanded ? (
+                  <p className="muted owner-live-facility-address owner-live-expand-hint">
+                    Click for details
+                  </p>
+                ) : (
+                  <div className="owner-live-facility-details">
+                    <p className="muted owner-live-facility-address">
+                      <strong>Facility ID:</strong> {facility.id}
+                    </p>
+                    <p className="muted owner-live-facility-address">
+                      <strong>Location:</strong> {location?.name ?? 'N/A'}
+                    </p>
+                    <p className="muted owner-live-facility-address">
+                      <strong>City:</strong> {location?.city ?? 'N/A'}
+                    </p>
+                    <p className="muted owner-live-facility-address">
+                      <strong>Area:</strong> {location?.area ?? 'N/A'}
+                    </p>
+                    <p className="muted owner-live-facility-address">
+                      <strong>Status:</strong>{' '}
+                      {location?.status ?? (location?.isActive ? 'active' : 'unknown')}
+                    </p>
+                  </div>
+                )}
               </article>
             );
           })}
