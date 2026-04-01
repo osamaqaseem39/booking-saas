@@ -1,6 +1,7 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
 import { getApiBase, uploadImageApi } from '../api/saasClient';
 
+
 type ImageGalleryProps = {
   label: string;
   value: string[];
