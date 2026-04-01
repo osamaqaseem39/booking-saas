@@ -83,6 +83,11 @@ function defaultLine(): BookingLine {
   };
 }
 
+function normalizeMoney(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return '0';
+  return String(Math.round(n));
+}
+
 function remainingDaySlots(date: string): string[] {
   const today = new Date().toISOString().slice(0, 10);
   const minMinutes = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
@@ -294,6 +299,19 @@ export default function BookingCreatePage() {
     () => subTotal - Number(discount || 0) + Number(tax || 0),
     [subTotal, discount, tax],
   );
+
+  function updateDurationWithPrice(line: BookingLine, nextDuration: number): BookingLine {
+    const prevDuration = Math.max(30, line.durationMins);
+    const safeNext = Math.max(60, nextDuration);
+    const currentPrice = Number(line.price || 0);
+    const ratePerMinute = currentPrice > 0 ? currentPrice / prevDuration : 0;
+    const nextPrice = ratePerMinute > 0 ? ratePerMinute * safeNext : currentPrice;
+    return {
+      ...line,
+      durationMins: safeNext,
+      price: normalizeMoney(nextPrice),
+    };
+  }
 
   function applyFacility(lineIndex: number, key: string) {
     const line = lines[lineIndex];
@@ -610,8 +628,11 @@ export default function BookingCreatePage() {
                           style={{
                             display: 'flex',
                             gap: '0.4rem',
-                            flexWrap: 'wrap',
+                            flexWrap: 'nowrap',
+                            overflowX: 'auto',
+                            paddingBottom: '0.25rem',
                             marginTop: '0.35rem',
+                            scrollSnapType: 'x mandatory',
                           }}
                         >
                           {startSlots.slice(0, 20).map((slot) => {
@@ -625,6 +646,8 @@ export default function BookingCreatePage() {
                                   padding: '0.35rem 0.7rem',
                                   borderRadius: '999px',
                                   fontSize: '0.88rem',
+                                  flex: '0 0 auto',
+                                  scrollSnapAlign: 'start',
                                 }}
                                 onClick={() => {
                                   const next = [...lines];
@@ -657,7 +680,7 @@ export default function BookingCreatePage() {
                             style={{ padding: '0.45rem 0.8rem', fontSize: '0.92rem' }}
                             onClick={() => {
                               const next = [...lines];
-                              next[idx] = { ...ln, durationMins: Math.max(60, ln.durationMins) };
+                              next[idx] = updateDurationWithPrice(ln, ln.durationMins);
                               setLines(next);
                             }}
                           >
@@ -669,7 +692,7 @@ export default function BookingCreatePage() {
                             style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
                             onClick={() => {
                               const next = [...lines];
-                              next[idx] = { ...ln, durationMins: ln.durationMins + 30 };
+                              next[idx] = updateDurationWithPrice(ln, ln.durationMins + 30);
                               setLines(next);
                             }}
                           >
@@ -681,10 +704,7 @@ export default function BookingCreatePage() {
                             style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
                             onClick={() => {
                               const next = [...lines];
-                              next[idx] = {
-                                ...ln,
-                                durationMins: Math.max(60, ln.durationMins - 30),
-                              };
+                              next[idx] = updateDurationWithPrice(ln, ln.durationMins - 30);
                               setLines(next);
                             }}
                           >
