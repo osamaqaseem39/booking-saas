@@ -19,6 +19,7 @@ import type {
 } from '../types/booking';
 import type { BusinessLocationRow, IamUserRow } from '../types/domain';
 import { normalizePhoneForStorage } from '../utils/phone';
+import { formatTime12h } from '../utils/timeDisplay';
 
 type CustomerMode = 'existing' | 'walk-in';
 type SavedCustomer = { name: string; phone: string; updatedAt: string };
@@ -73,15 +74,6 @@ function minutesToTime(v: number): string {
   const hh = Math.floor(v / 60) % 24;
   const mm = v % 60;
   return `${pad2(hh)}:${pad2(mm)}`;
-}
-
-function to12Hour(time24: string): string {
-  const [hRaw, mRaw] = time24.split(':');
-  const h = Number(hRaw || 0);
-  const m = Number(mRaw || 0);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${pad2(m)} ${suffix}`;
 }
 
 function toLocalDateTime(date: string, time: string): Date {
@@ -865,13 +857,13 @@ export default function BookingCreatePage() {
                           Working hours:{' '}
                           {dayWindow.closed
                             ? 'Closed'
-                            : `${to12Hour(dayWindow.open)} - ${to12Hour(dayWindow.close)}`}
+                            : `${formatTime12h(dayWindow.open)} - ${formatTime12h(dayWindow.close)}`}
                         </div>
                       )}
                     </div>
                     <div className="form-row-2">
                       <div>
-                        <label>Start time ({to12Hour(startTime)})</label>
+                        <label>Start time ({formatTime12h(startTime)})</label>
                         {startSlots.length > 0 && (
                           <div
                             style={{
@@ -947,7 +939,7 @@ export default function BookingCreatePage() {
                                   setLines(next);
                                 }}
                               >
-                                {to12Hour(slot)}
+                                {formatTime12h(slot)}
                               </button>
                             );
                           })}
@@ -999,7 +991,7 @@ export default function BookingCreatePage() {
                           </button>
                         </div>
                         <div className="muted" style={{ marginTop: '0.35rem' }}>
-                          End time: {to12Hour(endTime)}
+                          End time: {formatTime12h(endTime)}
                         </div>
                       </div>
                     </div>

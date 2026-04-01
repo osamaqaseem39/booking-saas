@@ -19,6 +19,7 @@ import type {
   PaymentStatus,
 } from '../types/booking';
 import type { IamUserRow } from '../types/domain';
+import { formatTime12h, formatTimeRange12h } from '../utils/timeDisplay';
 
 type UserSummary = {
   name: string;
@@ -43,15 +44,6 @@ function titleCaseWords(v: string): string {
     .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
-}
-
-function to12Hour(time24: string): string {
-  const [hRaw, mRaw] = time24.split(':');
-  const h = Number(hRaw || 0);
-  const m = Number(mRaw || 0);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
 export default function BookingsPage() {
@@ -370,7 +362,12 @@ export default function BookingsPage() {
             </div>
             <div className="form-row-2">
               <div>
-                <label>Start time</label>
+                <label>
+                  Start time{' '}
+                  <span className="muted" style={{ fontWeight: 'normal', fontSize: '0.85rem' }}>
+                    ({formatTime12h(availabilityStartTime)})
+                  </span>
+                </label>
                 <input
                   type="time"
                   value={availabilityStartTime}
@@ -378,7 +375,12 @@ export default function BookingsPage() {
                 />
               </div>
               <div>
-                <label>End time</label>
+                <label>
+                  End time{' '}
+                  <span className="muted" style={{ fontWeight: 'normal', fontSize: '0.85rem' }}>
+                    ({formatTime12h(availabilityEndTime)})
+                  </span>
+                </label>
                 <input
                   type="time"
                   value={availabilityEndTime}
@@ -386,6 +388,9 @@ export default function BookingsPage() {
                 />
               </div>
             </div>
+            <p className="muted" style={{ margin: 0, fontSize: '0.82rem' }}>
+              Pickers use 24-hour values for the API; labels show 12-hour time.
+            </p>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button
                 type="button"
@@ -441,7 +446,7 @@ export default function BookingsPage() {
                       <li key={slot.itemId}>
                         <div>
                           <strong>
-                            {slot.startTime} - {slot.endTime}
+                            {formatTimeRange12h(slot.startTime, slot.endTime)}
                           </strong>
                         </div>
                         <div className="muted">
@@ -573,7 +578,7 @@ export default function BookingsPage() {
                         <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
                       </div>
                       <div className="muted">
-                        {to12Hour(it.startTime)} - {to12Hour(it.endTime)} · {it.price} PKR{' '}
+                        {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
                         <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
                       </div>
                       <button

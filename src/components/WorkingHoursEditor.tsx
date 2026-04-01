@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { formatTime12h } from '../utils/timeDisplay';
 
 type Weekday =
   | 'monday'
@@ -154,7 +155,8 @@ export default function WorkingHoursEditor({ value, onChange }: Props) {
     <div>
       <label>Working hours *</label>
       <p className="muted" style={{ margin: '0.35rem 0 0.6rem' }}>
-        Set each day&apos;s schedule. Mark a day as closed if no bookings are allowed.
+        Set each day&apos;s schedule. Mark a day as closed if no bookings are allowed. Times are stored
+        as 24-hour (HH:mm) for the API; 12-hour labels show next to each field.
       </p>
       <div style={{ display: 'grid', gap: '0.45rem' }}>
         {WEEK_DAYS.map((day) => {
@@ -172,13 +174,25 @@ export default function WorkingHoursEditor({ value, onChange }: Props) {
                   Closed
                 </label>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: '0.35rem 0.5rem',
+                }}
+              >
                 <input
                   type="time"
                   value={valueForDay.open}
                   onChange={(e) => updateDay(day.key, { open: e.target.value })}
                   disabled={valueForDay.closed}
                 />
+                {!valueForDay.closed && (
+                  <span className="muted" style={{ fontSize: '0.8rem' }}>
+                    {formatTime12h(valueForDay.open)}
+                  </span>
+                )}
                 <span className="muted">to</span>
                 <input
                   type="time"
@@ -186,6 +200,11 @@ export default function WorkingHoursEditor({ value, onChange }: Props) {
                   onChange={(e) => updateDay(day.key, { close: e.target.value })}
                   disabled={valueForDay.closed}
                 />
+                {!valueForDay.closed && (
+                  <span className="muted" style={{ fontSize: '0.8rem' }}>
+                    {formatTime12h(valueForDay.close)}
+                  </span>
+                )}
               </div>
             </div>
           );
