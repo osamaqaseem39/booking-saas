@@ -157,6 +157,11 @@ export type CourtSlotGridSegment =
       bookingId: string;
       itemId: string;
       status: BookingItemStatus;
+    }
+  | {
+      startTime: string;
+      endTime: string;
+      state: 'blocked';
     };
 
 export interface CourtSlotGridRecord {

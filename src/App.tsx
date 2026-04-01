@@ -10,6 +10,7 @@ import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
 import BookingCreatePage from './pages/BookingCreatePage';
 import BookingEditPage from './pages/BookingEditPage';
+import ManageTimeSlotsPage from './pages/ManageTimeSlotsPage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
 import AddFacilityPage from './pages/AddFacilityPage';
@@ -211,6 +212,14 @@ export default function App() {
                   ]}
                 >
                   <BookingEditPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="time-slots"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                  <ManageTimeSlotsPage />
                 </RequireRoles>
               }
             />

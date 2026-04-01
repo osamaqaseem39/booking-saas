@@ -624,6 +624,27 @@ export async function getCourtSlotGrid(params: {
   );
 }
 
+/** Turn booking on/off for one 30-minute segment (`blocked: true` = no new bookings). */
+export async function setCourtSlotBlock(params: {
+  courtKind: CourtKind;
+  courtId: string;
+  date: string;
+  startTime: string;
+  blocked: boolean;
+}): Promise<{ ok: true }> {
+  return request<{ ok: true }>(
+    `/bookings/courts/${params.courtKind}/${params.courtId}/slot-blocks`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        date: params.date,
+        startTime: params.startTime,
+        blocked: params.blocked,
+      }),
+    },
+  );
+}
+
 export async function listInvoices(): Promise<InvoiceRow[]> {
   return request<InvoiceRow[]>('/billing/invoices', { method: 'GET' });
 }
