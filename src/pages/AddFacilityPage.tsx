@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  createCricketIndoorCourt,
+  createFutsalField,
+  createPadelCourt,
+  createTurfCourt,
   listBusinessLocations,
   listCricketIndoor,
   listFutsalFields,
@@ -49,7 +53,50 @@ export default function AddFacilityPage() {
   const [futsal, setFutsal] = useState<NamedCourt[]>([]);
   const [cricket, setCricket] = useState<NamedCourt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  async function reloadFacilitiesFor(locationIdArg: string, locs: BusinessLocationRow[]) {
+    if (!locationIdArg) {
+      setLoading(false);
+      setTurf([]);
+      setPadel([]);
+      setFutsal([]);
+      setCricket([]);
+      return;
+    }
+    const selected = locs.find((l) => l.id === locationIdArg);
+    const locationType = selected?.locationType ?? '';
+    if (locationType && locationType !== 'arena') {
+      setLoading(false);
+      setTurf([]);
+      setPadel([]);
+      setFutsal([]);
+      setCricket([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [tu, pa, fu, cr] = await Promise.all([
+        listTurfCourts(undefined, locationIdArg),
+        listPadelCourts(locationIdArg),
+        listFutsalFields(locationIdArg),
+        listCricketIndoor(locationIdArg),
+      ]);
+      setTurf(tu);
+      setPadel(pa);
+      setFutsal(fu);
+      setCricket(cr);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to load facilities');
+      setTurf([]);
+      setPadel([]);
+      setFutsal([]);
+      setCricket([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     void (async () => {
@@ -71,45 +118,7 @@ export default function AddFacilityPage() {
 
   useEffect(() => {
     void (async () => {
-      if (!locationId) {
-        setLoading(false);
-        setTurf([]);
-        setPadel([]);
-        setFutsal([]);
-        setCricket([]);
-        return;
-      }
-      const selected = locations.find((l) => l.id === locationId);
-      const locationType = selected?.locationType ?? '';
-      if (locationType && locationType !== 'arena') {
-        setLoading(false);
-        setTurf([]);
-        setPadel([]);
-        setFutsal([]);
-        setCricket([]);
-        return;
-      }
-      setLoading(true);
-      try {
-        const [tu, pa, fu, cr] = await Promise.all([
-          listTurfCourts(undefined, locationId),
-          listPadelCourts(locationId),
-          listFutsalFields(locationId),
-          listCricketIndoor(locationId),
-        ]);
-        setTurf(tu);
-        setPadel(pa);
-        setFutsal(fu);
-        setCricket(cr);
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : 'Failed to load facilities');
-        setTurf([]);
-        setPadel([]);
-        setFutsal([]);
-        setCricket([]);
-      } finally {
-        setLoading(false);
-      }
+      await reloadFacilitiesFor(locationId, locations);
     })();
   }, [locationId, locations]);
 
@@ -163,6 +172,51 @@ export default function AddFacilityPage() {
       ].filter((item) => item.count > 0),
     [cricket.length, futsal.length, padel.length, turf.length],
   );
+
+  async function duplicateFacility(row: {
+    id: string;
+    name: string;
+    code: string;
+    businessLocationId?: string | null;
+  }) {
+    const businessLocationId = row.businessLocationId?.trim();
+    if (!businessLocationId) {
+      setErr('Cannot duplicate: facility has no linked location.');
+      return;
+    }
+    setDuplicatingId(row.id);
+    setErr(null);
+    try {
+      const copyName = `${row.name} (Copy)`;
+      if (row.code === 'turf-court') {
+        await createTurfCourt({
+          businessLocationId,
+          name: copyName,
+          sportMode: 'both',
+        });
+      } else if (row.code === 'padel-court') {
+        await createPadelCourt({
+          businessLocationId,
+          name: copyName,
+        });
+      } else if (row.code === 'futsal-field') {
+        await createFutsalField({
+          businessLocationId,
+          name: copyName,
+        });
+      } else if (row.code === 'cricket-indoor') {
+        await createCricketIndoorCourt({
+          businessLocationId,
+          name: copyName,
+        });
+      }
+      await reloadFacilitiesFor(locationId, locations);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to duplicate facility');
+    } finally {
+      setDuplicatingId(null);
+    }
+  }
 
   return (
     <div>
@@ -335,6 +389,7 @@ export default function AddFacilityPage() {
                 <th>Type</th>
                 <th>Name</th>
                 <th>ID</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -344,6 +399,16 @@ export default function AddFacilityPage() {
                   <td>{row.name}</td>
                   <td>
                     <code style={{ fontSize: '0.7rem' }}>{row.id}</code>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-compact"
+                      disabled={duplicatingId === row.id}
+                      onClick={() => void duplicateFacility(row)}
+                    >
+                      {duplicatingId === row.id ? 'Duplicating…' : 'Duplicate'}
+                    </button>
                   </td>
                 </tr>
               ))}

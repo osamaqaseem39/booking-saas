@@ -3,12 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   createBooking,
   createIamUser,
+  listBookings,
+  listBookingsForTenant,
   listBusinessLocations,
   listCourtOptions,
   listIamUsers,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import type {
+  BookingRecord,
   BookingItemStatus,
   BookingSportType,
   CourtKind,
@@ -17,9 +20,23 @@ import type { BusinessLocationRow, IamUserRow } from '../types/domain';
 import { normalizePhoneForStorage } from '../utils/phone';
 
 type CustomerMode = 'existing' | 'walk-in';
+type SavedCustomer = { name: string; phone: string; updatedAt: string };
+
+const SAVED_CUSTOMERS_KEY = 'bookings-dashboard.saved-customers';
 
 function digitsOnly(v: string): string {
   return v.replace(/\D/g, '');
+}
+
+function withPakistanPrefix(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '+92';
+  const asDigits = digitsOnly(trimmed);
+  if (!asDigits) return '+92';
+  if (trimmed.startsWith('+')) return trimmed;
+  if (asDigits.startsWith('92')) return `+${asDigits}`;
+  if (asDigits.startsWith('0')) return `+92${asDigits.slice(1)}`;
+  return `+92${asDigits}`;
 }
 
 function pad2(n: number): string {
@@ -238,11 +255,11 @@ export default function BookingCreatePage() {
   const [bookingDate, setBookingDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+92');
   const [customerMode, setCustomerMode] = useState<CustomerMode>('existing');
   const [customerId, setCustomerId] = useState('');
   const [walkInName, setWalkInName] = useState('');
-  const [walkInPhone, setWalkInPhone] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('+92');
   const [lines, setLines] = useState<BookingLine[]>([defaultLine()]);
   const [courtOpts, setCourtOpts] = useState<
     Awaited<ReturnType<typeof listCourtOptions>>
@@ -250,6 +267,8 @@ export default function BookingCreatePage() {
   const [notes, setNotes] = useState('');
   const [discount, setDiscount] = useState('0');
   const [tax, setTax] = useState('0');
+  const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
+  const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
   const bookingDateChoices = useMemo(() => nextSevenDays(), []);
 
   useEffect(() => {
@@ -278,6 +297,32 @@ export default function BookingCreatePage() {
     })();
   }, [sport]);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SAVED_CUSTOMERS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, SavedCustomer>;
+      if (parsed && typeof parsed === 'object') {
+        setSavedCustomersByPhone(parsed);
+      }
+    } catch {
+      setSavedCustomersByPhone({});
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = tenantId.trim()
+          ? await listBookingsForTenant(tenantId.trim())
+          : await listBookings();
+        setAllBookings(rows);
+      } catch {
+        setAllBookings([]);
+      }
+    })();
+  }, [tenantId]);
+
   const existingByPhone = useMemo(() => {
     const wanted = digitsOnly(phone);
     if (!wanted) return null;
@@ -289,6 +334,30 @@ export default function BookingCreatePage() {
     );
   }, [users, phone]);
 
+  const savedByPhone = useMemo(() => {
+    const wanted = digitsOnly(phone);
+    if (!wanted) return null;
+    return (
+      Object.values(savedCustomersByPhone).find((entry) => {
+        const p = digitsOnly(entry.phone);
+        return p && (p === wanted || p.endsWith(wanted) || wanted.endsWith(p));
+      }) ?? null
+    );
+  }, [savedCustomersByPhone, phone]);
+
+  const selectedUserId = useMemo(() => {
+    if (existingByPhone?.id) return existingByPhone.id;
+    if (customerMode === 'existing' && customerId.trim()) return customerId.trim();
+    return '';
+  }, [existingByPhone, customerId, customerMode]);
+
+  const customerBookings = useMemo(() => {
+    if (!selectedUserId) return [];
+    return allBookings
+      .filter((b) => b.userId === selectedUserId)
+      .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
+  }, [allBookings, selectedUserId]);
+
   useEffect(() => {
     if (existingByPhone) {
       setCustomerMode('existing');
@@ -296,12 +365,18 @@ export default function BookingCreatePage() {
       setWalkInPhone(existingByPhone.phone ?? phone);
       return;
     }
+    if (savedByPhone) {
+      setCustomerMode('walk-in');
+      setWalkInName((prev) => (prev.trim() ? prev : savedByPhone.name));
+      setWalkInPhone(savedByPhone.phone || phone);
+      return;
+    }
     setCustomerId('');
     if (digitsOnly(phone)) {
       setCustomerMode('walk-in');
       setWalkInPhone(phone);
     }
-  }, [existingByPhone, phone]);
+  }, [existingByPhone, phone, savedByPhone]);
 
   const subTotal = useMemo(
     () =>
@@ -395,6 +470,18 @@ export default function BookingCreatePage() {
       }
     }
     let resolvedCustomerId = customerId.trim();
+    let customerNameToSave = walkInName.trim();
+    let customerPhoneToSave = normalizePhoneForStorage(walkInPhone || phone);
+    if (existingByPhone) {
+      customerNameToSave = existingByPhone.fullName;
+      customerPhoneToSave = normalizePhoneForStorage(existingByPhone.phone ?? phone);
+    } else if (customerMode !== 'walk-in') {
+      const selected = users.find((u) => u.id === resolvedCustomerId);
+      if (selected) {
+        customerNameToSave = selected.fullName;
+        customerPhoneToSave = normalizePhoneForStorage(selected.phone ?? phone);
+      }
+    }
     if (customerMode === 'walk-in') {
       if (!walkInName.trim() || !digitsOnly(walkInPhone)) {
         setError('Walk-in requires name and phone.');
@@ -409,6 +496,8 @@ export default function BookingCreatePage() {
         password: makePassword(),
       });
       resolvedCustomerId = created.id;
+      customerNameToSave = created.fullName;
+      customerPhoneToSave = normalizePhoneForStorage(created.phone ?? walkInPhone);
     }
     if (!resolvedCustomerId) {
       setError('Unable to resolve customer for booking.');
@@ -442,6 +531,25 @@ export default function BookingCreatePage() {
         bookingStatus: 'pending',
         notes: notes.trim() || undefined,
       });
+      const normalizedSavePhone = digitsOnly(customerPhoneToSave);
+      if (normalizedSavePhone && customerNameToSave.trim()) {
+        setSavedCustomersByPhone((cur) => {
+          const next: Record<string, SavedCustomer> = {
+            ...cur,
+            [normalizedSavePhone]: {
+              name: customerNameToSave.trim(),
+              phone: withPakistanPrefix(customerPhoneToSave),
+              updatedAt: new Date().toISOString(),
+            },
+          };
+          try {
+            localStorage.setItem(SAVED_CUSTOMERS_KEY, JSON.stringify(next));
+          } catch {
+            // Ignore local storage write errors.
+          }
+          return next;
+        });
+      }
       navigate('/app/bookings', {
         replace: true,
         state: { createdBookingId: created.bookingId },
@@ -467,13 +575,15 @@ export default function BookingCreatePage() {
       {error && <div className="err-banner">{error}</div>}
 
       <section className="detail-card" style={{ maxWidth: '980px' }}>
+        <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '2fr 1fr' }}>
+          <div>
         <div className="form-grid">
           <h3 style={{ marginBottom: '0.2rem' }}>Customer</h3>
           <div>
             <label>Customer phone (required)</label>
             <input
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(withPakistanPrefix(e.target.value))}
               placeholder="+92..."
             />
           </div>
@@ -488,6 +598,12 @@ export default function BookingCreatePage() {
             <div className="detail-row">
               <span>Existing customer</span>
               <span className="muted">Not found by this number</span>
+            </div>
+          )}
+          {!existingByPhone && savedByPhone && (
+            <div className="detail-row">
+              <span>Saved customer</span>
+              <span>{savedByPhone.name} ({savedByPhone.phone})</span>
             </div>
           )}
           {!existingByPhone && digitsOnly(phone) && (
@@ -871,6 +987,50 @@ export default function BookingCreatePage() {
               <input value={tax} onChange={(e) => setTax(e.target.value)} />
             </div>
           </div>
+        </div>
+          </div>
+          <aside className="detail-card" style={{ margin: 0 }}>
+            <h3 style={{ marginTop: 0 }}>Customer details</h3>
+            <div className="detail-row">
+              <span>Name</span>
+              <span>{existingByPhone?.fullName || savedByPhone?.name || walkInName || '-'}</span>
+            </div>
+            <div className="detail-row">
+              <span>Phone</span>
+              <span>{withPakistanPrefix(phone)}</span>
+            </div>
+            <div className="detail-row">
+              <span>Status</span>
+              <span>{existingByPhone ? 'Existing user' : savedByPhone ? 'Saved contact' : 'New customer'}</span>
+            </div>
+            <h4 style={{ margin: '0.8rem 0 0.45rem' }}>Previous bookings</h4>
+            {customerBookings.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>No previous bookings found.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: '0.45rem' }}>
+                {customerBookings.slice(0, 6).map((bk) => (
+                  <div key={bk.bookingId} className="item-editor" style={{ margin: 0 }}>
+                    <div className="detail-row">
+                      <span>Date</span>
+                      <span>{bk.bookingDate}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span>Sport</span>
+                      <span>{bk.sportType}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span>Status</span>
+                      <span>{bk.bookingStatus}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span>Amount</span>
+                      <span>PKR {bk.pricing.totalAmount}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
         </div>
         <div className="page-actions-row">
           <button
