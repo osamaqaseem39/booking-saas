@@ -98,3 +98,36 @@ export interface NamedCourt {
   businessLocationId?: string | null;
 }
 
+export interface BusinessDashboardBusinessRow {
+  businessId: string;
+  tenantId?: string;
+  businessName: string;
+  status?: string | null;
+  locationCount: number;
+  courtCount: number;
+  bookingCount: number;
+  confirmedBookingCount: number;
+  pendingBookingCount: number;
+  cancelledBookingCount: number;
+  revenueTotal: number;
+  revenuePaid: number;
+}
+
+export interface BusinessDashboardView {
+  generatedAt: string;
+  scope: {
+    businessCount: number;
+    locationCount: number;
+  };
+  totals: {
+    courtCount: number;
+    bookingCount: number;
+    confirmedBookingCount: number;
+    pendingBookingCount: number;
+    cancelledBookingCount: number;
+    revenueTotal: number;
+    revenuePaid: number;
+  };
+  businesses: BusinessDashboardBusinessRow[];
+}
+

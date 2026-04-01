@@ -9,6 +9,7 @@ import type {
   UpdateBookingPayload,
 } from '../types/booking';
 import type {
+  BusinessDashboardView,
   BusinessLocationRow,
   BusinessRow,
   IamUserRow,
@@ -296,6 +297,12 @@ export async function listBusinesses(): Promise<BusinessRow[]> {
 
 export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
   return request<BusinessLocationRow[]>('/businesses/locations', {
+    method: 'GET',
+  });
+}
+
+export async function getBusinessDashboardView(): Promise<BusinessDashboardView> {
+  return request<BusinessDashboardView>('/businesses/dashboard', {
     method: 'GET',
   });
 }

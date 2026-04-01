@@ -47,6 +47,11 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    to: '/app/owner-live',
+    label: 'Owner live view',
+    anyOf: ['platform-owner', 'business-admin'],
+  },
+  {
     to: '/app/billing',
     label: 'Billing',
     anyOf: ['platform-owner', 'business-admin', 'business-staff'],
