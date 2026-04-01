@@ -20,6 +20,11 @@ import type {
 } from '../types/booking';
 import type { IamUserRow } from '../types/domain';
 
+type UserSummary = {
+  name: string;
+  phone: string;
+};
+
 function badgeClass(status: string): string {
   const s = status.toLowerCase();
   if (s === 'pending') return 'badge badge-pending';
@@ -56,7 +61,7 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+  const [usersMap, setUsersMap] = useState<Record<string, UserSummary>>({});
   const [courtsMap, setCourtsMap] = useState<Record<string, string>>({});
   const [availabilitySport, setAvailabilitySport] =
     useState<BookingSportType>('futsal');
@@ -73,11 +78,45 @@ export default function BookingsPage() {
   const [courtSlots, setCourtSlots] = useState<
     Awaited<ReturnType<typeof getCourtBookedSlots>> | null
   >(null);
+  const [dayFilter, setDayFilter] = useState<'all' | 'today' | 'tomorrow'>('all');
+  const [gameFilter, setGameFilter] = useState<
+    'all' | 'upcoming' | 'completed' | 'canceled'
+  >('all');
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
     [bookings, selectedId],
   );
+  const filteredBookings = useMemo(() => {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const today = todayDate.toISOString().slice(0, 10);
+    const tomorrowDate = new Date(todayDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = tomorrowDate.toISOString().slice(0, 10);
+
+    return bookings.filter((b) => {
+      if (dayFilter === 'today' && b.bookingDate !== today) return false;
+      if (dayFilter === 'tomorrow' && b.bookingDate !== tomorrow) return false;
+      if (gameFilter === 'completed' && b.bookingStatus !== 'completed') return false;
+      if (gameFilter === 'canceled' && b.bookingStatus !== 'cancelled') return false;
+      if (gameFilter === 'upcoming') {
+        const isUpcomingDate = b.bookingDate >= today;
+        const isOpenStatus = b.bookingStatus === 'pending' || b.bookingStatus === 'confirmed';
+        if (!isUpcomingDate || !isOpenStatus) return false;
+      }
+      return true;
+    });
+  }, [bookings, dayFilter, gameFilter]);
+  const bookingStats = useMemo(() => {
+    const total = filteredBookings.length;
+    const pending = filteredBookings.filter((b) => b.bookingStatus === 'pending').length;
+    const confirmed = filteredBookings.filter((b) => b.bookingStatus === 'confirmed').length;
+    const cancelled = filteredBookings.filter((b) => b.bookingStatus === 'cancelled').length;
+    const paid = filteredBookings.filter((b) => b.payment.paymentStatus === 'paid').length;
+    const revenue = filteredBookings.reduce((sum, b) => sum + (b.pricing.totalAmount || 0), 0);
+    return { total, pending, confirmed, cancelled, paid, revenue };
+  }, [filteredBookings]);
 
   const refresh = useCallback(async () => {
     if (!tenantId.trim()) {
@@ -108,9 +147,12 @@ export default function BookingsPage() {
     void (async () => {
       try {
         const users: IamUserRow[] = await listIamUsers();
-        const map: Record<string, string> = {};
+        const map: Record<string, UserSummary> = {};
         for (const u of users) {
-          map[u.id] = u.fullName || u.email || u.id;
+          map[u.id] = {
+            name: u.fullName || u.email || u.id,
+            phone: u.phone?.trim() || '-',
+          };
         }
         setUsersMap(map);
       } catch {
@@ -195,7 +237,7 @@ export default function BookingsPage() {
       )}
       <div className="toolbar">
         <span className="muted">
-          {loading ? 'Loading…' : `${bookings.length} booking(s)`}
+          {loading ? 'Loading…' : `${filteredBookings.length} booking(s)`}
         </span>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="button" className="btn-ghost" onClick={() => void refresh()} disabled={loading}>
@@ -212,6 +254,93 @@ export default function BookingsPage() {
         </div>
       </div>
       {error && <div className="err-banner">{error}</div>}
+      <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
+        <h3 style={{ marginBottom: '0.6rem' }}>Quick filters</h3>
+        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={dayFilter === 'today' ? 'btn-primary' : 'btn-ghost'}
+            onClick={() => setDayFilter((cur) => (cur === 'today' ? 'all' : 'today'))}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            className={dayFilter === 'tomorrow' ? 'btn-primary' : 'btn-ghost'}
+            onClick={() => setDayFilter((cur) => (cur === 'tomorrow' ? 'all' : 'tomorrow'))}
+          >
+            Tomorrow
+          </button>
+          <button
+            type="button"
+            className={gameFilter === 'upcoming' ? 'btn-primary' : 'btn-ghost'}
+            onClick={() =>
+              setGameFilter((cur) => (cur === 'upcoming' ? 'all' : 'upcoming'))
+            }
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            className={gameFilter === 'completed' ? 'btn-primary' : 'btn-ghost'}
+            onClick={() =>
+              setGameFilter((cur) => (cur === 'completed' ? 'all' : 'completed'))
+            }
+          >
+            Completed
+          </button>
+          <button
+            type="button"
+            className={gameFilter === 'canceled' ? 'btn-primary' : 'btn-ghost'}
+            onClick={() =>
+              setGameFilter((cur) => (cur === 'canceled' ? 'all' : 'canceled'))
+            }
+          >
+            Canceled
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => {
+              setDayFilter('all');
+              setGameFilter('all');
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </section>
+      <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
+        <h3 style={{ marginBottom: '0.6rem' }}>Booking stats</h3>
+        <div className="overview-totals-grid">
+          <article className="overview-metric-card">
+            <span className="overview-metric-label">Total bookings</span>
+            <strong className="overview-metric-value">{bookingStats.total}</strong>
+          </article>
+          <article className="overview-metric-card">
+            <span className="overview-metric-label">Confirmed</span>
+            <strong className="overview-metric-value">{bookingStats.confirmed}</strong>
+          </article>
+          <article className="overview-metric-card">
+            <span className="overview-metric-label">Pending</span>
+            <strong className="overview-metric-value">{bookingStats.pending}</strong>
+          </article>
+          <article className="overview-metric-card">
+            <span className="overview-metric-label">Cancelled</span>
+            <strong className="overview-metric-value">{bookingStats.cancelled}</strong>
+          </article>
+          <article className="overview-metric-card">
+            <span className="overview-metric-label">Paid bookings</span>
+            <strong className="overview-metric-value">{bookingStats.paid}</strong>
+          </article>
+          <article className="overview-metric-card">
+            <span className="overview-metric-label">Total revenue</span>
+            <strong className="overview-metric-value">
+              {bookingStats.revenue.toLocaleString()} PKR
+            </strong>
+          </article>
+        </div>
+      </section>
       <div className="main-area" style={{ marginBottom: '0.75rem' }}>
         <section className="detail-card" style={{ gridColumn: '1 / -1' }}>
           <h3 style={{ marginBottom: '0.8rem' }}>Court availability explorer</h3>
@@ -331,13 +460,15 @@ export default function BookingsPage() {
       <div className="main-area" style={{ padding: 0, marginTop: '0.5rem' }}>
         <div>
           <div className="table-wrap">
-            {bookings.length === 0 && !loading ? (
+            {filteredBookings.length === 0 && !loading ? (
               <div className="empty-state">No bookings.</div>
             ) : (
               <table className="data">
                 <thead>
                   <tr>
                     <th>Date</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
                     <th>Sport</th>
                     <th>Status</th>
                     <th>Payment</th>
@@ -346,13 +477,18 @@ export default function BookingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((b) => (
+                  {filteredBookings.map((b) => (
+                    (() => {
+                      const user = usersMap[b.userId];
+                      return (
                     <tr
                       key={b.bookingId}
                       className={b.bookingId === selectedId ? 'active' : ''}
                       onClick={() => setSelectedId(b.bookingId)}
                     >
                       <td>{b.bookingDate}</td>
+                      <td>{user?.name ?? `User ${b.userId.slice(0, 8)}`}</td>
+                      <td>{user?.phone ?? '-'}</td>
                       <td>{b.sportType}</td>
                       <td>
                         <span className={badgeClass(b.bookingStatus)}>
@@ -392,6 +528,8 @@ export default function BookingsPage() {
                         </div>
                       </td>
                     </tr>
+                      );
+                    })()
                   ))}
                 </tbody>
               </table>
@@ -416,7 +554,13 @@ export default function BookingsPage() {
                 <div className="detail-row">
                   <span>User</span>
                   <span style={{ wordBreak: 'break-word' }}>
-                    {usersMap[selected.userId] ?? `User ${selected.userId.slice(0, 8)}`}
+                    {usersMap[selected.userId]?.name ?? `User ${selected.userId.slice(0, 8)}`}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span>Phone</span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    {usersMap[selected.userId]?.phone ?? '-'}
                   </span>
                 </div>
               </div>
