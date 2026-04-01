@@ -20,6 +20,7 @@ import LoginPage from './pages/LoginPage';
 import OnboardPage from './pages/OnboardPage';
 import OwnerSignupPage from './pages/OwnerSignupPage';
 import BusinessOwnerLiveViewPage from './pages/BusinessOwnerLiveViewPage';
+import FacilitiesLiveViewPage from './pages/FacilitiesLiveViewPage';
 import OverviewPage from './pages/OverviewPage';
 import UserCreatePage from './pages/UserCreatePage';
 import UserDetailPage from './pages/UserDetailPage';
@@ -86,6 +87,14 @@ export default function App() {
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
                   <BusinessOwnerLiveViewPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="facilities-live"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <FacilitiesLiveViewPage />
                 </RequireRoles>
               }
             />
