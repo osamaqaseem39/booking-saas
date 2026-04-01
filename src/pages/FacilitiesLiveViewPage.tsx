@@ -10,11 +10,11 @@ import {
 } from '../api/saasClient';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../types/domain';
 
-type FacilityCounts = {
-  turf: number;
-  padel: number;
-  futsal: number;
-  cricket: number;
+type FacilityCard = {
+  id: string;
+  name: string;
+  type: 'turf' | 'padel' | 'futsal' | 'cricket';
+  locationId?: string | null;
 };
 
 function statusClass(status: string | undefined, isActive: boolean): string {
@@ -27,48 +27,45 @@ function statusClass(status: string | undefined, isActive: boolean): string {
 export default function FacilitiesLiveViewPage() {
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [courtsByLocation, setCourtsByLocation] = useState<Map<string, FacilityCounts>>(new Map());
+  const [facilities, setFacilities] = useState<FacilityCard[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const buildCountMap = useCallback(
+  const buildFacilityCards = useCallback(
     (
       turfRows: NamedCourt[],
       padelRows: NamedCourt[],
       futsalRows: NamedCourt[],
       cricketRows: NamedCourt[],
-    ) => {
-      const map = new Map<string, FacilityCounts>();
-      const ensure = (locationId: string | null | undefined): FacilityCounts | null => {
-        if (!locationId) return null;
-        const current = map.get(locationId) ?? {
-          turf: 0,
-          padel: 0,
-          futsal: 0,
-          cricket: 0,
-        };
-        map.set(locationId, current);
-        return current;
-      };
-      for (const row of turfRows) {
-        const next = ensure(row.businessLocationId);
-        if (next) next.turf += 1;
-      }
-      for (const row of padelRows) {
-        const next = ensure(row.businessLocationId);
-        if (next) next.padel += 1;
-      }
-      for (const row of futsalRows) {
-        const next = ensure(row.businessLocationId);
-        if (next) next.futsal += 1;
-      }
-      for (const row of cricketRows) {
-        const next = ensure(row.businessLocationId);
-        if (next) next.cricket += 1;
-      }
-      return map;
+    ): FacilityCard[] => {
+      return [
+        ...turfRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: 'turf' as const,
+          locationId: r.businessLocationId,
+        })),
+        ...padelRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: 'padel' as const,
+          locationId: r.businessLocationId,
+        })),
+        ...futsalRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: 'futsal' as const,
+          locationId: r.businessLocationId,
+        })),
+        ...cricketRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: 'cricket' as const,
+          locationId: r.businessLocationId,
+        })),
+      ];
     },
     [],
   );
@@ -89,7 +86,7 @@ export default function FacilitiesLiveViewPage() {
         ]);
         setDashboard(dash);
         setLocations(locs);
-        setCourtsByLocation(buildCountMap(turfRows, padelRows, futsalRows, cricketRows));
+        setFacilities(buildFacilityCards(turfRows, padelRows, futsalRows, cricketRows));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load facilities live view');
       } finally {
@@ -97,7 +94,7 @@ export default function FacilitiesLiveViewPage() {
         else setLoading(false);
       }
     },
-    [buildCountMap],
+    [buildFacilityCards],
   );
 
   useEffect(() => {
@@ -116,17 +113,21 @@ export default function FacilitiesLiveViewPage() {
 
   const filteredLocations = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return locations;
-    return locations.filter((loc) => {
-      const biz = businessById.get(loc.businessId);
+    const locationById = new Map(locations.map((loc) => [loc.id, loc]));
+    if (!q) return facilities;
+    return facilities.filter((facility) => {
+      const loc = facility.locationId ? locationById.get(facility.locationId) : undefined;
+      const biz = loc ? businessById.get(loc.businessId) : undefined;
       return (
-        loc.name.toLowerCase().includes(q) ||
-        (loc.city ?? '').toLowerCase().includes(q) ||
-        (loc.locationType ?? '').toLowerCase().includes(q) ||
+        facility.name.toLowerCase().includes(q) ||
+        facility.type.toLowerCase().includes(q) ||
+        (loc?.name ?? '').toLowerCase().includes(q) ||
+        (loc?.city ?? '').toLowerCase().includes(q) ||
+        (loc?.locationType ?? '').toLowerCase().includes(q) ||
         (biz?.businessName ?? '').toLowerCase().includes(q)
       );
     });
-  }, [businessById, locations, query]);
+  }, [businessById, facilities, locations, query]);
 
   return (
     <div className="owner-live-view">
@@ -176,41 +177,46 @@ export default function FacilitiesLiveViewPage() {
         <div className="empty-state">Loading facilities...</div>
       ) : (
         <div className="owner-live-business-grid">
-          {filteredLocations.map((loc) => {
-            const counts = courtsByLocation.get(loc.id) ?? {
-              turf: 0,
-              padel: 0,
-              futsal: 0,
-              cricket: 0,
-            };
-            const totalCourts = counts.turf + counts.padel + counts.futsal + counts.cricket;
-            const business = businessById.get(loc.businessId);
+          {filteredLocations.map((facility) => {
+            const location = facility.locationId
+              ? locations.find((loc) => loc.id === facility.locationId)
+              : undefined;
+            const business = location ? businessById.get(location.businessId) : undefined;
             return (
-              <article key={loc.id} className="owner-live-facility-card">
+              <article key={`${facility.type}-${facility.id}`} className="owner-live-facility-card">
                 <div className="owner-live-facility-head">
-                  <strong>{loc.name}</strong>
-                  <span className={statusClass(loc.status ?? undefined, loc.isActive)}>
-                    {loc.status ?? (loc.isActive ? 'active' : 'inactive')}
+                  <strong>{facility.name}</strong>
+                  <span
+                    className={statusClass(
+                      location?.status ?? undefined,
+                      location?.isActive ?? false,
+                    )}
+                  >
+                    {location?.status ?? (location?.isActive ? 'active' : 'unknown')}
                   </span>
                 </div>
                 <p className="muted owner-live-facility-address">
                   {business?.businessName ?? 'Unknown business'}
                 </p>
                 <p className="muted owner-live-facility-address">
-                  {[loc.area, loc.city, loc.country].filter(Boolean).join(', ') || 'No address'}
+                  {[
+                    location?.name,
+                    location?.area,
+                    location?.city,
+                    location?.country,
+                  ]
+                    .filter(Boolean)
+                    .join(', ') || 'No location'}
                 </p>
                 <div className="owner-live-business-kpis">
-                  <span>{loc.locationType ?? 'location'}</span>
-                  <span>{totalCourts} courts</span>
+                  <span>{facility.type}</span>
+                  <span>{location?.locationType ?? 'location'}</span>
                   <span>{business?.bookingCount ?? 0} bookings</span>
                   <span>{business?.pendingBookingCount ?? 0} pending</span>
                 </div>
-                <div className="facility-chip-list">
-                  <span className="facility-chip">turf: {counts.turf}</span>
-                  <span className="facility-chip">padel: {counts.padel}</span>
-                  <span className="facility-chip">futsal: {counts.futsal}</span>
-                  <span className="facility-chip">cricket: {counts.cricket}</span>
-                </div>
+                <p className="muted owner-live-facility-address" style={{ marginTop: 0 }}>
+                  Facility ID: {facility.id}
+                </p>
               </article>
             );
           })}
