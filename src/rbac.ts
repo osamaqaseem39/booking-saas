@@ -14,12 +14,12 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/businesses',
     label: 'Businesses & tenants',
-    anyOf: ['platform-owner', 'business-admin'],
+    anyOf: ['platform-owner'],
   },
   {
     to: '/app/locations',
     label: 'Locations',
-    anyOf: ['platform-owner', 'business-admin'],
+    anyOf: ['platform-owner', 'business-admin', 'customer-end-user'],
   },
   {
     to: '/app/Facilites',

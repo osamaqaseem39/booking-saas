@@ -2,11 +2,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './context/SessionContext';
 import ConsoleLayout from './layout/ConsoleLayout';
 import RequireRoles from './layout/RequireRoles';
+import RequireSelfOrRoles from './layout/RequireSelfOrRoles';
 import BillingPage from './pages/BillingPage';
 import BusinessCreatePage from './pages/BusinessCreatePage';
 import BusinessEditPage from './pages/BusinessEditPage';
 import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
+import BookingCreatePage from './pages/BookingCreatePage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
 import AddFacilityPage from './pages/AddFacilityPage';
@@ -36,7 +38,14 @@ export default function App() {
           <Route path="/owner-signup" element={<OwnerSignupPage />} />
           <Route path="/app" element={<ConsoleLayout />}>
             <Route index element={<OverviewPage />} />
-            <Route path="businesses" element={<BusinessesPage />} />
+            <Route
+              path="businesses"
+              element={
+                <RequireRoles anyOf={['platform-owner']}>
+                  <BusinessesPage />
+                </RequireRoles>
+              }
+            />
             <Route
               path="businesses/new"
               element={
@@ -45,21 +54,67 @@ export default function App() {
                 </RequireRoles>
               }
             />
-            <Route path="businesses/:businessId" element={<BusinessTenantStatsPage />} />
-            <Route path="businesses/:businessId/edit" element={<BusinessEditPage />} />
-            <Route path="locations" element={<LocationsPage />} />
-            <Route path="Facilites" element={<AddFacilityPage />} />
+            <Route
+              path="businesses/:businessId"
+              element={
+                <RequireRoles anyOf={['platform-owner']}>
+                  <BusinessTenantStatsPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="businesses/:businessId/edit"
+              element={
+                <RequireRoles anyOf={['platform-owner']}>
+                  <BusinessEditPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="locations"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'customer-end-user']}>
+                  <LocationsPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="Facilites"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <AddFacilityPage />
+                </RequireRoles>
+              }
+            />
             <Route path="add-court" element={<Navigate to="/app/Facilites" replace />} />
-            <Route path="locations/new" element={<LocationCreatePage />} />
+            <Route
+              path="locations/new"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <LocationCreatePage />
+                </RequireRoles>
+              }
+            />
             <Route path="locations/:locationId" element={<LocationDetailPage />} />
-            <Route path="locations/:locationId/edit" element={<LocationEditPage />} />
+            <Route
+              path="locations/:locationId/edit"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <LocationEditPage />
+                </RequireRoles>
+              }
+            />
             <Route
               path="locations/:locationId/facilities"
               element={<Navigate to="/app/Facilites" replace />}
             />
             <Route
               path="locations/:locationId/facilities/setup/:facilityCode"
-              element={<LocationFacilitySetupPage />}
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <LocationFacilitySetupPage />
+                </RequireRoles>
+              }
             />
             <Route
               path="end-users"
@@ -77,11 +132,72 @@ export default function App() {
                 </RequireRoles>
               }
             />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="users/new" element={<UserCreatePage />} />
-            <Route path="users/:userId" element={<UserDetailPage />} />
-            <Route path="users/:userId/edit" element={<UserEditPage />} />
-            <Route path="bookings" element={<BookingsPage />} />
+            <Route
+              path="users"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <UsersPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="users/new"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <UserCreatePage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="users/:userId"
+              element={
+                <RequireSelfOrRoles
+                  anyOf={['platform-owner', 'business-admin']}
+                  selfRole="customer-end-user"
+                  paramName="userId"
+                >
+                  <UserDetailPage />
+                </RequireSelfOrRoles>
+              }
+            />
+            <Route
+              path="users/:userId/edit"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <UserEditPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="bookings"
+              element={
+                <RequireRoles
+                  anyOf={[
+                    'platform-owner',
+                    'business-admin',
+                    'business-staff',
+                    'customer-end-user',
+                  ]}
+                >
+                  <BookingsPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="bookings/new"
+              element={
+                <RequireRoles
+                  anyOf={[
+                    'platform-owner',
+                    'business-admin',
+                    'business-staff',
+                    'customer-end-user',
+                  ]}
+                >
+                  <BookingCreatePage />
+                </RequireRoles>
+              }
+            />
             <Route
               path="owner-live"
               element={
@@ -98,7 +214,14 @@ export default function App() {
                 </RequireRoles>
               }
             />
-            <Route path="billing" element={<BillingPage />} />
+            <Route
+              path="billing"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                  <BillingPage />
+                </RequireRoles>
+              }
+            />
             <Route path="arena" element={<Navigate to="/app/Facilites" replace />} />
             <Route path="health" element={<HealthPage />} />
           </Route>
