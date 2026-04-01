@@ -3,12 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   createBooking,
   createIamUser,
-  getCourtBookedSlots,
   listCourtOptions,
   listIamUsers,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
-import type { BookingSportType, CourtKind } from '../types/booking';
+import type {
+  BookingItemStatus,
+  BookingSportType,
+  CourtKind,
+} from '../types/booking';
 import type { IamUserRow } from '../types/domain';
 
 type CustomerMode = 'existing' | 'walk-in';
@@ -50,6 +53,44 @@ function makePassword(): string {
   return `Walkin!${rand}9`;
 }
 
+function courtOnlyLabel(label: string): string {
+  const parts = label.split('—');
+  if (parts.length < 2) return label.trim();
+  return parts.slice(1).join('—').trim();
+}
+
+type BookingLine = {
+  facilityKey: string;
+  courtKind: CourtKind;
+  courtId: string;
+  startMinutes: number;
+  durationMins: number;
+  price: string;
+  status: BookingItemStatus;
+};
+
+function defaultLine(): BookingLine {
+  return {
+    facilityKey: '',
+    courtKind: 'turf_court',
+    courtId: '',
+    startMinutes: timeToMinutes(nextHalfHourTime()),
+    durationMins: 60,
+    price: '5000',
+    status: 'reserved',
+  };
+}
+
+function remainingDaySlots(date: string): string[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const minMinutes = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
+  const out: string[] = [];
+  for (let m = minMinutes; m <= 23 * 60 + 30; m += 30) {
+    out.push(minutesToTime(m));
+  }
+  return out;
+}
+
 export default function BookingCreatePage() {
   const navigate = useNavigate();
   const { tenantId } = useSession();
@@ -65,20 +106,11 @@ export default function BookingCreatePage() {
   const [customerId, setCustomerId] = useState('');
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
-  const [facilityKey, setFacilityKey] = useState('');
-  const [facilityKind, setFacilityKind] = useState<CourtKind>('turf_court');
-  const [facilityId, setFacilityId] = useState('');
-  const [startMinutes, setStartMinutes] = useState(() => timeToMinutes(nextHalfHourTime()));
-  const [durationMins, setDurationMins] = useState(60);
+  const [lines, setLines] = useState<BookingLine[]>([defaultLine()]);
   const [courtOpts, setCourtOpts] = useState<
     Awaited<ReturnType<typeof listCourtOptions>>
   >([]);
-  const [courtSlotsLoading, setCourtSlotsLoading] = useState(false);
-  const [courtSlots, setCourtSlots] = useState<
-    Awaited<ReturnType<typeof getCourtBookedSlots>> | null
-  >(null);
   const [notes, setNotes] = useState('');
-  const [subTotal, setSubTotal] = useState('5000');
   const [discount, setDiscount] = useState('0');
   const [tax, setTax] = useState('0');
 
@@ -96,37 +128,9 @@ export default function BookingCreatePage() {
   useEffect(() => {
     void (async () => {
       setCourtOpts(await listCourtOptions(sport));
-      setFacilityKey('');
-      setFacilityId('');
+      setLines([defaultLine()]);
     })();
   }, [sport]);
-
-  useEffect(() => {
-    if (!facilityId || !facilityKind || !bookingDate) {
-      setCourtSlots(null);
-      return;
-    }
-    void (async () => {
-      setCourtSlotsLoading(true);
-      try {
-        const result = await getCourtBookedSlots({
-          courtKind: facilityKind,
-          courtId: facilityId,
-          date: bookingDate,
-        });
-        setCourtSlots(result);
-      } catch {
-        setCourtSlots(null);
-      } finally {
-        setCourtSlotsLoading(false);
-      }
-    })();
-  }, [facilityId, facilityKind, bookingDate]);
-
-  const totalPreview = useMemo(
-    () => Number(subTotal || 0) - Number(discount || 0) + Number(tax || 0),
-    [subTotal, discount, tax],
-  );
 
   const existingByPhone = useMemo(() => {
     const wanted = digitsOnly(phone);
@@ -153,41 +157,37 @@ export default function BookingCreatePage() {
     }
   }, [existingByPhone, phone]);
 
-  const startTime = useMemo(() => minutesToTime(startMinutes), [startMinutes]);
-  const endTime = useMemo(
-    () => minutesToTime(Math.min(startMinutes + durationMins, 23 * 60 + 30)),
-    [startMinutes, durationMins],
+  const subTotal = useMemo(
+    () =>
+      lines.reduce((sum, ln) => {
+        const n = Number(ln.price || 0);
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0),
+    [lines],
+  );
+  const totalPreview = useMemo(
+    () => subTotal - Number(discount || 0) + Number(tax || 0),
+    [subTotal, discount, tax],
   );
 
-  const availableStartSlots = useMemo(() => {
-    if (!facilityId) return [] as string[];
-    const all: string[] = [];
-    for (let m = 0; m <= 23 * 60 + 30; m += 30) {
-      all.push(minutesToTime(m));
-    }
-    const booked = new Set<string>();
-    for (const slot of courtSlots?.slots ?? []) {
-      const s = timeToMinutes(slot.startTime);
-      const e = timeToMinutes(slot.endTime);
-      for (let t = s; t < e; t += 30) {
-        booked.add(minutesToTime(t));
-      }
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    const minNow = bookingDate === today ? timeToMinutes(nextHalfHourTime()) : 0;
-    return all.filter((t) => timeToMinutes(t) >= minNow && !booked.has(t));
-  }, [facilityId, courtSlots, bookingDate]);
-
-  function applyFacility(key: string) {
-    setFacilityKey(key);
+  function applyFacility(lineIndex: number, key: string) {
+    const line = lines[lineIndex];
+    if (!line) return;
+    const next = [...lines];
     if (!key) {
-      setFacilityId('');
+      next[lineIndex] = { ...line, facilityKey: '', courtId: '' };
+      setLines(next);
       return;
     }
     const opt = courtOpts.find((o) => `${o.kind}:${o.id}` === key);
     if (!opt) return;
-    setFacilityKind(opt.kind);
-    setFacilityId(opt.id);
+    next[lineIndex] = {
+      ...line,
+      facilityKey: key,
+      courtKind: opt.kind,
+      courtId: opt.id,
+    };
+    setLines(next);
   }
 
   async function submitCreate() {
@@ -204,13 +204,19 @@ export default function BookingCreatePage() {
       setError('Customer phone is required.');
       return;
     }
-    if (!facilityId.trim()) {
-      setError('Facility is required.');
+    if (lines.length === 0) {
+      setError('At least one facility line is required.');
       return;
     }
-    if (!startTime || !endTime) {
-      setError('Start and end time are required.');
-      return;
+    for (const ln of lines) {
+      if (!ln.courtId.trim()) {
+        setError('Each line requires a facility.');
+        return;
+      }
+      if (!ln.price || Number(ln.price) < 0) {
+        setError('Each line requires a valid price.');
+        return;
+      }
     }
     let resolvedCustomerId = customerId.trim();
     if (customerMode === 'walk-in') {
@@ -238,17 +244,15 @@ export default function BookingCreatePage() {
         userId: resolvedCustomerId,
         sportType: sport,
         bookingDate,
-        items: [
-          {
-            courtKind: facilityKind,
-            courtId: facilityId.trim(),
-            startTime,
-            endTime,
-            price: st,
-            currency: 'PKR',
-            status: 'reserved',
-          },
-        ],
+        items: lines.map((ln) => ({
+          courtKind: ln.courtKind,
+          courtId: ln.courtId.trim(),
+          startTime: minutesToTime(ln.startMinutes),
+          endTime: minutesToTime(Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30)),
+          price: Number(ln.price),
+          currency: 'PKR',
+          status: ln.status,
+        })),
         pricing: {
           subTotal: st,
           discount: disc,
@@ -376,60 +380,174 @@ export default function BookingCreatePage() {
           </div>
           <div>
             <label>Facility</label>
-            <select value={facilityKey} onChange={(e) => applyFacility(e.target.value)}>
-              <option value="">Select…</option>
-              {courtOpts.map((o) => (
-                <option key={`${o.kind}:${o.id}`} value={`${o.kind}:${o.id}`}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-row-2">
-            <div>
-              <label>
-                Start time ({startTime}) - 30 min interval
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={47}
-                step={1}
-                value={Math.floor(startMinutes / 30)}
-                onChange={(e) => setStartMinutes(Number(e.target.value) * 30)}
-              />
-            </div>
-            <div>
-              <label>Duration</label>
-              <select
-                value={durationMins}
-                onChange={(e) => setDurationMins(Number(e.target.value))}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span className="muted" style={{ fontSize: '0.85rem' }}>
+                Multiple lines supported
+              </span>
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+                onClick={() => setLines((cur) => [...cur, defaultLine()])}
               >
-                <option value={30}>30 min</option>
-                <option value={60}>60 min</option>
-                <option value={90}>90 min</option>
-                <option value={120}>120 min</option>
-              </select>
-              <div className="muted" style={{ marginTop: '0.35rem' }}>
-                End time: {endTime}
-              </div>
+                + Add line
+              </button>
             </div>
-          </div>
-          {facilityId && (
-            <div className="detail-section" style={{ marginTop: 0 }}>
-              <h4 style={{ marginBottom: '0.5rem' }}>
-                Current date slots left {courtSlotsLoading ? '...' : ''}
-              </h4>
-              {availableStartSlots.length === 0 ? (
-                <div className="empty-state">No free half-hour slots for this date.</div>
-              ) : (
-                <div className="muted">
-                  {availableStartSlots.slice(0, 20).join(', ')}
-                  {availableStartSlots.length > 20 ? ' ...' : ''}
+            {lines.map((ln, idx) => {
+              const startTime = minutesToTime(ln.startMinutes);
+              const endTime = minutesToTime(
+                Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30),
+              );
+              const startSlots = remainingDaySlots(bookingDate);
+              return (
+                <div key={idx} className="item-editor">
+                  <div className="item-editor-head">
+                    <span>Line {idx + 1}</span>
+                    {lines.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                        onClick={() => setLines((cur) => cur.filter((_, i) => i !== idx))}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div className="form-grid">
+                    <div>
+                      <label>Facility</label>
+                      <select
+                        value={ln.facilityKey}
+                        onChange={(e) => applyFacility(idx, e.target.value)}
+                      >
+                        <option value="">Select…</option>
+                        {courtOpts.map((o) => (
+                          <option key={`${o.kind}:${o.id}`} value={`${o.kind}:${o.id}`}>
+                            {courtOnlyLabel(o.label)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-row-2">
+                      <div>
+                        <label>Start time ({startTime})</label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.4rem',
+                            flexWrap: 'wrap',
+                            marginTop: '0.35rem',
+                          }}
+                        >
+                          {startSlots.slice(0, 20).map((slot) => {
+                            const active = slot === startTime;
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                className={active ? 'btn-primary' : 'btn-ghost'}
+                                style={{
+                                  padding: '0.2rem 0.5rem',
+                                  borderRadius: '999px',
+                                  fontSize: '0.78rem',
+                                }}
+                                onClick={() => {
+                                  const next = [...lines];
+                                  next[idx] = { ...ln, startMinutes: timeToMinutes(slot) };
+                                  setLines(next);
+                                }}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <label>Duration</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.8rem' }}
+                            onClick={() => {
+                              const next = [...lines];
+                              next[idx] = { ...ln, durationMins: Math.max(60, ln.durationMins) };
+                              setLines(next);
+                            }}
+                          >
+                            {Math.max(60, ln.durationMins)} min
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.18rem 0.5rem', fontSize: '0.78rem' }}
+                            onClick={() => {
+                              const next = [...lines];
+                              next[idx] = { ...ln, durationMins: ln.durationMins + 30 };
+                              setLines(next);
+                            }}
+                          >
+                            +30
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.18rem 0.5rem', fontSize: '0.78rem' }}
+                            onClick={() => {
+                              const next = [...lines];
+                              next[idx] = {
+                                ...ln,
+                                durationMins: Math.max(60, ln.durationMins - 30),
+                              };
+                              setLines(next);
+                            }}
+                          >
+                            -30
+                          </button>
+                        </div>
+                        <div className="muted" style={{ marginTop: '0.35rem' }}>
+                          End time: {endTime}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="form-row-2">
+                      <div>
+                        <label>Price</label>
+                        <input
+                          value={ln.price}
+                          onChange={(e) => {
+                            const next = [...lines];
+                            next[idx] = { ...ln, price: e.target.value };
+                            setLines(next);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label>Status</label>
+                        <select
+                          value={ln.status}
+                          onChange={(e) => {
+                            const next = [...lines];
+                            next[idx] = {
+                              ...ln,
+                              status: e.target.value as BookingItemStatus,
+                            };
+                            setLines(next);
+                          }}
+                        >
+                          <option value="reserved">reserved</option>
+                          <option value="confirmed">confirmed</option>
+                          <option value="cancelled">cancelled</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
+              );
+            })}
+          </div>
 
           <div>
             <label>Notes</label>
@@ -444,7 +562,7 @@ export default function BookingCreatePage() {
           <div className="form-row-2">
             <div>
               <label>Subtotal</label>
-              <input value={subTotal} onChange={(e) => setSubTotal(e.target.value)} />
+              <input readOnly value={String(subTotal)} />
             </div>
             <div>
               <label>Total preview</label>
