@@ -138,7 +138,7 @@ export default function LocationCreatePage() {
           country: country.trim(),
           city: city.trim(),
           area: area.trim(),
-          address: addressLine.trim(),
+          addressLine: addressLine.trim(),
           coordinates: { lat, lng },
         },
         contact: {

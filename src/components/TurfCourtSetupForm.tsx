@@ -61,7 +61,7 @@ function buildPayload(
     discountLabel: string;
     discountAmount: string;
     discountPercent: string;
-    slotDuration: '' | '30' | '60';
+    slotDuration: string;
     bufferMinutes: string;
     allowParallel: '' | 'yes' | 'no';
     amenChanging: boolean;
@@ -91,6 +91,13 @@ function buildPayload(
     .filter(Boolean);
 
   const ceilingH = parseNum(p.ceilingHeightValue);
+  const slotDurationValue = parseIntOpt(p.slotDuration);
+  if (
+    slotDurationValue !== undefined &&
+    (slotDurationValue < 60 || slotDurationValue % 30 !== 0)
+  ) {
+    throw new Error('Slot duration must be at least 60 and in 30-minute intervals.');
+  }
   const body: CreateTurfCourtBody = {
     businessLocationId: locationId,
     name: p.name.trim(),
@@ -112,8 +119,7 @@ function buildPayload(
     surfaceType: p.surfaceType,
     turfQuality: p.turfQuality.trim() || undefined,
     shockAbsorptionLayer: triBool(p.shockAbsorption),
-    slotDurationMinutes:
-      p.slotDuration === '30' ? 30 : p.slotDuration === '60' ? 60 : undefined,
+    slotDurationMinutes: slotDurationValue,
     bufferBetweenSlotsMinutes: parseIntOpt(p.bufferMinutes),
     allowParallelBooking: triBool(p.allowParallel),
   };
@@ -246,7 +252,7 @@ export function TurfCourtSetupForm({
   const [discountAmount, setDiscountAmount] = useState('');
   const [discountPercent, setDiscountPercent] = useState('');
 
-  const [slotDuration, setSlotDuration] = useState<'' | '30' | '60'>('');
+  const [slotDuration, setSlotDuration] = useState('');
   const [bufferMinutes, setBufferMinutes] = useState('');
   const [allowParallel, setAllowParallel] = useState<'' | 'yes' | 'no'>('');
 
@@ -834,17 +840,14 @@ export function TurfCourtSetupForm({
         <h4>8. Slot settings</h4>
         <div className="form-grid">
           <div>
-            <label>Slot duration</label>
-            <select
+            <label>Slot duration (minutes)</label>
+            <input
+              type="text"
+              inputMode="numeric"
               value={slotDuration}
-              onChange={(e) =>
-                setSlotDuration(e.target.value as '' | '30' | '60')
-              }
-            >
-              <option value="">—</option>
-              <option value="30">30 minutes</option>
-              <option value="60">60 minutes</option>
-            </select>
+              onChange={(e) => setSlotDuration(e.target.value)}
+              placeholder="e.g. 60, 90, 120"
+            />
           </div>
           <div>
             <label>Buffer time between slots (minutes)</label>

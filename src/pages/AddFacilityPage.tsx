@@ -153,6 +153,17 @@ export default function AddFacilityPage() {
       return a.id.localeCompare(b.id) * dir;
     });
   }, [allFacilities, query, sortBy, sortDir, typeFilter]);
+  const availableFacilityCards = useMemo(
+    () =>
+      [
+        { key: 'turf', label: 'Turf courts', count: turf.length },
+        { key: 'padel', label: 'Padel courts', count: padel.length },
+        { key: 'futsal', label: 'Futsal fields', count: futsal.length },
+        { key: 'cricket', label: 'Cricket indoor', count: cricket.length },
+      ].filter((item) => item.count > 0),
+    [cricket.length, futsal.length, padel.length, turf.length],
+  );
+
   return (
     <div>
       <h1 className="page-title">Facilities</h1>
@@ -224,24 +235,27 @@ export default function AddFacilityPage() {
       ) : null}
 
       {isArenaLocation ? (
-        <div className="connection-grid" style={{ marginTop: '1rem' }}>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Turf courts</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{turf.length}</strong>
+        availableFacilityCards.length > 0 ? (
+          <div className="connection-grid" style={{ marginTop: '1rem' }}>
+            {availableFacilityCards.map((card) => (
+              <div
+                key={card.key}
+                className="connection-panel"
+                style={{ margin: 0, padding: '0.9rem 1rem' }}
+              >
+                <h2>{card.label}</h2>
+                <strong style={{ fontSize: '1.25rem' }}>{card.count}</strong>
+              </div>
+            ))}
           </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Padel courts</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{padel.length}</strong>
+        ) : (
+          <div className="connection-panel" style={{ marginTop: '1rem' }}>
+            <h2>Available facility types</h2>
+            <p className="muted" style={{ marginTop: '0.45rem' }}>
+              No facilities added yet for this location.
+            </p>
           </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Futsal fields</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{futsal.length}</strong>
-          </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Cricket indoor</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{cricket.length}</strong>
-          </div>
-        </div>
+        )
       ) : (
         <div className="connection-panel" style={{ marginTop: '1rem' }}>
           <h2>Facilities for {location?.locationType ?? 'this location type'}</h2>

@@ -1,26 +1,51 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createIamUser } from '../api/saasClient';
+import { assignRole, createIamUser } from '../api/saasClient';
+import { useSession } from '../context/SessionContext';
+import { userMayAssignRoles } from '../rbac';
+import type { SystemRole } from '../types/domain';
+
+const ROLES: SystemRole[] = [
+  'platform-owner',
+  'business-admin',
+  'business-staff',
+  'customer-end-user',
+];
 
 export default function UserCreatePage() {
   const navigate = useNavigate();
+  const { session } = useSession();
+  const canAssign = userMayAssignRoles(session?.roles ?? []);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>(['business-staff']);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  function toggleRole(role: SystemRole) {
+    setSelectedRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+    );
+  }
 
   async function onCreate() {
     setBusy(true);
     setErr(null);
     try {
-      await createIamUser({
+      const createdUser = await createIamUser({
         fullName: fullName.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
         password,
       });
+      if (canAssign) {
+        const uniqueRoles = Array.from(new Set(selectedRoles));
+        for (const role of uniqueRoles) {
+          await assignRole({ userId: createdUser.id, role });
+        }
+      }
       navigate('/app/users', { replace: true });
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Create failed');
@@ -75,10 +100,36 @@ export default function UserCreatePage() {
             </div>
           </div>
         </div>
+        {canAssign && (
+          <div className="connection-panel" style={{ margin: 0 }}>
+            <h2>Role assignment</h2>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Select one or more roles to assign after user creation.
+            </p>
+            <div className="checkbox-grid">
+              {ROLES.map((role) => (
+                <label key={role} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedRoles.includes(role)}
+                    onChange={() => toggleRole(role)}
+                  />
+                  <span style={{ textTransform: 'none', color: 'var(--text)' }}>{role}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         <button
           type="submit"
           className="btn-primary"
-          disabled={busy || !fullName.trim() || !email.trim() || password.length < 8}
+          disabled={
+            busy ||
+            !fullName.trim() ||
+            !email.trim() ||
+            password.length < 8 ||
+            (canAssign && selectedRoles.length === 0)
+          }
         >
           {busy ? 'Creating…' : 'Create user'}
         </button>

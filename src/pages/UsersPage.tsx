@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { deleteIamUser, listIamUsers } from '../api/saasClient';
 import type { IamUserRow } from '../types/domain';
@@ -45,10 +45,30 @@ export default function UsersPage() {
     }
   }
 
+  const businessAdminCount = useMemo(
+    () => rows.filter((u) => (u.roles ?? []).includes('business-admin')).length,
+    [rows],
+  );
+
   return (
     <div>
       <h1 className="page-title">Business users</h1>
+      <p className="muted">Manage business staff accounts and role access.</p>
       {err && <div className="err-banner">{err}</div>}
+      <div className="connection-grid" style={{ marginTop: '1rem' }}>
+        <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+          <h2>Total users</h2>
+          <strong style={{ fontSize: '1.25rem' }}>{rows.length}</strong>
+        </div>
+        <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+          <h2>Business admins</h2>
+          <strong style={{ fontSize: '1.25rem' }}>{businessAdminCount}</strong>
+        </div>
+        <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+          <h2>Showing</h2>
+          <strong style={{ fontSize: '1.25rem' }}>{rows.length}</strong>
+        </div>
+      </div>
       <div style={{ marginBottom: '0.75rem' }}>
         <Link to="/app/users/new" className="btn-primary">
           Add user
@@ -92,7 +112,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap" style={{ marginTop: '1rem' }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
         ) : rows.length === 0 ? (

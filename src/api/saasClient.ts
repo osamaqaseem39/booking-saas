@@ -325,6 +325,7 @@ export async function createBusinessLocation(body: {
     country?: string;
     city?: string;
     area?: string;
+    addressLine?: string;
     address?: string;
     coordinates?: { lat: number; lng: number };
   };
@@ -369,6 +370,7 @@ export async function updateBusinessLocation(
       country?: string;
       city?: string;
       area?: string;
+      addressLine?: string;
       address?: string;
       coordinates?: { lat: number; lng: number };
     };
@@ -700,7 +702,7 @@ export type CreateTurfCourtBody = {
     amount?: number;
     percentOff?: number;
   };
-  slotDurationMinutes?: 30 | 60;
+  slotDurationMinutes?: number;
   bufferBetweenSlotsMinutes?: number;
   allowParallelBooking?: boolean;
   amenities?: {
