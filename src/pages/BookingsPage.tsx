@@ -384,7 +384,7 @@ export default function BookingsPage() {
                             style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedId(b.bookingId);
+                              navigate(`/app/bookings/${b.bookingId}/edit`);
                             }}
                           >
                             Edit

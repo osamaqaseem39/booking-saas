@@ -9,6 +9,7 @@ import BusinessEditPage from './pages/BusinessEditPage';
 import BusinessTenantStatsPage from './pages/BusinessTenantStatsPage';
 import BookingsPage from './pages/BookingsPage';
 import BookingCreatePage from './pages/BookingCreatePage';
+import BookingEditPage from './pages/BookingEditPage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
 import AddFacilityPage from './pages/AddFacilityPage';
@@ -195,6 +196,21 @@ export default function App() {
                   ]}
                 >
                   <BookingCreatePage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="bookings/:bookingId/edit"
+              element={
+                <RequireRoles
+                  anyOf={[
+                    'platform-owner',
+                    'business-admin',
+                    'business-staff',
+                    'customer-end-user',
+                  ]}
+                >
+                  <BookingEditPage />
                 </RequireRoles>
               }
             />

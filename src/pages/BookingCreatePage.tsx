@@ -59,6 +59,10 @@ function to12Hour(time24: string): string {
   return `${hour12}:${pad2(m)} ${suffix}`;
 }
 
+function toLocalDateTime(date: string, time: string): Date {
+  return new Date(`${date}T${time}:00`);
+}
+
 function makePassword(): string {
   const rand = Math.random().toString(36).slice(2, 8);
   return `Walkin!${rand}9`;
@@ -370,6 +374,23 @@ export default function BookingCreatePage() {
       }
       if (!ln.price || Number(ln.price) < 0) {
         setError('Each line requires a valid price.');
+        return;
+      }
+      const startTime = minutesToTime(ln.startMinutes);
+      const endTime = minutesToTime(
+        Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30),
+      );
+      const startMinutes = timeToMinutes(startTime);
+      const endMinutes = timeToMinutes(endTime);
+      const duration = endMinutes - startMinutes;
+      if (duration < 30 || startMinutes % 30 !== 0 || endMinutes % 30 !== 0) {
+        setError('Each booking line must use 30-minute intervals (minimum 30 mins).');
+        return;
+      }
+      const startAt = toLocalDateTime(bookingDate, startTime);
+      const minStart = new Date(Date.now() + 30 * 60 * 1000);
+      if (startAt.getTime() < minStart.getTime()) {
+        setError('Bookings must be at least 30 minutes in the future.');
         return;
       }
     }
