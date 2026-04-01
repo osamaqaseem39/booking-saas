@@ -86,7 +86,12 @@ export default function LocationsPage() {
 
   return (
     <div>
-      <h1 className="page-title">Locations</h1>
+      <div className="page-head-row">
+        <h1 className="page-title">Locations</h1>
+        <Link to="/app/locations/new" className="btn-primary">
+          Add location
+        </Link>
+      </div>
       <p className="muted">
         {isOwner
           ? 'As platform owner you see every venue/branch linked to any business.'
@@ -96,12 +101,6 @@ export default function LocationsPage() {
         Facility types are stored on the location, not in a separate catalog.
       </p>
       {err && <div className="err-banner">{err}</div>}
-
-      <div style={{ marginTop: '1rem' }}>
-        <Link to="/app/locations/new" className="btn-primary">
-          Add location
-        </Link>
-      </div>
 
       <div className="connection-panel location-list-toolbar">
         <div className="form-row-2" style={{ maxWidth: '760px' }}>

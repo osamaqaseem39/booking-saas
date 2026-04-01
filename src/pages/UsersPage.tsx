@@ -52,7 +52,12 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="page-title">Business users</h1>
+      <div className="page-head-row">
+        <h1 className="page-title">Business users</h1>
+        <Link to="/app/users/new" className="btn-primary">
+          Add user
+        </Link>
+      </div>
       <p className="muted">Manage business staff accounts and role access.</p>
       {err && <div className="err-banner">{err}</div>}
       <div className="connection-grid" style={{ marginTop: '1rem' }}>
@@ -68,11 +73,6 @@ export default function UsersPage() {
           <h2>Showing</h2>
           <strong style={{ fontSize: '1.25rem' }}>{rows.length}</strong>
         </div>
-      </div>
-      <div style={{ marginBottom: '0.75rem' }}>
-        <Link to="/app/users/new" className="btn-primary">
-          Add user
-        </Link>
       </div>
       <div className="connection-panel" style={{ margin: 0, marginBottom: '1rem' }}>
         <div

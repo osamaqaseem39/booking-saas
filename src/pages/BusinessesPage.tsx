@@ -96,7 +96,14 @@ export default function BusinessesPage() {
 
   return (
     <div>
-      <h1 className="page-title">Businesses & tenants</h1>
+      <div className="page-head-row">
+        <h1 className="page-title">Businesses & tenants</h1>
+        {canCreateBusiness && (
+          <Link to="/app/businesses/new" className="btn-primary">
+            Add business
+          </Link>
+        )}
+      </div>
       <p className="muted">
         Each business has a <strong>tenantId</strong> used as{' '}
         <code>X-Tenant-Id</code>. Platform owners see all businesses;
@@ -120,13 +127,6 @@ export default function BusinessesPage() {
                 : '0.0'}
             </strong>
           </div>
-        </div>
-      )}
-      {canCreateBusiness && (
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
-          <Link to="/app/businesses/new" className="btn-primary">
-            Add business
-          </Link>
         </div>
       )}
       {err && <div className="err-banner">{err}</div>}

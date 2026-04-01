@@ -69,7 +69,12 @@ export default function EndUsersPage() {
 
   return (
     <div>
-      <h1 className="page-title">Customers</h1>
+      <div className="page-head-row">
+        <h1 className="page-title">Customers</h1>
+        <Link to="/app/users/new" className="btn-primary">
+          Add user
+        </Link>
+      </div>
       <p className="muted">
         Only users who have the <code>customer-end-user</code> role are shown
         here. Platform owner only.
@@ -88,11 +93,6 @@ export default function EndUsersPage() {
           <h2>Showing</h2>
           <strong style={{ fontSize: '1.25rem' }}>{visibleRows.length}</strong>
         </div>
-      </div>
-      <div style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>
-        <Link to="/app/users/new" className="btn-primary">
-          Add user
-        </Link>
       </div>
       <div className="connection-panel" style={{ margin: 0 }}>
         <div
