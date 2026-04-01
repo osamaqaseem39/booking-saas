@@ -211,14 +211,14 @@ export default function BookingsPage() {
     }
   }
 
-  async function viewCourtSlots(courtKind: CourtKind, courtId: string) {
+  async function viewCourtSlots(courtKind: CourtKind, courtId: string, date = availabilityDate) {
     setError(null);
     setCourtSlotsLoading(true);
     try {
       const result = await getCourtBookedSlots({
         courtKind,
         courtId,
-        date: availabilityDate,
+        date,
       });
       setCourtSlots(result);
     } catch (e) {
@@ -582,7 +582,7 @@ export default function BookingsPage() {
                         style={{ marginTop: '0.35rem' }}
                         onClick={() => {
                           setAvailabilityDate(selected.bookingDate);
-                          void viewCourtSlots(it.courtKind, it.courtId);
+                          void viewCourtSlots(it.courtKind, it.courtId, selected.bookingDate);
                         }}
                       >
                         View court booked slots

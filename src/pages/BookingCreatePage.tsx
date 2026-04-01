@@ -28,6 +28,13 @@ function digitsOnly(v: string): string {
   return v.replace(/\D/g, '');
 }
 
+function localDateYmd(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function withPakistanPrefix(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return '+92';
@@ -121,7 +128,7 @@ function normalizeMoney(n: number): string {
 }
 
 function remainingDaySlots(date: string): string[] {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateYmd();
   const minMinutes = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
   const out: string[] = [];
   for (let m = minMinutes; m <= 23 * 60 + 30; m += 30) {
@@ -214,7 +221,7 @@ function remainingDaySlotsInWindow(
   openTime: string,
   closeTime: string,
 ): string[] {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateYmd();
   const dayMin = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
   const start = Math.max(timeToMinutes(openTime), dayMin);
   const endExclusive = timeToMinutes(closeTime);
@@ -229,11 +236,14 @@ function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }>
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const out: Array<{ value: string; day: string; dateNum: string }> = [];
   const start = new Date();
+  if (start.getHours() >= 22) {
+    start.setDate(start.getDate() + 1);
+  }
   start.setHours(0, 0, 0, 0);
   for (let i = 0; i < 7; i += 1) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    const value = d.toISOString().slice(0, 10);
+    const value = localDateYmd(d);
     out.push({
       value,
       day: days[d.getDay()] ?? '',
@@ -253,7 +263,7 @@ export default function BookingCreatePage() {
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [sport, setSport] = useState<BookingSportType>('futsal');
   const [bookingDate, setBookingDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
+    localDateYmd(),
   );
   const [phone, setPhone] = useState('+92');
   const [customerMode, setCustomerMode] = useState<CustomerMode>('existing');
@@ -270,6 +280,14 @@ export default function BookingCreatePage() {
   const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
   const bookingDateChoices = useMemo(() => nextSevenDays(), []);
+
+  useEffect(() => {
+    if (bookingDateChoices.length === 0) return;
+    const exists = bookingDateChoices.some((d) => d.value === bookingDate);
+    if (!exists) {
+      setBookingDate(bookingDateChoices[0].value);
+    }
+  }, [bookingDateChoices, bookingDate]);
 
   useEffect(() => {
     void (async () => {
