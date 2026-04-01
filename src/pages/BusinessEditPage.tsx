@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { deleteBusiness, listBusinesses, updateBusiness } from '../api/saasClient';
 import type { BusinessRow } from '../types/domain';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 export default function BusinessEditPage() {
   const { businessId = '' } = useParams<{ businessId: string }>();
@@ -67,6 +68,7 @@ export default function BusinessEditPage() {
     setSaving(true);
     setErr(null);
     try {
+      const normalizedOwnerPhone = normalizePhoneForStorage(ownerPhone);
       await updateBusiness(businessId, {
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
@@ -74,7 +76,7 @@ export default function BusinessEditPage() {
         owner: {
           name: ownerName.trim() || undefined,
           email: ownerEmail.trim() || undefined,
-          phone: ownerPhone.trim() || undefined,
+          phone: normalizedOwnerPhone || undefined,
         },
         subscription: {
           plan: subscriptionPlan.trim() || undefined,

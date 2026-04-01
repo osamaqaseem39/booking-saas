@@ -107,6 +107,7 @@ export interface CourtOption {
   kind: CourtKind;
   id: string;
   label: string;
+  businessLocationId?: string | null;
 }
 
 export interface BookingAvailabilityRecord {

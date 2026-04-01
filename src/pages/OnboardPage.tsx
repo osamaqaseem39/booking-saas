@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { listBusinesses, onboardBusiness } from '../api/saasClient';
 import { useNavigate } from 'react-router-dom';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 export default function OnboardPage() {
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ export default function OnboardPage() {
     setErr(null);
     setMsg(null);
     try {
+      const normalizedOwnerPhone = normalizePhoneForStorage(ownerPhone);
       const res = await onboardBusiness({
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
@@ -74,7 +76,7 @@ export default function OnboardPage() {
         owner: {
           name: ownerName.trim(),
           email: ownerEmail.trim(),
-          phone: ownerPhone.trim() || undefined,
+          phone: normalizedOwnerPhone || undefined,
           password: ownerPassword.trim() || undefined,
         },
         subscription: {

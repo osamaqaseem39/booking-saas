@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { onboardBusiness } from '../api/saasClient';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 const BUSINESS_TYPE_OPTIONS = [
   { value: 'single_branch', label: 'Single Branch' },
@@ -54,7 +55,6 @@ export default function BusinessCreatePage() {
   }>({});
 
   const emailRe = /^\S+@\S+\.\S+$/;
-  const phoneRe = /^[+\d][\d\s-]{6,20}$/;
   const uuidRe =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -70,8 +70,10 @@ export default function BusinessCreatePage() {
     if (!ownerName.trim()) next.ownerName = 'Owner name is required';
     if (!ownerEmail.trim()) next.ownerEmail = 'Owner email is required';
     else if (!emailRe.test(ownerEmail.trim())) next.ownerEmail = 'Invalid owner email';
-    if (ownerPhone.trim() && !phoneRe.test(ownerPhone.trim())) {
-      next.ownerPhone = 'Phone must be 7-21 characters and numeric-like';
+    const normalizedOwnerPhone = normalizePhoneForStorage(ownerPhone);
+    const digitsCount = normalizedOwnerPhone.replace(/\D/g, '').length;
+    if (ownerPhone.trim() && digitsCount < 7) {
+      next.ownerPhone = 'Phone must include at least 7 digits';
     }
     if (ownerPassword.trim() && ownerPassword.trim().length < 8) {
       next.ownerPassword = 'Password must be at least 8 characters';
@@ -92,6 +94,7 @@ export default function BusinessCreatePage() {
     setBusy(true);
     setErr(null);
     try {
+      const normalizedOwnerPhone = normalizePhoneForStorage(ownerPhone);
       await onboardBusiness({
         tenantId: tenantId.trim() || undefined,
         businessName: businessName.trim(),
@@ -100,7 +103,7 @@ export default function BusinessCreatePage() {
         owner: {
           name: ownerName.trim(),
           email: ownerEmail.trim(),
-          phone: ownerPhone.trim() || undefined,
+          phone: normalizedOwnerPhone || undefined,
           password: ownerPassword.trim() || undefined,
         },
         subscription: {

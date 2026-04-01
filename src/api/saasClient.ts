@@ -896,6 +896,7 @@ export async function listCourtOptions(
           kind: 'padel_court',
           id: r.id,
           label: `Padel — ${r.name}`,
+          businessLocationId: r.businessLocationId,
         });
       }
     } else if (sport === 'futsal') {
@@ -908,6 +909,7 @@ export async function listCourtOptions(
           kind: 'turf_court',
           id: r.id,
           label: `Turf — ${r.name}`,
+          businessLocationId: r.businessLocationId,
         });
       }
       for (const r of fields) {
@@ -915,6 +917,7 @@ export async function listCourtOptions(
           kind: 'futsal_field',
           id: r.id,
           label: `Futsal field — ${r.name}`,
+          businessLocationId: r.businessLocationId,
         });
       }
     } else {
@@ -927,6 +930,7 @@ export async function listCourtOptions(
           kind: 'turf_court',
           id: r.id,
           label: `Turf — ${r.name}`,
+          businessLocationId: r.businessLocationId,
         });
       }
       for (const r of indoor) {
@@ -934,6 +938,7 @@ export async function listCourtOptions(
           kind: 'cricket_indoor_court',
           id: r.id,
           label: `Cricket indoor — ${r.name}`,
+          businessLocationId: r.businessLocationId,
         });
       }
     }

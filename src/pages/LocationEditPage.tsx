@@ -21,6 +21,7 @@ import ImageGallery from '../components/ImageGallery';
 import ImageUpload from '../components/ImageUpload';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow } from '../types/domain';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 export default function LocationEditPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
@@ -154,6 +155,7 @@ export default function LocationEditPage() {
       const lt = locationType === 'custom' ? customType.trim().slice(0, 80) : locationType;
       const lat = Number(latitude);
       const lng = Number(longitude);
+      const normalizedPhone = normalizePhoneForStorage(phone);
       await updateBusinessLocation(locationId, {
         branchName: branchName.trim(),
         locationType: lt,
@@ -165,7 +167,7 @@ export default function LocationEditPage() {
         country: country.trim(),
         latitude: lat,
         longitude: lng,
-        phone: phone.trim(),
+        phone: normalizedPhone,
         manager: manager.trim(),
         workingHours,
         timezone: timezone.trim(),
@@ -182,7 +184,7 @@ export default function LocationEditPage() {
           coordinates: { lat, lng },
         },
         contact: {
-          phone: phone.trim(),
+          phone: normalizedPhone,
           manager: manager.trim(),
         },
         settings: {

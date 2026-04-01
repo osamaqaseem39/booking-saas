@@ -9,6 +9,7 @@ import {
 import { useSession } from '../context/SessionContext';
 import { userMayAssignRoles } from '../rbac';
 import type { IamUserRow } from '../types/domain';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 const ROLES = [
   'platform-owner',
@@ -61,7 +62,7 @@ export default function UserEditPage() {
       await updateIamUser(userId, {
         fullName: fullName.trim(),
         email: email.trim(),
-        phone: phone.trim() || undefined,
+        phone: normalizePhoneForStorage(phone) || undefined,
         password: password.trim() ? password : undefined,
       });
       navigate('/app/users', { replace: true });

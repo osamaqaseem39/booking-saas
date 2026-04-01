@@ -4,6 +4,7 @@ import { assignRole, createIamUser } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { userMayAssignRoles } from '../rbac';
 import type { SystemRole } from '../types/domain';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 const ROLES: SystemRole[] = [
   'platform-owner',
@@ -37,7 +38,7 @@ export default function UserCreatePage() {
       const createdUser = await createIamUser({
         fullName: fullName.trim(),
         email: email.trim(),
-        phone: phone.trim() || undefined,
+        phone: normalizePhoneForStorage(phone) || undefined,
         password,
       });
       if (canAssign) {

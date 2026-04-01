@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   createBooking,
   createIamUser,
+  listBusinessLocations,
   listCourtOptions,
   listIamUsers,
 } from '../api/saasClient';
@@ -12,7 +13,8 @@ import type {
   BookingSportType,
   CourtKind,
 } from '../types/booking';
-import type { IamUserRow } from '../types/domain';
+import type { BusinessLocationRow, IamUserRow } from '../types/domain';
+import { normalizePhoneForStorage } from '../utils/phone';
 
 type CustomerMode = 'existing' | 'walk-in';
 
@@ -91,12 +93,126 @@ function remainingDaySlots(date: string): string[] {
   return out;
 }
 
+type Weekday =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
+
+const DAY_BY_INDEX: Weekday[] = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+];
+
+const DAY_ALIASES: Record<string, Weekday> = {
+  mon: 'monday',
+  monday: 'monday',
+  tue: 'tuesday',
+  tues: 'tuesday',
+  tuesday: 'tuesday',
+  wed: 'wednesday',
+  wednesday: 'wednesday',
+  thu: 'thursday',
+  thur: 'thursday',
+  thurs: 'thursday',
+  thursday: 'thursday',
+  fri: 'friday',
+  friday: 'friday',
+  sat: 'saturday',
+  saturday: 'saturday',
+  sun: 'sunday',
+  sunday: 'sunday',
+};
+
+function normalizeTime(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  const match = value.trim().match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  return match ? `${match[1]}:${match[2]}` : fallback;
+}
+
+function parseStringRange(value: string): { open: string; close: string } | null {
+  const match = value
+    .trim()
+    .match(/^([01]\d|2[0-3]):([0-5]\d)\s*-\s*([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return null;
+  return { open: `${match[1]}:${match[2]}`, close: `${match[3]}:${match[4]}` };
+}
+
+function getWorkingDayWindow(
+  workingHours: Record<string, unknown> | null | undefined,
+  bookingDate: string,
+): { closed: boolean; open: string; close: string } {
+  const d = new Date(`${bookingDate}T00:00:00`);
+  const dayKey = DAY_BY_INDEX[d.getDay()] ?? 'monday';
+  const defaults = { closed: false, open: '00:00', close: '23:30' };
+  if (!workingHours || typeof workingHours !== 'object') return defaults;
+  const entries = Object.entries(workingHours);
+  const match = entries.find(([k]) => DAY_ALIASES[k.toLowerCase()] === dayKey);
+  if (!match) return defaults;
+  const raw = match[1];
+  if (typeof raw === 'string') {
+    const range = parseStringRange(raw);
+    return range ? { closed: false, ...range } : defaults;
+  }
+  if (!raw || typeof raw !== 'object') return defaults;
+  const rec = raw as Record<string, unknown>;
+  const closed =
+    rec.closed === true || rec.isClosed === true || rec.open === false;
+  const open = normalizeTime(rec.open, defaults.open);
+  const close = normalizeTime(rec.close, defaults.close);
+  if (open >= close) return { closed: true, open, close };
+  return { closed, open, close };
+}
+
+function remainingDaySlotsInWindow(
+  date: string,
+  openTime: string,
+  closeTime: string,
+): string[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const dayMin = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
+  const start = Math.max(timeToMinutes(openTime), dayMin);
+  const endExclusive = timeToMinutes(closeTime);
+  const out: string[] = [];
+  for (let m = start; m < endExclusive; m += 30) {
+    out.push(minutesToTime(m));
+  }
+  return out;
+}
+
+function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }> {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const out: Array<{ value: string; day: string; dateNum: string }> = [];
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const value = d.toISOString().slice(0, 10);
+    out.push({
+      value,
+      day: days[d.getDay()] ?? '',
+      dateNum: String(d.getDate()),
+    });
+  }
+  return out;
+}
+
 export default function BookingCreatePage() {
   const navigate = useNavigate();
   const { tenantId } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [users, setUsers] = useState<IamUserRow[]>([]);
+  const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [sport, setSport] = useState<BookingSportType>('futsal');
   const [bookingDate, setBookingDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
@@ -113,6 +229,7 @@ export default function BookingCreatePage() {
   const [notes, setNotes] = useState('');
   const [discount, setDiscount] = useState('0');
   const [tax, setTax] = useState('0');
+  const bookingDateChoices = useMemo(() => nextSevenDays(), []);
 
   useEffect(() => {
     void (async () => {
@@ -121,6 +238,14 @@ export default function BookingCreatePage() {
         setUsers(rows);
       } catch {
         setUsers([]);
+      }
+    })();
+    void (async () => {
+      try {
+        const rows = await listBusinessLocations();
+        setLocations(rows);
+      } catch {
+        setLocations([]);
       }
     })();
   }, []);
@@ -229,7 +354,7 @@ export default function BookingCreatePage() {
       const created = await createIamUser({
         fullName: walkInName.trim(),
         email: generatedEmail,
-        phone: walkInPhone.trim(),
+        phone: normalizePhoneForStorage(walkInPhone),
         password: makePassword(),
       });
       resolvedCustomerId = created.id;
@@ -322,8 +447,8 @@ export default function BookingCreatePage() {
                   value={customerMode}
                   onChange={(e) => setCustomerMode(e.target.value as CustomerMode)}
                 >
-                  <option value="walk-in">walk-in</option>
-                  <option value="existing">existing (enter user ID)</option>
+                  <option value="walk-in">Walk-in</option>
+                  <option value="existing">Existing (Enter User ID)</option>
                 </select>
               </div>
               {customerMode === 'walk-in' ? (
@@ -364,18 +489,47 @@ export default function BookingCreatePage() {
                 value={sport}
                 onChange={(e) => setSport(e.target.value as BookingSportType)}
               >
-                <option value="futsal">futsal</option>
-                <option value="cricket">cricket</option>
-                <option value="padel">padel</option>
+                <option value="futsal">Futsal</option>
+                <option value="cricket">Cricket</option>
+                <option value="padel">Padel</option>
               </select>
             </div>
             <div>
               <label>Date</label>
-              <input
-                type="date"
-                value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
-              />
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '0.45rem',
+                  flexWrap: 'wrap',
+                  marginTop: '0.35rem',
+                }}
+              >
+                {bookingDateChoices.map((d) => {
+                  const active = d.value === bookingDate;
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      className={active ? 'btn-primary' : 'btn-ghost'}
+                      style={{
+                        minWidth: '58px',
+                        padding: '0.45rem 0.6rem',
+                        borderRadius: '12px',
+                        fontSize: '0.84rem',
+                        lineHeight: 1.1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.1rem',
+                      }}
+                      onClick={() => setBookingDate(d.value)}
+                    >
+                      <span>{d.day}</span>
+                      <strong>{d.dateNum}</strong>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <div>
@@ -398,7 +552,22 @@ export default function BookingCreatePage() {
               const endTime = minutesToTime(
                 Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30),
               );
-              const startSlots = remainingDaySlots(bookingDate);
+              const selectedCourt =
+                courtOpts.find((o) => `${o.kind}:${o.id}` === ln.facilityKey) ?? null;
+              const location = selectedCourt?.businessLocationId
+                ? locations.find((l) => l.id === selectedCourt.businessLocationId) ?? null
+                : null;
+              const dayWindow = getWorkingDayWindow(
+                (location?.workingHours as Record<string, unknown> | null) ?? null,
+                bookingDate,
+              );
+              const startSlots = dayWindow.closed
+                ? []
+                : remainingDaySlotsInWindow(
+                    bookingDate,
+                    dayWindow.open,
+                    dayWindow.close,
+                  );
               return (
                 <div key={idx} className="item-editor">
                   <div className="item-editor-head">
@@ -428,6 +597,11 @@ export default function BookingCreatePage() {
                           </option>
                         ))}
                       </select>
+                      {location && (
+                        <div className="muted" style={{ marginTop: '0.3rem' }}>
+                          Working hours: {dayWindow.closed ? 'Closed' : `${dayWindow.open} - ${dayWindow.close}`}
+                        </div>
+                      )}
                     </div>
                     <div className="form-row-2">
                       <div>
@@ -448,9 +622,9 @@ export default function BookingCreatePage() {
                                 type="button"
                                 className={active ? 'btn-primary' : 'btn-ghost'}
                                 style={{
-                                  padding: '0.2rem 0.5rem',
+                                  padding: '0.35rem 0.7rem',
                                   borderRadius: '999px',
-                                  fontSize: '0.78rem',
+                                  fontSize: '0.88rem',
                                 }}
                                 onClick={() => {
                                   const next = [...lines];
@@ -462,6 +636,16 @@ export default function BookingCreatePage() {
                               </button>
                             );
                           })}
+                          {startSlots.length > 20 && (
+                            <span className="muted" style={{ fontSize: '0.78rem' }}>
+                              +{startSlots.length - 20} more slots
+                            </span>
+                          )}
+                          {startSlots.length === 0 && (
+                            <span className="muted" style={{ fontSize: '0.78rem' }}>
+                              No slots available in working hours for this day.
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -470,7 +654,7 @@ export default function BookingCreatePage() {
                           <button
                             type="button"
                             className="btn-ghost"
-                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.8rem' }}
+                            style={{ padding: '0.45rem 0.8rem', fontSize: '0.92rem' }}
                             onClick={() => {
                               const next = [...lines];
                               next[idx] = { ...ln, durationMins: Math.max(60, ln.durationMins) };
@@ -482,7 +666,7 @@ export default function BookingCreatePage() {
                           <button
                             type="button"
                             className="btn-ghost"
-                            style={{ padding: '0.18rem 0.5rem', fontSize: '0.78rem' }}
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
                             onClick={() => {
                               const next = [...lines];
                               next[idx] = { ...ln, durationMins: ln.durationMins + 30 };
@@ -494,7 +678,7 @@ export default function BookingCreatePage() {
                           <button
                             type="button"
                             className="btn-ghost"
-                            style={{ padding: '0.18rem 0.5rem', fontSize: '0.78rem' }}
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
                             onClick={() => {
                               const next = [...lines];
                               next[idx] = {
@@ -537,9 +721,9 @@ export default function BookingCreatePage() {
                             setLines(next);
                           }}
                         >
-                          <option value="reserved">reserved</option>
-                          <option value="confirmed">confirmed</option>
-                          <option value="cancelled">cancelled</option>
+                          <option value="reserved">Reserved</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </div>
                     </div>
