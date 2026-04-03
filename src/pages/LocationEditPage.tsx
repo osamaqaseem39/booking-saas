@@ -21,6 +21,10 @@ import ImageGallery from '../components/ImageGallery';
 import ImageUpload from '../components/ImageUpload';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow } from '../types/domain';
+import {
+  formatCoordinateForInput,
+  normalizeCoordinate,
+} from '../utils/coordinates';
 import { normalizePhoneForStorage } from '../utils/phone';
 
 export default function LocationEditPage() {
@@ -36,6 +40,7 @@ export default function LocationEditPage() {
   const [branchName, setBranchName] = useState('');
   const [name, setName] = useState('');
   const [addressLine, setAddressLine] = useState('');
+  const [details, setDetails] = useState('');
   const [city, setCity] = useState('');
   const [area, setArea] = useState('');
   const [country, setCountry] = useState('Pakistan');
@@ -86,12 +91,21 @@ export default function LocationEditPage() {
     setBranchName(location.name ?? '');
     setName(location.name);
     setAddressLine(location.addressLine ?? '');
+    setDetails(location.details ?? '');
     setCity(location.city ?? '');
     setArea(location.area ?? '');
     setCountry(location.country ?? 'Pakistan');
     setStateProvince(inferStateFromCity(location.country ?? 'Pakistan', location.city ?? '', location.area ?? ''));
-    setLatitude(location.latitude !== null && location.latitude !== undefined ? String(location.latitude) : '');
-    setLongitude(location.longitude !== null && location.longitude !== undefined ? String(location.longitude) : '');
+    setLatitude(
+      location.latitude !== null && location.latitude !== undefined
+        ? formatCoordinateForInput(location.latitude)
+        : '',
+    );
+    setLongitude(
+      location.longitude !== null && location.longitude !== undefined
+        ? formatCoordinateForInput(location.longitude)
+        : '',
+    );
     setPhone(location.phone ?? '');
     setManager(location.manager ?? '');
     setTimezone(location.timezone ?? 'Asia/Karachi');
@@ -153,8 +167,8 @@ export default function LocationEditPage() {
     setErr(null);
     try {
       const lt = locationType === 'custom' ? customType.trim().slice(0, 80) : locationType;
-      const lat = Number(latitude);
-      const lng = Number(longitude);
+      const lat = normalizeCoordinate(Number(latitude));
+      const lng = normalizeCoordinate(Number(longitude));
       const normalizedPhone = normalizePhoneForStorage(phone);
       await updateBusinessLocation(locationId, {
         branchName: branchName.trim(),
@@ -162,6 +176,7 @@ export default function LocationEditPage() {
         facilityTypes,
         name: name.trim(),
         addressLine: addressLine.trim(),
+        details: details.trim(),
         city: city.trim(),
         area: area.trim(),
         country: country.trim(),
@@ -181,6 +196,7 @@ export default function LocationEditPage() {
           city: city.trim(),
           area: area.trim(),
           addressLine: addressLine.trim(),
+          details: details.trim(),
           coordinates: { lat, lng },
         },
         contact: {
@@ -414,14 +430,41 @@ export default function LocationEditPage() {
                   <span />
                 </div>
               </div>
+              <div>
+                <label>Details (optional)</label>
+                <textarea
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                  maxLength={10000}
+                  rows={4}
+                  placeholder="Description, amenities, parking, dress code…"
+                  style={{ width: '100%', resize: 'vertical' }}
+                />
+              </div>
               <div className="form-row-2">
                 <div>
                   <label>Latitude *</label>
-                  <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
+                  <input
+                    value={latitude}
+                    onChange={(e) => setLatitude(e.target.value)}
+                    onBlur={() => {
+                      const n = Number(latitude);
+                      if (Number.isFinite(n)) setLatitude(formatCoordinateForInput(n));
+                    }}
+                    required
+                  />
                 </div>
                 <div>
                   <label>Longitude *</label>
-                  <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
+                  <input
+                    value={longitude}
+                    onChange={(e) => setLongitude(e.target.value)}
+                    onBlur={() => {
+                      const n = Number(longitude);
+                      if (Number.isFinite(n)) setLongitude(formatCoordinateForInput(n));
+                    }}
+                    required
+                  />
                 </div>
               </div>
             </div>

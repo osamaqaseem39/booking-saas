@@ -23,7 +23,20 @@ const LS_API = 'bukit_saas_api_url';
 const LS_TENANT = 'bukit_saas_tenant_id';
 const LS_TOKEN = 'bukit_saas_token';
 const LS_REFRESH = 'bukit_saas_refresh_token';
-const IMAGE_UPLOAD_URL = import.meta.env.VITE_IMAGE_UPLOAD_URL || '';
+
+/** Used when `VITE_IMAGE_UPLOAD_URL` is missing or blank in `.env` at build time. */
+const DEFAULT_IMAGE_UPLOAD_URL = 'https://bukit.osamaqaseem.online/upload.php';
+
+const rawImageUploadUrl = import.meta.env.VITE_IMAGE_UPLOAD_URL as
+  | string
+  | undefined;
+/** Empty or whitespace in `.env` must not skip uploads — otherwise we hit `/auth/upload` on the API base (e.g. old Vercel URL in localStorage). */
+const IMAGE_UPLOAD_URL =
+  (rawImageUploadUrl ?? '').trim() || DEFAULT_IMAGE_UPLOAD_URL;
+
+/** Form field name for the file part (`$_FILES[...]` in PHP). */
+const IMAGE_UPLOAD_FORM_FIELD =
+  (import.meta.env.VITE_IMAGE_UPLOAD_FORM_FIELD || 'file').trim() || 'file';
 
 const TOKENS_UPDATED = 'bukit_saas_tokens_updated';
 
@@ -44,42 +57,112 @@ export function getApiBase(): string {
   ).replace(/\/$/, '');
 }
 
+
+
 export interface UploadImageResult {
   url: string;
   filename?: string;
   size?: number;
 }
 
-export async function uploadImageApi(file: File): Promise<UploadImageResult> {
-  const formData = new FormData();
-  formData.append('file', file);
+function pickString(...candidates: unknown[]): string {
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c.trim();
+  }
+  return '';
+}
 
-  if (IMAGE_UPLOAD_URL) {
-    const res = await fetch(IMAGE_UPLOAD_URL, {
-      method: 'POST',
-      body: formData,
-      credentials: 'omit',
-    });
-    const json = (await res.json()) as {
-      success?: boolean;
-      message?: string;
-      data?: { url?: string; filename?: string; size?: number };
-    };
-    if (!res.ok || !json?.success) {
-      throw new Error(json?.message || 'Image upload failed');
-    }
-    const data = json?.data;
-    return {
-      url: data?.url ?? '',
-      filename: data?.filename,
-      size: data?.size,
-    };
+function parseExternalUploadResponse(
+  json: unknown,
+  resOk: boolean,
+): UploadImageResult {
+  const o = json && typeof json === 'object' ? (json as Record<string, unknown>) : {};
+
+  if (o.success === false) {
+    throw new Error(pickString(o.message, o.error) || 'Image upload failed');
   }
 
-  return request<{ url: string; filename?: string; size?: number }>('/auth/upload', {
+  const data =
+    o.data && typeof o.data === 'object'
+      ? (o.data as Record<string, unknown>)
+      : undefined;
+
+  const url = pickString(
+    o.url,
+    o.link,
+    o.file,
+    o.path,
+    data?.url,
+    data?.link,
+    data?.file,
+    data?.path,
+  );
+
+  if (!resOk) {
+    throw new Error(
+      pickString(o.message, o.error) || `Image upload failed (HTTP error)`,
+    );
+  }
+
+  if (!url) {
+    throw new Error(
+      pickString(o.message, o.error) ||
+        'Image upload failed: response did not include a URL',
+    );
+  }
+
+  const filename = pickString(data?.filename, o.filename) || undefined;
+  const sizeRaw = data?.size ?? o.size;
+  const size = typeof sizeRaw === 'number' ? sizeRaw : undefined;
+
+  return { url, filename, size };
+}
+
+/** Origin of the upload script (for resolving relative paths like `/uploads/x.jpg`). */
+export function getImageUploadOrigin(): string {
+  if (!IMAGE_UPLOAD_URL) return '';
+  try {
+    return new URL(IMAGE_UPLOAD_URL).origin;
+  } catch {
+    return '';
+  }
+}
+
+/** Absolute URL for displaying a stored image path (handles relative URLs from PHP). */
+export function resolvePublicImageUrl(url: string): string {
+  if (!url) return url;
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:')
+  ) {
+    return url;
+  }
+  const uploadOrigin = getImageUploadOrigin().replace(/\/$/, '');
+  const base = uploadOrigin || getApiBase().replace(/\/$/, '');
+  return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
+}
+
+export async function uploadImageApi(file: File): Promise<UploadImageResult> {
+  const formData = new FormData();
+  formData.append(IMAGE_UPLOAD_FORM_FIELD, file);
+
+  const res = await fetch(IMAGE_UPLOAD_URL, {
     method: 'POST',
     body: formData,
+    credentials: 'omit',
   });
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(
+      res.ok
+        ? 'Image upload failed: server did not return JSON'
+        : `Image upload failed (${res.status})`,
+    );
+  }
+  return parseExternalUploadResponse(json, res.ok);
 }
 
 export function getTenantId(): string {
@@ -315,6 +398,7 @@ export async function createBusinessLocation(body: {
   facilityTypes?: string[];
   name: string;
   addressLine?: string;
+  details?: string;
   city?: string;
   area?: string;
   country?: string;
@@ -335,6 +419,7 @@ export async function createBusinessLocation(body: {
     area?: string;
     addressLine?: string;
     address?: string;
+    details?: string;
     coordinates?: { lat: number; lng: number };
   };
   contact?: {
@@ -360,6 +445,7 @@ export async function updateBusinessLocation(
     facilityTypes?: string[];
     name?: string;
     addressLine?: string;
+    details?: string;
     city?: string;
     area?: string;
     country?: string;
@@ -380,6 +466,7 @@ export async function updateBusinessLocation(
       area?: string;
       addressLine?: string;
       address?: string;
+      details?: string;
       coordinates?: { lat: number; lng: number };
     };
     contact?: {

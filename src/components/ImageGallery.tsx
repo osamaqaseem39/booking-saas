@@ -1,6 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
-import { getApiBase, uploadImageApi } from '../api/saasClient';
-
+import { resolvePublicImageUrl, uploadImageApi } from '../api/saasClient';
 
 type ImageGalleryProps = {
   label: string;
@@ -8,13 +7,6 @@ type ImageGalleryProps = {
   onChange: (urls: string[]) => void;
   maxItems?: number;
 };
-
-function resolveImageUrl(url: string): string {
-  if (!url) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const base = getApiBase().replace(/\/$/, '');
-  return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
-}
 
 export default function ImageGallery({
   label,
@@ -84,7 +76,13 @@ export default function ImageGallery({
             <button type="button" className="btn-danger btn-compact" onClick={() => removeItem(idx)}>
               Remove
             </button>
-            {url ? <img src={resolveImageUrl(url)} alt={`Gallery ${idx + 1}`} className="image-upload-preview" /> : null}
+            {url ? (
+              <img
+                src={resolvePublicImageUrl(url)}
+                alt={`Gallery ${idx + 1}`}
+                className="image-upload-preview"
+              />
+            ) : null}
           </div>
         ))}
       </div>

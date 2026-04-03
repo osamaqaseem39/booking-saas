@@ -47,8 +47,27 @@ export interface BusinessLocationRow {
   locationType?: string;
   /** Court / sub-facility kinds this location hosts (e.g. padel-court). */
   facilityTypes?: string[];
+  /** Counts of active bookable courts/fields at this location (from API lists). */
+  facilityCounts?: {
+    'padel-court': number;
+    'futsal-field': number;
+    'cricket-indoor': number;
+    'turf-court': number;
+  };
+  /** Active courts/fields with id and display name. */
+  facilityCourts?: Array<{
+    facilityType:
+      | 'padel-court'
+      | 'futsal-field'
+      | 'cricket-indoor'
+      | 'turf-court';
+    id: string;
+    name: string;
+  }>;
   name: string;
   addressLine?: string | null;
+  /** Long-form description / notes for the location. */
+  details?: string | null;
   city?: string | null;
   area?: string | null;
   country?: string | null;

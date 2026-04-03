@@ -1,31 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import {
-  listBusinessLocations,
-  listCricketIndoor,
-  listFutsalFields,
-  listPadelCourts,
-  listTurfCourts,
-} from '../api/saasClient';
+import { listBusinessLocations } from '../api/saasClient';
 import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
-type FacilityCounts = {
+type FacilityCountsUi = {
   turf: number;
   padel: number;
   futsal: number;
   cricket: number;
 };
 
+function countsFromLocation(loc: BusinessLocationRow | null): FacilityCountsUi {
+  const fc = loc?.facilityCounts;
+  if (!fc) {
+    return { turf: 0, padel: 0, futsal: 0, cricket: 0 };
+  }
+  return {
+    turf: fc['turf-court'] ?? 0,
+    padel: fc['padel-court'] ?? 0,
+    futsal: fc['futsal-field'] ?? 0,
+    cricket: fc['cricket-indoor'] ?? 0,
+  };
+}
+
 export default function LocationDetailPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
-  const [counts, setCounts] = useState<FacilityCounts>({
-    turf: 0,
-    padel: 0,
-    futsal: 0,
-    cricket: 0,
-  });
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +34,7 @@ export default function LocationDetailPage() {
     () => rows.find((r) => r.id === locationId) ?? null,
     [rows, locationId],
   );
+  const counts = useMemo(() => countsFromLocation(location), [location]);
   const availableFacilityCards = useMemo(
     () =>
       [
@@ -44,26 +46,36 @@ export default function LocationDetailPage() {
     [counts.cricket, counts.futsal, counts.padel, counts.turf],
   );
 
+  const courtsByType = useMemo(() => {
+    const courts = location?.facilityCourts ?? [];
+    const order = [
+      'padel-court',
+      'futsal-field',
+      'cricket-indoor',
+      'turf-court',
+    ] as const;
+    const map = new Map<string, typeof courts>();
+    for (const c of courts) {
+      const list = map.get(c.facilityType) ?? [];
+      list.push(c);
+      map.set(c.facilityType, list);
+    }
+    return order
+      .filter((t) => (map.get(t)?.length ?? 0) > 0)
+      .map((facilityType) => ({
+        facilityType,
+        items: map.get(facilityType) ?? [],
+      }));
+  }, [location?.facilityCourts]);
+
   useEffect(() => {
     if (!locationId.trim()) return;
     void (async () => {
       setLoading(true);
       setErr(null);
       try {
-        const [locs, turf, padel, futsal, cricket] = await Promise.all([
-          listBusinessLocations(),
-          listTurfCourts(undefined, locationId),
-          listPadelCourts(locationId),
-          listFutsalFields(locationId),
-          listCricketIndoor(locationId),
-        ]);
+        const locs = await listBusinessLocations();
         setRows(locs);
-        setCounts({
-          turf: turf.length,
-          padel: padel.length,
-          futsal: futsal.length,
-          cricket: cricket.length,
-        });
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load location details');
       } finally {
@@ -129,6 +141,18 @@ export default function LocationDetailPage() {
             </div>
           </div>
 
+          {location.details?.trim() ? (
+            <div className="connection-panel" style={{ marginTop: '1rem' }}>
+              <h2>Details</h2>
+              <p
+                className="muted"
+                style={{ marginTop: '0.45rem', whiteSpace: 'pre-wrap' }}
+              >
+                {location.details.trim()}
+              </p>
+            </div>
+          ) : null}
+
           {availableFacilityCards.length > 0 ? (
             <div className="connection-grid" style={{ marginTop: '1rem' }}>
               {availableFacilityCards.map((card) => (
@@ -150,6 +174,26 @@ export default function LocationDetailPage() {
               </p>
             </div>
           )}
+
+          {courtsByType.length > 0 ? (
+            <div className="connection-panel" style={{ marginTop: '1rem' }}>
+              <h2>Courts &amp; fields</h2>
+              <div style={{ marginTop: '0.65rem', display: 'grid', gap: '1rem' }}>
+                {courtsByType.map(({ facilityType, items }) => (
+                  <div key={facilityType}>
+                    <div className="muted" style={{ fontWeight: 600, marginBottom: '0.35rem' }}>
+                      {formatFacilityTypeLabel(facilityType)}
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                      {items.map((c) => (
+                        <li key={c.id}>{c.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="page-actions-row">
             <Link to={`/app/locations/${location.id}/edit`} className="btn-primary">

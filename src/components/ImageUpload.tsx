@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
-import { getApiBase, uploadImageApi } from '../api/saasClient';
+import { resolvePublicImageUrl, uploadImageApi } from '../api/saasClient';
 
 type ImageUploadProps = {
   label: string;
@@ -7,17 +7,10 @@ type ImageUploadProps = {
   onChange: (url: string) => void;
 };
 
-function resolveImageUrl(url: string): string {
-  if (!url) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const base = getApiBase().replace(/\/$/, '');
-  return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
-}
-
 export default function ImageUpload({ label, value, onChange }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const previewUrl = useMemo(() => resolveImageUrl(value ?? ''), [value]);
+  const previewUrl = useMemo(() => resolvePublicImageUrl(value ?? ''), [value]);
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

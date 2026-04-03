@@ -36,9 +36,12 @@ export function courtSetupOptions(): { code: string; label: string }[] {
   ];
 }
 
-const LABEL_BY_CODE: Record<string, string> = Object.fromEntries(
-  LOCATION_FACILITY_TYPE_OPTIONS.map((o) => [o.value, o.label]),
-);
+const LABEL_BY_CODE: Record<string, string> = {
+  ...Object.fromEntries(
+    LOCATION_FACILITY_TYPE_OPTIONS.map((o) => [o.value, o.label]),
+  ),
+  [TURF_COURT_SETUP_CODE]: 'Turf court',
+};
 
 export function formatFacilityTypeLabel(code: string): string {
   return LABEL_BY_CODE[code] ?? code;
