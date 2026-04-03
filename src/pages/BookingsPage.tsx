@@ -419,6 +419,14 @@ export default function BookingsPage() {
                           <strong>{court.name}</strong>
                         </div>
                         <div className="muted">{court.kind}</div>
+                        {court.pricePerSlot != null ? (
+                          <div className="muted">
+                            {court.pricePerSlot.toFixed(2)} per slot
+                            {court.slotDurationMinutes != null
+                              ? ` · ${court.slotDurationMinutes} min slot`
+                              : ''}
+                          </div>
+                        ) : null}
                         <button
                           type="button"
                           className="btn-ghost"

@@ -119,6 +119,8 @@ export interface BookingAvailabilityRecord {
     kind: CourtKind;
     id: string;
     name: string;
+    pricePerSlot: number | null;
+    slotDurationMinutes: number | null;
   }>;
   bookedSlots: Array<{
     kind: CourtKind;

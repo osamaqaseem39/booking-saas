@@ -20,16 +20,20 @@ export default function ImageGallery({
   const canAdd = urls.length < maxItems;
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !canAdd) return;
+    const list = e.target.files;
+    if (!list?.length || !canAdd) return;
+
+    const remaining = maxItems - urls.length;
+    const files = Array.from(list).slice(0, remaining);
+    if (files.length === 0) return;
 
     setUploading(true);
     setError(null);
     try {
-      const res = await uploadImageApi(file);
-      onChange([...urls, res.url]);
+      const results = await Promise.all(files.map((file) => uploadImageApi(file)));
+      onChange([...urls, ...results.map((r) => r.url)]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to upload image');
+      setError(err instanceof Error ? err.message : 'Failed to upload images');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -51,10 +55,11 @@ export default function ImageGallery({
       <label>{label}</label>
       <div className="image-upload-actions">
         <label className="btn-ghost btn-compact image-upload-btn">
-          {uploading ? 'Uploading...' : 'Upload image'}
+          {uploading ? 'Uploading...' : 'Upload image(s)'}
           <input
             type="file"
             accept="image/*"
+            multiple
             onChange={(e) => void handleFileChange(e)}
             disabled={uploading || !canAdd}
             hidden

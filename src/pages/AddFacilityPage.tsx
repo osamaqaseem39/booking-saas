@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  deleteFacilityByCode,
+  updateFacilityName,
+  type FacilityRowCode,
+} from '../api/facilityMutations';
+import {
   createCricketIndoorCourt,
   createFutsalField,
   createPadelCourt,
@@ -54,6 +59,13 @@ export default function AddFacilityPage() {
   const [cricket, setCricket] = useState<NamedCourt[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingFacility, setEditingFacility] = useState<{
+    id: string;
+    code: FacilityRowCode;
+  } | null>(null);
+  const [editDraftName, setEditDraftName] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function reloadFacilitiesFor(locationIdArg: string, locs: BusinessLocationRow[]) {
@@ -172,6 +184,66 @@ export default function AddFacilityPage() {
       ].filter((item) => item.count > 0),
     [cricket.length, futsal.length, padel.length, turf.length],
   );
+
+  function openEditFacility(row: { id: string; code: string; name: string }) {
+    setErr(null);
+    setEditingFacility({
+      id: row.id,
+      code: row.code as FacilityRowCode,
+    });
+    setEditDraftName(row.name);
+  }
+
+  function cancelEditFacility() {
+    setEditingFacility(null);
+    setEditDraftName('');
+  }
+
+  async function saveEditFacility() {
+    if (!editingFacility) return;
+    const name = editDraftName.trim();
+    if (!name) {
+      setErr('Name is required.');
+      return;
+    }
+    setSavingEdit(true);
+    setErr(null);
+    try {
+      await updateFacilityName(
+        editingFacility.code,
+        editingFacility.id,
+        name,
+      );
+      cancelEditFacility();
+      await reloadFacilitiesFor(locationId, locations);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to update facility');
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function deleteFacilityRow(row: {
+    id: string;
+    code: string;
+    name: string;
+  }) {
+    const yes = window.confirm(
+      `Delete facility “${row.name}”? This cannot be undone.`,
+    );
+    if (!yes) return;
+    setDeletingId(row.id);
+    setErr(null);
+    try {
+      await deleteFacilityByCode(row.code as FacilityRowCode, row.id);
+      if (editingFacility?.id === row.id) cancelEditFacility();
+      await reloadFacilitiesFor(locationId, locations);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to delete facility');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function duplicateFacility(row: {
     id: string;
@@ -377,6 +449,47 @@ export default function AddFacilityPage() {
         </div>
       </div>
 
+      {editingFacility ? (
+        <div className="connection-panel" style={{ marginTop: '1rem' }}>
+          <h3 style={{ fontSize: '1rem', margin: '0 0 0.5rem' }}>
+            Edit facility name
+          </h3>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              alignItems: 'flex-end',
+            }}
+          >
+            <div style={{ flex: '1 1 220px' }}>
+              <label htmlFor="edit-facility-name">Name</label>
+              <input
+                id="edit-facility-name"
+                value={editDraftName}
+                onChange={(e) => setEditDraftName(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn-primary btn-compact"
+              disabled={savingEdit}
+              onClick={() => void saveEditFacility()}
+            >
+              {savingEdit ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-compact"
+              disabled={savingEdit}
+              onClick={cancelEditFacility}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="table-wrap">
         {loading ? (
           <div className="empty-state">Loading…</div>
@@ -401,14 +514,51 @@ export default function AddFacilityPage() {
                     <code style={{ fontSize: '0.7rem' }}>{row.id}</code>
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-compact"
-                      disabled={duplicatingId === row.id}
-                      onClick={() => void duplicateFacility(row)}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '0.35rem',
+                        alignItems: 'center',
+                      }}
                     >
-                      {duplicatingId === row.id ? 'Duplicating…' : 'Duplicate'}
-                    </button>
+                      <button
+                        type="button"
+                        className="btn-ghost btn-compact"
+                        disabled={
+                          duplicatingId === row.id ||
+                          deletingId === row.id ||
+                          savingEdit
+                        }
+                        onClick={() => openEditFacility(row)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-danger btn-compact"
+                        disabled={
+                          duplicatingId === row.id ||
+                          deletingId === row.id ||
+                          savingEdit
+                        }
+                        onClick={() => void deleteFacilityRow(row)}
+                      >
+                        {deletingId === row.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost btn-compact"
+                        disabled={
+                          duplicatingId === row.id ||
+                          deletingId === row.id ||
+                          savingEdit
+                        }
+                        onClick={() => void duplicateFacility(row)}
+                      >
+                        {duplicatingId === row.id ? 'Duplicating…' : 'Duplicate'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

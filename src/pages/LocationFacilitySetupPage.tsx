@@ -14,9 +14,12 @@ import {
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
+/** Primary arena types + legacy URLs for older locations. */
 const CODES = new Set([
   ...LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
   TURF_COURT_SETUP_CODE,
+  'futsal-field',
+  'cricket-indoor',
 ]);
 
 export default function LocationFacilitySetupPage() {
@@ -42,7 +45,7 @@ export default function LocationFacilitySetupPage() {
     if (facilityCode === TURF_COURT_SETUP_CODE) {
       return {
         value: TURF_COURT_SETUP_CODE,
-        label: 'Turf court (Futsal + Cricket)',
+        label: 'Turf',
       };
     }
     return LOCATION_FACILITY_TYPE_OPTIONS.find((o) => o.value === facilityCode);
@@ -133,8 +136,8 @@ export default function LocationFacilitySetupPage() {
       ) : facilityCode === TURF_COURT_SETUP_CODE ? (
         <div className="turf-setup-page">
           <p className="muted turf-setup-page-intro">
-            Location: <strong>{location.name}</strong>. Configure the combined
-            turf court (Futsal + Cricket); all sections map to the booking API.
+            Location: <strong>{location.name}</strong>. Configure turf (futsal
+            and/or cricket modes); all sections map to the booking API.
           </p>
           <TurfCourtSetupForm
             locationId={locationId}

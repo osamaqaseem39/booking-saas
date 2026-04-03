@@ -35,15 +35,15 @@ export default function LocationDetailPage() {
     [rows, locationId],
   );
   const counts = useMemo(() => countsFromLocation(location), [location]);
+  const turfTotal =
+    counts.turf + counts.futsal + counts.cricket;
   const availableFacilityCards = useMemo(
     () =>
       [
-        { key: 'turf', label: 'Turf courts', count: counts.turf },
-        { key: 'padel', label: 'Padel courts', count: counts.padel },
-        { key: 'futsal', label: 'Futsal fields', count: counts.futsal },
-        { key: 'cricket', label: 'Cricket indoor', count: counts.cricket },
+        { key: 'turf', label: 'Turf', count: turfTotal },
+        { key: 'padel', label: 'Padel', count: counts.padel },
       ].filter((item) => item.count > 0),
-    [counts.cricket, counts.futsal, counts.padel, counts.turf],
+    [counts.padel, turfTotal],
   );
 
   const courtsByType = useMemo(() => {
