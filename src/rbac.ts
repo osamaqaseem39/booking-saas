@@ -85,3 +85,11 @@ export function navVisibleForRoles(userRoles: string[]): NavItem[] {
 export function userMayAssignRoles(userRoles: string[]): boolean {
   return userRoles.includes('platform-owner');
 }
+
+/** Create / edit / delete business locations (matches protected API routes). */
+export function canManageBusinessLocations(userRoles: string[]): boolean {
+  return (
+    userRoles.includes('platform-owner') ||
+    userRoles.includes('business-admin')
+  );
+}

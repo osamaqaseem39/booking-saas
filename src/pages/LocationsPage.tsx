@@ -8,11 +8,13 @@ import {
 import { useSession } from '../context/SessionContext';
 import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
+import { canManageBusinessLocations } from '../rbac';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
 export default function LocationsPage() {
   const { session } = useSession();
   const isOwner = session?.roles?.includes('platform-owner');
+  const canManage = canManageBusinessLocations(session?.roles ?? []);
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -88,9 +90,11 @@ export default function LocationsPage() {
     <div>
       <div className="page-head-row">
         <h1 className="page-title">Locations</h1>
-        <Link to="/app/locations/new" className="btn-primary">
-          Add location
-        </Link>
+        {canManage ? (
+          <Link to="/app/locations/new" className="btn-primary">
+            Add location
+          </Link>
+        ) : null}
       </div>
       <p className="muted">
         {isOwner
@@ -207,18 +211,36 @@ export default function LocationsPage() {
                   </td>
                   <td style={{ minWidth: '220px' }}>
                     <div className="location-actions">
-                      <Link className="action-link" to="/app/Facilites">Manage</Link>
-                      <Link className="action-link" to={`/app/locations/${r.id}`}>View</Link>
-                      <Link className="action-link" to={`/app/locations/${r.id}/edit`}>Edit</Link>
-                      <button
-                        type="button"
-                        className="btn-danger"
-                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                        disabled={deletingId === r.id}
-                        onClick={() => void onDelete(r.id)}
-                      >
-                        {deletingId === r.id ? 'Deleting…' : 'Delete'}
-                      </button>
+                      {canManage ? (
+                        <Link className="action-link" to="/app/Facilites">
+                          Manage
+                        </Link>
+                      ) : null}
+                      <Link className="action-link" to={`/app/locations/${r.id}`}>
+                        View
+                      </Link>
+                      {canManage ? (
+                        <>
+                          <Link
+                            className="action-link"
+                            to={`/app/locations/${r.id}/edit`}
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            type="button"
+                            className="btn-danger"
+                            style={{
+                              padding: '0.2rem 0.45rem',
+                              fontSize: '0.75rem',
+                            }}
+                            disabled={deletingId === r.id}
+                            onClick={() => void onDelete(r.id)}
+                          >
+                            {deletingId === r.id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        </>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

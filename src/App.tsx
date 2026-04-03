@@ -97,7 +97,6 @@ export default function App() {
                 </RequireRoles>
               }
             />
-            <Route path="locations/:locationId" element={<LocationDetailPage />} />
             <Route
               path="locations/:locationId/edit"
               element={
@@ -107,10 +106,6 @@ export default function App() {
               }
             />
             <Route
-              path="locations/:locationId/facilities"
-              element={<Navigate to="/app/Facilites" replace />}
-            />
-            <Route
               path="locations/:locationId/facilities/setup/:facilityCode"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
@@ -118,6 +113,11 @@ export default function App() {
                 </RequireRoles>
               }
             />
+            <Route
+              path="locations/:locationId/facilities"
+              element={<Navigate to="/app/Facilites" replace />}
+            />
+            <Route path="locations/:locationId" element={<LocationDetailPage />} />
             <Route
               path="end-users"
               element={
