@@ -21,7 +21,6 @@ import ImageGallery from '../components/ImageGallery';
 import ImageUpload from '../components/ImageUpload';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
 import type { BusinessLocationRow } from '../types/domain';
-import { findBusinessLocationByRouteId } from '../utils/businessLocation';
 import {
   formatCoordinateForInput,
   normalizeCoordinate,
@@ -68,7 +67,7 @@ export default function LocationEditPage() {
   const isArenaType = locationType === 'arena';
 
   const location = useMemo(
-    () => findBusinessLocationByRouteId(rows, locationId),
+    () => rows.find((r) => r.id === locationId) ?? null,
     [rows, locationId],
   );
 

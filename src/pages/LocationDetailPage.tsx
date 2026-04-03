@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { listBusinessLocations } from '../api/saasClient';
-import { useSession } from '../context/SessionContext';
 import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
-import { canManageBusinessLocations } from '../rbac';
 import type { BusinessLocationRow } from '../types/domain';
-import { findBusinessLocationByRouteId } from '../utils/businessLocation';
 
 type FacilityCountsUi = {
   turf: number;
@@ -28,15 +25,13 @@ function countsFromLocation(loc: BusinessLocationRow | null): FacilityCountsUi {
 }
 
 export default function LocationDetailPage() {
-  const { session } = useSession();
   const { locationId = '' } = useParams<{ locationId: string }>();
-  const canManage = canManageBusinessLocations(session?.roles ?? []);
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const location = useMemo(
-    () => findBusinessLocationByRouteId(rows, locationId),
+    () => rows.find((r) => r.id === locationId) ?? null,
     [rows, locationId],
   );
   const counts = useMemo(() => countsFromLocation(location), [location]);
@@ -201,16 +196,15 @@ export default function LocationDetailPage() {
           ) : null}
 
           <div className="page-actions-row">
-            {canManage ? (
-              <>
-                <Link to={`/app/locations/${location.id}/edit`} className="btn-primary">
-                  Edit location
-                </Link>
-                <Link to="/app/Facilites" className="btn-ghost">
-                  Manage facilities
-                </Link>
-              </>
-            ) : null}
+            <Link to={`/app/locations/${location.id}/edit`} className="btn-primary">
+              Edit location
+            </Link>
+            <Link
+              to="/app/Facilites"
+              className="btn-ghost"
+            >
+              Manage facilities
+            </Link>
           </div>
         </>
       )}
