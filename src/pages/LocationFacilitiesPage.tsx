@@ -6,10 +6,9 @@ import {
 } from '../api/facilityMutations';
 import {
   listBusinessLocations,
-  listCricketIndoor,
-  listFutsalFields,
+  listCricketCourts,
+  listFutsalCourts,
   listPadelCourts,
-  listTurfCourts,
 } from '../api/saasClient';
 import {
   courtSetupOptions,
@@ -123,10 +122,9 @@ function FacilitiesTableBlock({
 export default function LocationFacilitiesPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [turf, setTurf] = useState<NamedCourt[]>([]);
+  const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
+  const [cricketCourts, setCricketCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
-  const [futsal, setFutsal] = useState<NamedCourt[]>([]);
-  const [cricket, setCricket] = useState<NamedCourt[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -141,18 +139,16 @@ export default function LocationFacilitiesPage() {
       setLoading(true);
       setErr(null);
       try {
-        const [locs, tu, pa, fu, cr] = await Promise.all([
+        const [locs, fc, cc, pa] = await Promise.all([
           listBusinessLocations(),
-          listTurfCourts(undefined, locationId),
+          listFutsalCourts(locationId),
+          listCricketCourts(locationId),
           listPadelCourts(locationId),
-          listFutsalFields(locationId),
-          listCricketIndoor(locationId),
         ]);
         setLocations(locs);
-        setTurf(tu);
+        setFutsalCourts(fc);
+        setCricketCourts(cc);
         setPadel(pa);
-        setFutsal(fu);
-        setCricket(cr);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {
@@ -191,7 +187,7 @@ export default function LocationFacilitiesPage() {
           <p className="muted">
             <strong>{location.name}</strong>
             {location.city ? ` · ${location.city}` : ''}. Configure concrete
-            courts/fields here; each facility type uses the matching API setup
+            courts here; each facility type uses the matching API setup
             shape (minimal forms below — extend via API as needed).
           </p>
           {err && <div className="err-banner">{err}</div>}
@@ -228,9 +224,17 @@ export default function LocationFacilitiesPage() {
             At this location
           </h3>
           <FacilitiesTableBlock
-            title="Turf courts"
-            rows={turf}
-            facilityCode="turf-court"
+            title="Futsal pitches"
+            rows={futsalCourts}
+            facilityCode="futsal-court"
+            locationId={locationId}
+            onReload={load}
+            setPageErr={setErr}
+          />
+          <FacilitiesTableBlock
+            title="Cricket pitches"
+            rows={cricketCourts}
+            facilityCode="cricket-court"
             locationId={locationId}
             onReload={load}
             setPageErr={setErr}
@@ -239,22 +243,6 @@ export default function LocationFacilitiesPage() {
             title="Padel courts"
             rows={padel}
             facilityCode="padel-court"
-            locationId={locationId}
-            onReload={load}
-            setPageErr={setErr}
-          />
-          <FacilitiesTableBlock
-            title="Futsal fields"
-            rows={futsal}
-            facilityCode="futsal-field"
-            locationId={locationId}
-            onReload={load}
-            setPageErr={setErr}
-          />
-          <FacilitiesTableBlock
-            title="Cricket indoor"
-            rows={cricket}
-            facilityCode="cricket-indoor"
             locationId={locationId}
             onReload={load}
             setPageErr={setErr}

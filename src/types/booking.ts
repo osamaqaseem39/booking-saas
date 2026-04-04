@@ -9,10 +9,9 @@ export type BookingStatus =
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type PaymentMethod = 'cash' | 'card' | 'jazzcash' | 'easypaisa';
 export type CourtKind =
-  | 'turf_court'
-  | 'futsal_field'
-  | 'padel_court'
-  | 'cricket_indoor_court';
+  | 'futsal_court'
+  | 'cricket_court'
+  | 'padel_court';
 
 export interface BookingItemRow {
   id: string;

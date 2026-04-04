@@ -385,6 +385,101 @@ export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
   });
 }
 
+/** Map/sidebar marker row from GET /getVenues/all|gaming|FutsalArenas */
+export type VenueMapMarker = {
+  venueId: string;
+  name: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  logo: string | null;
+  bannerImage: string | null;
+};
+
+/** Alias of GET /businesses/locations/cities — distinct city names for filters. */
+export async function getAllCities(params?: {
+  q?: string;
+  limit?: number;
+}): Promise<{ cities: string[] }> {
+  const q = new URLSearchParams();
+  if (params?.q) q.set('q', params.q);
+  if (params?.limit != null) q.set('limit', String(params.limit));
+  const qs = q.toString();
+  return request(`/getAllCities${qs ? `?${qs}` : ''}`, { method: 'GET' });
+}
+
+/** Registered catalog + every distinct locationType in DB (any location). */
+export async function getAllLocationTypes(): Promise<{
+  locationTypes: string[];
+}> {
+  return request('/getAllLocationTypes', { method: 'GET' });
+}
+
+/** Full venue list (same payload as GET /businesses/locations). */
+export async function getVenues(): Promise<BusinessLocationRow[]> {
+  return request<BusinessLocationRow[]>('/getVenues', { method: 'GET' });
+}
+
+export async function getVenuesAllMarkers(): Promise<VenueMapMarker[]> {
+  return request<VenueMapMarker[]>('/getVenues/all', { method: 'GET' });
+}
+
+export async function getVenuesGamingMarkers(): Promise<VenueMapMarker[]> {
+  return request<VenueMapMarker[]>('/getVenues/gaming', { method: 'GET' });
+}
+
+export async function getVenuesFutsalArenasMarkers(): Promise<VenueMapMarker[]> {
+  return request<VenueMapMarker[]>('/getVenues/FutsalArenas', {
+    method: 'GET',
+  });
+}
+
+export type VenueDetailsPublic = {
+  venueId: string;
+  name: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  logo: string | null;
+  bannerImage: string | null;
+  gallery: string[];
+  clubDetails: {
+    businessName: string | null;
+    description: string | null;
+    sportsOffered: string[];
+  };
+  currency: string;
+  price: number | null;
+  packages: unknown[];
+  availability: { tenantId: string | null; note: string };
+  dailyOpenHours: Record<string, unknown> | null;
+  facilityAvailable: Array<{ label: string; count: number }>;
+  tenantId: string | null;
+};
+
+export async function getVenueDetails(
+  locationId: string,
+): Promise<VenueDetailsPublic> {
+  return request<VenueDetailsPublic>(`/getVenueDetails/${locationId}`, {
+    method: 'GET',
+  });
+}
+
+export async function placeFutsalBooking(body: {
+  date: string;
+  startTime: string;
+  endTime: string;
+  facilitySelected: string;
+  fieldSelected: string;
+  venueId: string;
+  userId: string;
+}): Promise<{ message: string; bookingId: string; placedAt: string }> {
+  return request('/placeFutsalBooking', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function getBusinessDashboardView(): Promise<BusinessDashboardView> {
   return request<BusinessDashboardView>('/businesses/dashboard', {
     method: 'GET',
@@ -756,24 +851,32 @@ export async function getArenaMeta(): Promise<unknown> {
   return request('/arena', { method: 'GET' });
 }
 
-function appendLocationQuery(
+function appendBusinessLocationQuery(
   base: string,
-  sport: string | undefined,
   businessLocationId: string | undefined,
 ): string {
   const p = new URLSearchParams();
-  if (sport) p.set('sport', sport);
-  if (businessLocationId?.trim()) p.set('businessLocationId', businessLocationId.trim());
+  if (businessLocationId?.trim()) {
+    p.set('businessLocationId', businessLocationId.trim());
+  }
   const qs = p.toString();
   return qs ? `${base}?${qs}` : base;
 }
 
-export async function listTurfCourts(
-  sport?: 'futsal' | 'cricket',
+export async function listFutsalCourts(
   businessLocationId?: string,
 ): Promise<NamedCourt[]> {
   return request<NamedCourt[]>(
-    appendLocationQuery('/arena/turf-courts', sport, businessLocationId),
+    appendBusinessLocationQuery('/arena/futsal-courts', businessLocationId),
+    { method: 'GET' },
+  );
+}
+
+export async function listCricketCourts(
+  businessLocationId?: string,
+): Promise<NamedCourt[]> {
+  return request<NamedCourt[]>(
+    appendBusinessLocationQuery('/arena/cricket-courts', businessLocationId),
     { method: 'GET' },
   );
 }
@@ -787,29 +890,10 @@ export async function listPadelCourts(
   return request<NamedCourt[]>(`/arena/padel-court${q}`, { method: 'GET' });
 }
 
-export async function listFutsalFields(
-  businessLocationId?: string,
-): Promise<NamedCourt[]> {
-  const q = businessLocationId?.trim()
-    ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
-    : '';
-  return request<NamedCourt[]>(`/arena/futsal-field${q}`, { method: 'GET' });
-}
-
-export async function listCricketIndoor(
-  businessLocationId?: string,
-): Promise<NamedCourt[]> {
-  const q = businessLocationId?.trim()
-    ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
-    : '';
-  return request<NamedCourt[]>(`/arena/cricket-indoor${q}`, { method: 'GET' });
-}
-
-/** Matches API `CreateTurfCourtDto` (optional fields omitted when unset). */
-export type CreateTurfCourtBody = {
+/** Matches API `CreateFutsalCourtDto`. */
+export type CreateFutsalCourtBody = {
   businessLocationId: string;
   name: string;
-  sportMode: 'futsal_only' | 'cricket_only' | 'both';
   arenaLabel?: string;
   courtStatus?: 'active' | 'maintenance';
   imageUrls?: string[];
@@ -830,12 +914,7 @@ export type CreateTurfCourtBody = {
   futsalGoalPostsAvailable?: boolean;
   futsalGoalPostSize?: string;
   futsalLineMarkings?: 'permanent' | 'temporary';
-  cricketFormat?: 'tape_ball' | 'tennis_ball' | 'hard_ball';
-  cricketStumpsAvailable?: boolean;
-  cricketBowlingMachine?: boolean;
-  cricketPracticeMode?: 'full_ground' | 'nets_mode';
-  futsalPricePerSlot?: number;
-  cricketPricePerSlot?: number;
+  pricePerSlot?: number;
   peakPricing?: { weekdayEvening?: number; weekend?: number };
   discountMembership?: {
     label?: string;
@@ -859,49 +938,139 @@ export type CreateTurfCourtBody = {
   };
 };
 
-/** GET /arena/turf-courts/:id — full record (JSON from TypeORM entity). */
-export type TurfCourtDetail = Partial<CreateTurfCourtBody> & {
+export type FutsalCourtDetail = Partial<CreateFutsalCourtBody> & {
   id: string;
   name: string;
   tenantId?: string;
   businessLocationId?: string | null;
-  supportsFutsal?: boolean;
-  supportsCricket?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };
 
-export async function getTurfCourt(id: string): Promise<TurfCourtDetail> {
-  return request<TurfCourtDetail>(`/arena/turf-courts/${id}`, {
+export async function getFutsalCourt(id: string): Promise<FutsalCourtDetail> {
+  return request<FutsalCourtDetail>(`/arena/futsal-courts/${id}`, {
     method: 'GET',
   });
 }
 
-export async function createTurfCourt(
-  body: CreateTurfCourtBody,
+export async function createFutsalCourt(
+  body: CreateFutsalCourtBody,
 ): Promise<NamedCourt> {
-  return request<NamedCourt>('/arena/turf-courts', {
+  return request<NamedCourt>('/arena/futsal-courts', {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export async function updateTurfCourt(
+export async function updateFutsalCourt(
   id: string,
-  body: Partial<CreateTurfCourtBody>,
+  body: Partial<CreateFutsalCourtBody>,
 ): Promise<NamedCourt> {
-  return request<NamedCourt>(`/arena/turf-courts/${id}`, {
+  return request<NamedCourt>(`/arena/futsal-courts/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
   });
 }
 
-export async function deleteTurfCourt(
+export async function deleteFutsalCourt(
   id: string,
 ): Promise<{ deleted: true; id: string }> {
-  return request<{ deleted: true; id: string }>(`/arena/turf-courts/${id}`, {
+  return request<{ deleted: true; id: string }>(`/arena/futsal-courts/${id}`, {
     method: 'DELETE',
   });
+}
+
+/** Matches API `CreateCricketCourtDto`. */
+export type CreateCricketCourtBody = {
+  businessLocationId: string;
+  name: string;
+  arenaLabel?: string;
+  courtStatus?: 'active' | 'maintenance';
+  imageUrls?: string[];
+  ceilingHeightValue?: number;
+  ceilingHeightUnit?: 'ft' | 'm';
+  coveredType?: 'open' | 'semi_covered' | 'fully_indoor';
+  sideNetting?: boolean;
+  netHeight?: string;
+  boundaryType?: 'net' | 'wall';
+  ventilation?: ('natural' | 'fans' | 'ac')[];
+  lighting?: 'led_floodlights' | 'mixed' | 'daylight';
+  lengthM?: number;
+  widthM?: number;
+  surfaceType?: 'artificial_turf' | 'hard_surface';
+  turfQuality?: string;
+  shockAbsorptionLayer?: boolean;
+  cricketFormat?: 'tape_ball' | 'tennis_ball' | 'hard_ball';
+  cricketStumpsAvailable?: boolean;
+  cricketBowlingMachine?: boolean;
+  cricketPracticeMode?: 'full_ground' | 'nets_mode';
+  pricePerSlot?: number;
+  peakPricing?: { weekdayEvening?: number; weekend?: number };
+  discountMembership?: {
+    label?: string;
+    amount?: number;
+    percentOff?: number;
+  };
+  slotDurationMinutes?: number;
+  bufferBetweenSlotsMinutes?: number;
+  allowParallelBooking?: boolean;
+  amenities?: {
+    changingRoom?: boolean;
+    washroom?: boolean;
+    parking?: boolean;
+    drinkingWater?: boolean;
+    seatingArea?: boolean;
+  };
+  rules?: {
+    maxPlayers?: number;
+    safetyInstructions?: string;
+    cancellationPolicy?: string;
+  };
+};
+
+export type CricketCourtDetail = Partial<CreateCricketCourtBody> & {
+  id: string;
+  name: string;
+  tenantId?: string;
+  businessLocationId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getCricketCourt(id: string): Promise<CricketCourtDetail> {
+  return request<CricketCourtDetail>(`/arena/cricket-courts/${id}`, {
+    method: 'GET',
+  });
+}
+
+export async function createCricketCourt(
+  body: CreateCricketCourtBody,
+): Promise<NamedCourt> {
+  return request<NamedCourt>('/arena/cricket-courts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateCricketCourt(
+  id: string,
+  body: Partial<CreateCricketCourtBody>,
+): Promise<NamedCourt> {
+  return request<NamedCourt>(`/arena/cricket-courts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteCricketCourt(
+  id: string,
+): Promise<{ deleted: true; id: string }> {
+  return request<{ deleted: true; id: string }>(
+    `/arena/cricket-courts/${id}`,
+    {
+      method: 'DELETE',
+    },
+  );
 }
 
 /** Matches API `CreatePadelCourtDto` (optional fields omitted when unset). */
@@ -994,117 +1163,9 @@ export async function deletePadelCourt(
   });
 }
 
-export type FutsalFieldDetail = {
-  id: string;
-  tenantId?: string;
-  businessLocationId?: string | null;
-  name: string;
-  description?: string | null;
-  dimensions?: string | null;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-export async function getFutsalField(id: string): Promise<FutsalFieldDetail> {
-  return request<FutsalFieldDetail>(`/arena/futsal-field/${id}`, {
-    method: 'GET',
-  });
-}
-
-export async function createFutsalField(body: {
-  businessLocationId: string;
-  name: string;
-  description?: string;
-  dimensions?: string;
-}): Promise<NamedCourt> {
-  return request<NamedCourt>('/arena/futsal-field', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export async function updateFutsalField(
-  id: string,
-  body: {
-    name?: string;
-    description?: string;
-    dimensions?: string;
-    isActive?: boolean;
-  },
-): Promise<NamedCourt> {
-  return request<NamedCourt>(`/arena/futsal-field/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  });
-}
-
-export async function deleteFutsalField(
-  id: string,
-): Promise<{ deleted: true; id: string }> {
-  return request<{ deleted: true; id: string }>(`/arena/futsal-field/${id}`, {
-    method: 'DELETE',
-  });
-}
-
-export type CricketIndoorCourtDetail = {
-  id: string;
-  tenantId?: string;
-  businessLocationId?: string | null;
-  name: string;
-  description?: string | null;
-  laneCount?: number | null;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-export async function getCricketIndoorCourt(
-  id: string,
-): Promise<CricketIndoorCourtDetail> {
-  return request<CricketIndoorCourtDetail>(`/arena/cricket-indoor/${id}`, {
-    method: 'GET',
-  });
-}
-
-export async function createCricketIndoorCourt(body: {
-  businessLocationId: string;
-  name: string;
-  description?: string;
-  laneCount?: number;
-}): Promise<NamedCourt> {
-  return request<NamedCourt>('/arena/cricket-indoor', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export async function updateCricketIndoorCourt(
-  id: string,
-  body: {
-    name?: string;
-    description?: string;
-    laneCount?: number;
-    isActive?: boolean;
-  },
-): Promise<NamedCourt> {
-  return request<NamedCourt>(`/arena/cricket-indoor/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  });
-}
-
-export async function deleteCricketIndoorCourt(
-  id: string,
-): Promise<{ deleted: true; id: string }> {
-  return request<{ deleted: true; id: string }>(`/arena/cricket-indoor/${id}`, {
-    method: 'DELETE',
-  });
-}
-
 /**
  * Bookable courts for the active tenant. When `businessLocationId` is set, only courts at that location.
- * When `sport` is omitted, returns padel, futsal, and cricket options together (turf rows deduped by id).
+ * When `sport` is omitted, returns padel, futsal, and cricket options together.
  */
 export async function listCourtOptions(
   sport?: BookingSportType,
@@ -1114,15 +1175,12 @@ export async function listCourtOptions(
   const loc = businessLocationId?.trim() || undefined;
   try {
     const out: CourtOption[] = [];
-    const seenTurf = new Set<string>();
 
     if (sport === undefined) {
-      const [padelRows, turfFut, fields, turfCric, indoor] = await Promise.all([
+      const [padelRows, futsalCourts, cricketCourts] = await Promise.all([
         listPadelCourts(loc),
-        listTurfCourts('futsal', loc),
-        listFutsalFields(loc),
-        listTurfCourts('cricket', loc),
-        listCricketIndoor(loc),
+        listFutsalCourts(loc),
+        listCricketCourts(loc),
       ]);
       for (const r of padelRows) {
         out.push({
@@ -1132,39 +1190,19 @@ export async function listCourtOptions(
           businessLocationId: r.businessLocationId,
         });
       }
-      for (const r of turfFut) {
-        if (seenTurf.has(r.id)) continue;
-        seenTurf.add(r.id);
+      for (const r of futsalCourts) {
         out.push({
-          kind: 'turf_court',
+          kind: 'futsal_court',
           id: r.id,
-          label: `Turf — ${r.name}`,
+          label: `Futsal pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
         });
       }
-      for (const r of fields) {
+      for (const r of cricketCourts) {
         out.push({
-          kind: 'futsal_field',
+          kind: 'cricket_court',
           id: r.id,
-          label: `Futsal field — ${r.name}`,
-          businessLocationId: r.businessLocationId,
-        });
-      }
-      for (const r of turfCric) {
-        if (seenTurf.has(r.id)) continue;
-        seenTurf.add(r.id);
-        out.push({
-          kind: 'turf_court',
-          id: r.id,
-          label: `Turf — ${r.name}`,
-          businessLocationId: r.businessLocationId,
-        });
-      }
-      for (const r of indoor) {
-        out.push({
-          kind: 'cricket_indoor_court',
-          id: r.id,
-          label: `Cricket indoor — ${r.name}`,
+          label: `Cricket pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
         });
       }
@@ -1182,44 +1220,22 @@ export async function listCourtOptions(
         });
       }
     } else if (sport === 'futsal') {
-      const [turf, fields] = await Promise.all([
-        listTurfCourts('futsal', loc),
-        listFutsalFields(loc),
-      ]);
-      for (const r of turf) {
+      const courts = await listFutsalCourts(loc);
+      for (const r of courts) {
         out.push({
-          kind: 'turf_court',
+          kind: 'futsal_court',
           id: r.id,
-          label: `Turf — ${r.name}`,
-          businessLocationId: r.businessLocationId,
-        });
-      }
-      for (const r of fields) {
-        out.push({
-          kind: 'futsal_field',
-          id: r.id,
-          label: `Futsal field — ${r.name}`,
+          label: `Futsal pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
         });
       }
     } else {
-      const [turf, indoor] = await Promise.all([
-        listTurfCourts('cricket', loc),
-        listCricketIndoor(loc),
-      ]);
-      for (const r of turf) {
+      const courts = await listCricketCourts(loc);
+      for (const r of courts) {
         out.push({
-          kind: 'turf_court',
+          kind: 'cricket_court',
           id: r.id,
-          label: `Turf — ${r.name}`,
-          businessLocationId: r.businessLocationId,
-        });
-      }
-      for (const r of indoor) {
-        out.push({
-          kind: 'cricket_indoor_court',
-          id: r.id,
-          label: `Cricket indoor — ${r.name}`,
+          label: `Cricket pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
         });
       }

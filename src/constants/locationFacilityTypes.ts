@@ -1,12 +1,16 @@
-/** Keep in sync with backend `business-location.constants.ts` (`BUSINESS_LOCATION_FACILITY_TYPE_CODES`). */
+/** Keep in sync with backend `business-location.constants.ts`. */
 
-/** Route segment for combined turf setup (`/facilities/setup/turf-court`). */
-export const TURF_COURT_SETUP_CODE = 'turf-court' as const;
+export const FUTSAL_COURT_SETUP_CODE = 'futsal-court' as const;
+export const CRICKET_COURT_SETUP_CODE = 'cricket-court' as const;
+
+/** @deprecated Use FUTSAL_COURT_SETUP_CODE */
+export const TURF_COURT_SETUP_CODE = FUTSAL_COURT_SETUP_CODE;
 
 export const LOCATION_FACILITY_TYPE_OPTIONS: { value: string; label: string }[] =
   [
-    { value: 'turf-court', label: 'Turf' },
-    { value: 'padel-court', label: 'Padel' },
+    { value: 'futsal', label: 'Futsal' },
+    { value: 'cricket', label: 'Cricket' },
+    { value: 'padel', label: 'Padel' },
   ];
 
 export function isCourtSetupAllowedForLocation(
@@ -16,30 +20,53 @@ export function isCourtSetupAllowedForLocation(
   if (!location) return false;
   const allowed = location.facilityTypes ?? [];
   if (allowed.length === 0) return true;
-  if (facilityCode === TURF_COURT_SETUP_CODE) {
-    return (
-      allowed.includes('turf-court') ||
-      allowed.includes('futsal-field') ||
-      allowed.includes('cricket-indoor')
+  if (facilityCode === FUTSAL_COURT_SETUP_CODE) {
+    return allowed.some(
+      (c) =>
+        c === 'futsal' ||
+        c === 'futsal-field' ||
+        c === 'turf-court-futsal' ||
+        c === 'turf-court',
     );
+  }
+  if (facilityCode === CRICKET_COURT_SETUP_CODE) {
+    return allowed.some(
+      (c) =>
+        c === 'cricket' ||
+        c === 'cricket-indoor' ||
+        c === 'turf-court-cricket' ||
+        c === 'turf-court',
+    );
+  }
+  if (facilityCode === 'padel-court') {
+    return allowed.some((c) => c === 'padel' || c === 'padel-court');
   }
   return allowed.includes(facilityCode);
 }
 
-/** Setup entry points: Turf combined form, then Padel. */
 export function courtSetupOptions(): { code: string; label: string }[] {
-  return LOCATION_FACILITY_TYPE_OPTIONS.map((o) => ({
-    code: o.value,
-    label: o.label,
-  }));
+  return [
+    { code: FUTSAL_COURT_SETUP_CODE, label: 'Futsal pitch' },
+    { code: CRICKET_COURT_SETUP_CODE, label: 'Cricket pitch' },
+    { code: 'padel-court', label: 'Padel court' },
+  ];
 }
 
 const LABEL_BY_CODE: Record<string, string> = {
   ...Object.fromEntries(
     LOCATION_FACILITY_TYPE_OPTIONS.map((o) => [o.value, o.label]),
   ),
-  'futsal-field': 'Futsal (legacy)',
-  'cricket-indoor': 'Arena cricket (legacy)',
+  'futsal-court': 'Futsal pitch',
+  'cricket-court': 'Cricket pitch',
+  'padel-court': 'Padel',
+  futsal: 'Futsal',
+  cricket: 'Cricket',
+  padel: 'Padel',
+  'turf-court': 'Turf (legacy)',
+  'turf-court-futsal': 'Turf — Futsal (legacy)',
+  'turf-court-cricket': 'Turf — Cricket (legacy)',
+  'futsal-field': 'Futsal (legacy field)',
+  'cricket-indoor': 'Cricket indoor (legacy)',
 };
 
 export function formatFacilityTypeLabel(code: string): string {

@@ -105,7 +105,7 @@ type BookingLine = {
 function defaultLine(): BookingLine {
   return {
     facilityKey: '',
-    courtKind: 'turf_court',
+    courtKind: 'futsal_court',
     courtId: '',
     startMinutes: timeToMinutes(nextHalfHourTime()),
     durationMins: 60,

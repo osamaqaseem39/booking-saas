@@ -49,18 +49,13 @@ export interface BusinessLocationRow {
   facilityTypes?: string[];
   /** Counts of active bookable courts/fields at this location (from API lists). */
   facilityCounts?: {
-    'padel-court': number;
-    'futsal-field': number;
-    'cricket-indoor': number;
-    'turf-court': number;
+    futsal: number;
+    cricket: number;
+    padel: number;
   };
   /** Active courts/fields with id and display name. */
   facilityCourts?: Array<{
-    facilityType:
-      | 'padel-court'
-      | 'futsal-field'
-      | 'cricket-indoor'
-      | 'turf-court';
+    facilityType: 'futsal' | 'cricket' | 'padel';
     id: string;
     name: string;
   }>;

@@ -3,17 +3,16 @@ import { Link } from 'react-router-dom';
 import {
   getBusinessDashboardView,
   listBusinessLocations,
-  listCricketIndoor,
-  listFutsalFields,
+  listCricketCourts,
+  listFutsalCourts,
   listPadelCourts,
-  listTurfCourts,
 } from '../api/saasClient';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../types/domain';
 
 type FacilityCard = {
   id: string;
   name: string;
-  type: 'turf' | 'padel' | 'futsal' | 'cricket';
+  type: 'futsalCourt' | 'cricketCourt' | 'padel';
   locationId?: string | null;
   facilityStatus?: string;
   facilityIsActive?: boolean;
@@ -41,16 +40,23 @@ export default function FacilitiesLiveViewPage() {
 
   const buildFacilityCards = useCallback(
     (
-      turfRows: NamedCourt[],
+      futsalCourtRows: NamedCourt[],
+      cricketCourtRows: NamedCourt[],
       padelRows: NamedCourt[],
-      futsalRows: NamedCourt[],
-      cricketRows: NamedCourt[],
     ): FacilityCard[] => {
       return [
-        ...turfRows.map((r) => ({
+        ...futsalCourtRows.map((r) => ({
           id: r.id,
           name: r.name,
-          type: 'turf' as const,
+          type: 'futsalCourt' as const,
+          locationId: r.businessLocationId,
+          facilityStatus: r.courtStatus,
+          facilityIsActive: r.isActive,
+        })),
+        ...cricketCourtRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: 'cricketCourt' as const,
           locationId: r.businessLocationId,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
@@ -59,22 +65,6 @@ export default function FacilitiesLiveViewPage() {
           id: r.id,
           name: r.name,
           type: 'padel' as const,
-          locationId: r.businessLocationId,
-          facilityStatus: r.courtStatus,
-          facilityIsActive: r.isActive,
-        })),
-        ...futsalRows.map((r) => ({
-          id: r.id,
-          name: r.name,
-          type: 'futsal' as const,
-          locationId: r.businessLocationId,
-          facilityStatus: r.courtStatus,
-          facilityIsActive: r.isActive,
-        })),
-        ...cricketRows.map((r) => ({
-          id: r.id,
-          name: r.name,
-          type: 'cricket' as const,
           locationId: r.businessLocationId,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
@@ -90,17 +80,16 @@ export default function FacilitiesLiveViewPage() {
       else setLoading(true);
       setError(null);
       try {
-        const [dash, locs, turfRows, padelRows, futsalRows, cricketRows] = await Promise.all([
+        const [dash, locs, fcRows, ccRows, padelRows] = await Promise.all([
           getBusinessDashboardView(),
           listBusinessLocations(),
-          listTurfCourts(),
+          listFutsalCourts(),
+          listCricketCourts(),
           listPadelCourts(),
-          listFutsalFields(),
-          listCricketIndoor(),
         ]);
         setDashboard(dash);
         setLocations(locs);
-        setFacilities(buildFacilityCards(turfRows, padelRows, futsalRows, cricketRows));
+        setFacilities(buildFacilityCards(fcRows, ccRows, padelRows));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load facilities live view');
       } finally {
@@ -245,7 +234,13 @@ export default function FacilitiesLiveViewPage() {
                     .join(', ') || 'No location'}
                 </p>
                 <div className="owner-live-business-kpis">
-                  <span>{facility.type}</span>
+                  <span>
+                    {facility.type === 'futsalCourt'
+                      ? 'Futsal pitch'
+                      : facility.type === 'cricketCourt'
+                        ? 'Cricket pitch'
+                        : 'Padel court'}
+                  </span>
                   <span>{location?.locationType ?? 'location'}</span>
                   <span>{business?.bookingCount ?? 0} bookings</span>
                   <span>{business?.pendingBookingCount ?? 0} pending</span>

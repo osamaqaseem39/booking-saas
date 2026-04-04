@@ -5,19 +5,17 @@ import {
   type FacilityRowCode,
 } from '../api/facilityMutations';
 import {
-  createCricketIndoorCourt,
-  createFutsalField,
+  createCricketCourt,
+  createFutsalCourt,
   createPadelCourt,
-  createTurfCourt,
   listBusinessLocations,
-  listCricketIndoor,
-  listFutsalFields,
+  listCricketCourts,
+  listFutsalCourts,
   listPadelCourts,
-  listTurfCourts,
 } from '../api/saasClient';
 import {
-  isCourtSetupAllowedForLocation,
-  TURF_COURT_SETUP_CODE,
+  CRICKET_COURT_SETUP_CODE,
+  FUTSAL_COURT_SETUP_CODE,
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow, NamedCourt } from '../types/domain';
 
@@ -37,7 +35,8 @@ type SetupOption = { code: string; label: string };
 
 const SETUP_OPTIONS_BY_LOCATION_TYPE: Record<string, SetupOption[]> = {
   arena: [
-    { code: TURF_COURT_SETUP_CODE, label: 'Turf court (Futsal + Cricket)' },
+    { code: FUTSAL_COURT_SETUP_CODE, label: 'Futsal pitch' },
+    { code: CRICKET_COURT_SETUP_CODE, label: 'Cricket pitch' },
     { code: 'padel-court', label: 'Padel' },
   ],
   'gaming-zone': [
@@ -50,7 +49,11 @@ const SETUP_OPTIONS_BY_LOCATION_TYPE: Record<string, SetupOption[]> = {
 };
 
 function hasSetupForm(code: string): boolean {
-  return code === TURF_COURT_SETUP_CODE || code === 'padel-court';
+  return (
+    code === FUTSAL_COURT_SETUP_CODE ||
+    code === CRICKET_COURT_SETUP_CODE ||
+    code === 'padel-court'
+  );
 }
 
 export default function AddFacilityPage() {
@@ -60,10 +63,9 @@ export default function AddFacilityPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'type' | 'name' | 'id'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [turf, setTurf] = useState<NamedCourt[]>([]);
+  const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
+  const [cricketCourts, setCricketCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
-  const [futsal, setFutsal] = useState<NamedCourt[]>([]);
-  const [cricket, setCricket] = useState<NamedCourt[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -72,40 +74,35 @@ export default function AddFacilityPage() {
   async function reloadFacilitiesFor(locationIdArg: string, locs: BusinessLocationRow[]) {
     if (!locationIdArg) {
       setLoading(false);
-      setTurf([]);
+      setFutsalCourts([]);
+      setCricketCourts([]);
       setPadel([]);
-      setFutsal([]);
-      setCricket([]);
       return;
     }
     const selected = locs.find((l) => l.id === locationIdArg);
     const locationType = selected?.locationType ?? '';
     if (locationType && locationType !== 'arena') {
       setLoading(false);
-      setTurf([]);
+      setFutsalCourts([]);
+      setCricketCourts([]);
       setPadel([]);
-      setFutsal([]);
-      setCricket([]);
       return;
     }
     setLoading(true);
     try {
-      const [tu, pa, fu, cr] = await Promise.all([
-        listTurfCourts(undefined, locationIdArg),
+      const [fc, cc, pa] = await Promise.all([
+        listFutsalCourts(locationIdArg),
+        listCricketCourts(locationIdArg),
         listPadelCourts(locationIdArg),
-        listFutsalFields(locationIdArg),
-        listCricketIndoor(locationIdArg),
       ]);
-      setTurf(tu);
+      setFutsalCourts(fc);
+      setCricketCourts(cc);
       setPadel(pa);
-      setFutsal(fu);
-      setCricket(cr);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load facilities');
-      setTurf([]);
+      setFutsalCourts([]);
+      setCricketCourts([]);
       setPadel([]);
-      setFutsal([]);
-      setCricket([]);
     } finally {
       setLoading(false);
     }
@@ -140,18 +137,28 @@ export default function AddFacilityPage() {
     if (!location) return [];
     const options =
       SETUP_OPTIONS_BY_LOCATION_TYPE[location.locationType ?? ''] ?? [];
-    if ((location.locationType ?? '') !== 'arena') return options;
-    return options.filter((o) => isCourtSetupAllowedForLocation(location, o.code));
+    // Arena: always show futsal, cricket, and padel so owners see all three choices.
+    if ((location.locationType ?? '') === 'arena') {
+      return SETUP_OPTIONS_BY_LOCATION_TYPE.arena;
+    }
+    return options;
   }, [location]);
   const isArenaLocation = (location?.locationType ?? '') === 'arena';
   const allFacilities = useMemo(
     () => [
-      ...turf.map((r) => ({ ...r, type: 'Turf court', code: 'turf-court' })),
+      ...futsalCourts.map((r) => ({
+        ...r,
+        type: 'Futsal pitch',
+        code: 'futsal-court' as const,
+      })),
+      ...cricketCourts.map((r) => ({
+        ...r,
+        type: 'Cricket pitch',
+        code: 'cricket-court' as const,
+      })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
-      ...futsal.map((r) => ({ ...r, type: 'Futsal field', code: 'futsal-field' })),
-      ...cricket.map((r) => ({ ...r, type: 'Cricket indoor', code: 'cricket-indoor' })),
     ],
-    [cricket, futsal, padel, turf],
+    [cricketCourts, futsalCourts, padel],
   );
   const facilityTypeOptions = useMemo(
     () => Array.from(new Set(allFacilities.map((f) => f.type))).sort((a, b) => a.localeCompare(b)),
@@ -186,12 +193,15 @@ export default function AddFacilityPage() {
   const availableFacilityCards = useMemo(
     () =>
       [
-        { key: 'turf', label: 'Turf courts', count: turf.length },
+        { key: 'futsalCourts', label: 'Futsal pitches', count: futsalCourts.length },
+        {
+          key: 'cricketCourts',
+          label: 'Cricket pitches',
+          count: cricketCourts.length,
+        },
         { key: 'padel', label: 'Padel courts', count: padel.length },
-        { key: 'futsal', label: 'Futsal fields', count: futsal.length },
-        { key: 'cricket', label: 'Cricket indoor', count: cricket.length },
       ].filter((item) => item.count > 0),
-    [cricket.length, futsal.length, padel.length, turf.length],
+    [cricketCourts.length, futsalCourts.length, padel.length],
   );
 
   async function deleteFacilityRow(row: {
@@ -230,24 +240,18 @@ export default function AddFacilityPage() {
     setErr(null);
     try {
       const copyName = `${row.name} (Copy)`;
-      if (row.code === 'turf-court') {
-        await createTurfCourt({
+      if (row.code === 'futsal-court') {
+        await createFutsalCourt({
           businessLocationId,
           name: copyName,
-          sportMode: 'both',
+        });
+      } else if (row.code === 'cricket-court') {
+        await createCricketCourt({
+          businessLocationId,
+          name: copyName,
         });
       } else if (row.code === 'padel-court') {
         await createPadelCourt({
-          businessLocationId,
-          name: copyName,
-        });
-      } else if (row.code === 'futsal-field') {
-        await createFutsalField({
-          businessLocationId,
-          name: copyName,
-        });
-      } else if (row.code === 'cricket-indoor') {
-        await createCricketIndoorCourt({
           businessLocationId,
           name: copyName,
         });
@@ -321,14 +325,6 @@ export default function AddFacilityPage() {
           );
         })}
       </div>
-
-      {isArenaLocation &&
-      location &&
-      !isCourtSetupAllowedForLocation(location, TURF_COURT_SETUP_CODE) ? (
-        <p className="muted add-court-hint" style={{ marginTop: '0.75rem' }}>
-          Turn on Futsal or Arena Cricket for this location to add turf courts.
-        </p>
-      ) : null}
 
       {isArenaLocation ? (
         availableFacilityCards.length > 0 ? (

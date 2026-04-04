@@ -5,22 +5,20 @@ import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
 type FacilityCountsUi = {
-  turf: number;
-  padel: number;
   futsal: number;
   cricket: number;
+  padel: number;
 };
 
 function countsFromLocation(loc: BusinessLocationRow | null): FacilityCountsUi {
   const fc = loc?.facilityCounts;
   if (!fc) {
-    return { turf: 0, padel: 0, futsal: 0, cricket: 0 };
+    return { futsal: 0, cricket: 0, padel: 0 };
   }
   return {
-    turf: fc['turf-court'] ?? 0,
-    padel: fc['padel-court'] ?? 0,
-    futsal: fc['futsal-field'] ?? 0,
-    cricket: fc['cricket-indoor'] ?? 0,
+    futsal: fc.futsal ?? 0,
+    cricket: fc.cricket ?? 0,
+    padel: fc.padel ?? 0,
   };
 }
 
@@ -35,25 +33,19 @@ export default function LocationDetailPage() {
     [rows, locationId],
   );
   const counts = useMemo(() => countsFromLocation(location), [location]);
-  const turfTotal =
-    counts.turf + counts.futsal + counts.cricket;
   const availableFacilityCards = useMemo(
     () =>
       [
-        { key: 'turf', label: 'Turf', count: turfTotal },
+        { key: 'futsal', label: 'Futsal', count: counts.futsal },
+        { key: 'cricket', label: 'Cricket', count: counts.cricket },
         { key: 'padel', label: 'Padel', count: counts.padel },
       ].filter((item) => item.count > 0),
-    [counts.padel, turfTotal],
+    [counts.cricket, counts.futsal, counts.padel],
   );
 
   const courtsByType = useMemo(() => {
     const courts = location?.facilityCourts ?? [];
-    const order = [
-      'padel-court',
-      'futsal-field',
-      'cricket-indoor',
-      'turf-court',
-    ] as const;
+    const order = ['padel', 'futsal', 'cricket'] as const;
     const map = new Map<string, typeof courts>();
     for (const c of courts) {
       const list = map.get(c.facilityType) ?? [];

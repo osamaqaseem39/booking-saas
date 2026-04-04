@@ -1,25 +1,20 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  createCricketIndoorCourt,
-  createFutsalField,
-  listBusinessLocations,
-} from '../api/saasClient';
+import { listBusinessLocations } from '../api/saasClient';
+import { CricketCourtSetupForm } from '../components/CricketCourtSetupForm';
+import { FutsalCourtSetupForm } from '../components/FutsalCourtSetupForm';
 import { PadelCourtSetupForm } from '../components/PadelCourtSetupForm';
-import { TurfCourtSetupForm } from '../components/TurfCourtSetupForm';
 import {
+  CRICKET_COURT_SETUP_CODE,
+  FUTSAL_COURT_SETUP_CODE,
   isCourtSetupAllowedForLocation,
-  LOCATION_FACILITY_TYPE_OPTIONS,
-  TURF_COURT_SETUP_CODE,
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
-/** Primary arena types + legacy URLs for older locations. */
 const CODES = new Set([
-  ...LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
-  TURF_COURT_SETUP_CODE,
-  'futsal-field',
-  'cricket-indoor',
+  FUTSAL_COURT_SETUP_CODE,
+  CRICKET_COURT_SETUP_CODE,
+  'padel-court',
 ]);
 
 export default function LocationFacilitySetupPage() {
@@ -29,12 +24,6 @@ export default function LocationFacilitySetupPage() {
   }>();
   const navigate = useNavigate();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [dimensions, setDimensions] = useState('');
-  const [laneCount, setLaneCount] = useState('');
-  const [err, setErr] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
   const location = useMemo(
     () => locations.find((l) => l.id === locationId),
@@ -42,13 +31,16 @@ export default function LocationFacilitySetupPage() {
   );
 
   const label = useMemo(() => {
-    if (facilityCode === TURF_COURT_SETUP_CODE) {
-      return {
-        value: TURF_COURT_SETUP_CODE,
-        label: 'Turf',
-      };
+    if (facilityCode === FUTSAL_COURT_SETUP_CODE) {
+      return { label: 'Futsal pitch' };
     }
-    return LOCATION_FACILITY_TYPE_OPTIONS.find((o) => o.value === facilityCode);
+    if (facilityCode === CRICKET_COURT_SETUP_CODE) {
+      return { label: 'Cricket pitch' };
+    }
+    if (facilityCode === 'padel-court') {
+      return { label: 'Padel court' };
+    }
+    return { label: facilityCode };
   }, [facilityCode]);
 
   useEffect(() => {
@@ -63,39 +55,6 @@ export default function LocationFacilitySetupPage() {
   }, []);
 
   const validCode = CODES.has(facilityCode);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!locationId || !name.trim() || !validCode) return;
-    setSaving(true);
-    setErr(null);
-    try {
-      if (facilityCode === 'futsal-field') {
-        await createFutsalField({
-          businessLocationId: locationId,
-          name: name.trim(),
-          description: description.trim() || undefined,
-          dimensions: dimensions.trim() || undefined,
-        });
-      } else if (facilityCode === 'cricket-indoor') {
-        const lanes = laneCount.trim()
-          ? Number.parseInt(laneCount, 10)
-          : undefined;
-        await createCricketIndoorCourt({
-          businessLocationId: locationId,
-          name: name.trim(),
-          description: description.trim() || undefined,
-          laneCount:
-            lanes !== undefined && !Number.isNaN(lanes) ? lanes : undefined,
-        });
-      }
-      navigate('/app/Facilites');
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Save failed');
-    } finally {
-      setSaving(false);
-    }
-  }
 
   if (!validCode) {
     return (
@@ -123,9 +82,7 @@ export default function LocationFacilitySetupPage() {
           ← Main facility page
         </Link>
       </div>
-      <h1 className="page-title">
-        New {label?.label ?? facilityCode}
-      </h1>
+      <h1 className="page-title">New {label.label}</h1>
       {!location ? (
         <p className="muted">Loading location…</p>
       ) : !typeAllowed ? (
@@ -133,19 +90,30 @@ export default function LocationFacilitySetupPage() {
           This location does not include “{facilityCode}”. Edit the location’s
           facility types on the Locations page, then try again.
         </div>
-      ) : facilityCode === TURF_COURT_SETUP_CODE ? (
+      ) : facilityCode === FUTSAL_COURT_SETUP_CODE ? (
         <div className="turf-setup-page">
           <p className="muted turf-setup-page-intro">
-            Location: <strong>{location.name}</strong>. Configure turf (futsal
-            and/or cricket modes); all sections map to the booking API.
+            Location: <strong>{location.name}</strong>. Futsal pitch (structure
+            and booking fields can be extended in the dashboard later).
           </p>
-          <TurfCourtSetupForm
+          <FutsalCourtSetupForm
             locationId={locationId}
             locations={locations}
             onSuccess={() => navigate('/app/Facilites')}
           />
         </div>
-      ) : facilityCode === 'padel-court' ? (
+      ) : facilityCode === CRICKET_COURT_SETUP_CODE ? (
+        <div className="turf-setup-page">
+          <p className="muted turf-setup-page-intro">
+            Location: <strong>{location.name}</strong>. Cricket pitch setup.
+          </p>
+          <CricketCourtSetupForm
+            locationId={locationId}
+            locations={locations}
+            onSuccess={() => navigate('/app/Facilites')}
+          />
+        </div>
+      ) : (
         <>
           <p className="muted">
             Location: <strong>{location.name}</strong>. Dedicated padel court
@@ -156,69 +124,6 @@ export default function LocationFacilitySetupPage() {
             locations={locations}
             onSuccess={() => navigate('/app/Facilites')}
           />
-        </>
-      ) : (
-        <>
-          <p className="muted">
-            Location: <strong>{location.name}</strong>. Add the basic details
-            for this facility; you can refine more fields later if needed.
-          </p>
-          {err && <div className="err-banner">{err}</div>}
-          <form
-            className="form-grid"
-            style={{ maxWidth: '480px', marginTop: '1rem' }}
-            onSubmit={(e) => void onSubmit(e)}
-          >
-            <div>
-              <label>Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                maxLength={160}
-              />
-            </div>
-            {(facilityCode === 'futsal-field' ||
-              facilityCode === 'cricket-indoor') && (
-              <div>
-                <label>Description (optional)</label>
-                <input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-            )}
-            {facilityCode === 'futsal-field' && (
-              <div>
-                <label>Dimensions (optional)</label>
-                <input
-                  value={dimensions}
-                  onChange={(e) => setDimensions(e.target.value)}
-                  placeholder="e.g. 40x20m"
-                  maxLength={80}
-                />
-              </div>
-            )}
-            {facilityCode === 'cricket-indoor' && (
-              <div>
-                <label>Lane count (optional)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={99}
-                  value={laneCount}
-                  onChange={(e) => setLaneCount(e.target.value)}
-                />
-              </div>
-            )}
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={saving || !name.trim()}
-            >
-              {saving ? 'Saving…' : 'Create facility'}
-            </button>
-          </form>
         </>
       )}
     </div>
