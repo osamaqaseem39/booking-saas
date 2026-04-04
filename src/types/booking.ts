@@ -164,6 +164,11 @@ export type CourtSlotGridSegment =
       startTime: string;
       endTime: string;
       state: 'blocked';
+    }
+  | {
+      startTime: string;
+      endTime: string;
+      state: 'closed';
     };
 
 export interface CourtSlotGridRecord {

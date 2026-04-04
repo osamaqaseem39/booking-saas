@@ -84,7 +84,7 @@ export default function ManageTimeSlotsPage() {
   }, [loadGrid]);
 
   async function onToggleSegment(seg: CourtSlotGridSegment) {
-    if (!selected || seg.state === 'booked') return;
+    if (!selected || seg.state === 'booked' || seg.state === 'closed') return;
     const allowed = segmentBookingAllowed(seg);
     setTogglingStart(seg.startTime);
     setError(null);
@@ -180,17 +180,21 @@ export default function ManageTimeSlotsPage() {
       <section className="detail-card" style={{ maxWidth: '720px', marginTop: '1rem' }}>
         {gridLoading && <p className="muted">Loading slot grid…</p>}
         {!gridLoading && grid?.locationClosed && (
-          <p className="muted">This location is closed on the selected date (per working hours).</p>
+          <p className="muted">
+            This location is closed on the selected date (per working hours). Slots below are shown as
+            closed — open the day in Locations → Edit → working hours to allow bookings.
+          </p>
         )}
         {!gridLoading && grid && !grid.locationClosed && grid.segments.length === 0 && (
           <p className="muted">No segments in the grid for this selection.</p>
         )}
-        {!gridLoading && grid && !grid.locationClosed && grid.segments.length > 0 && (
+        {!gridLoading && grid && grid.segments.length > 0 && (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {grid.segments.map((seg) => {
               const busy = seg.state === 'booked';
-              const allowed = !busy && segmentBookingAllowed(seg);
-              const disabled = busy || togglingStart === seg.startTime;
+              const dayClosed = seg.state === 'closed';
+              const allowed = !busy && !dayClosed && segmentBookingAllowed(seg);
+              const disabled = busy || dayClosed || togglingStart === seg.startTime;
               return (
                 <li
                   key={seg.startTime}
@@ -210,7 +214,12 @@ export default function ManageTimeSlotsPage() {
                         Booked ({seg.status})
                       </span>
                     )}
-                    {!busy && seg.state === 'blocked' && (
+                    {dayClosed && (
+                      <span className="muted" style={{ marginLeft: '0.5rem', fontSize: '0.85rem' }}>
+                        Closed (working hours)
+                      </span>
+                    )}
+                    {!busy && !dayClosed && seg.state === 'blocked' && (
                       <span className="muted" style={{ marginLeft: '0.5rem', fontSize: '0.85rem' }}>
                         Booking off
                       </span>
@@ -218,7 +227,7 @@ export default function ManageTimeSlotsPage() {
                   </div>
                   <label
                     className="ui-switch"
-                    style={{ opacity: busy ? 0.55 : 1, flexShrink: 0 }}
+                    style={{ opacity: busy || dayClosed ? 0.55 : 1, flexShrink: 0 }}
                   >
                     <input
                       type="checkbox"
@@ -228,7 +237,7 @@ export default function ManageTimeSlotsPage() {
                     />
                     <span className="ui-switch-track" aria-hidden />
                     <span className="ui-switch-text" style={{ fontSize: '0.8rem' }}>
-                      {busy ? 'Booked' : 'Booking on'}
+                      {busy ? 'Booked' : dayClosed ? 'Closed' : 'Booking on'}
                     </span>
                   </label>
                 </li>

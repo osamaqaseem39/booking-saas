@@ -183,12 +183,21 @@ function parseStringRange(value: string): { open: string; close: string } | null
   return { open: `${match[1]}:${match[2]}`, close: `${match[3]}:${match[4]}` };
 }
 
+function weekdayKeyFromYmd(bookingDate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(bookingDate.trim());
+  if (!m) return 'monday';
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dayIndex = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)).getUTCDay();
+  return DAY_BY_INDEX[dayIndex] ?? 'monday';
+}
+
 function getWorkingDayWindow(
   workingHours: Record<string, unknown> | null | undefined,
   bookingDate: string,
 ): { closed: boolean; open: string; close: string } {
-  const d = new Date(`${bookingDate}T00:00:00`);
-  const dayKey = DAY_BY_INDEX[d.getDay()] ?? 'monday';
+  const dayKey = weekdayKeyFromYmd(bookingDate);
   const defaults = { closed: false, open: '00:00', close: '23:30' };
   if (!workingHours || typeof workingHours !== 'object') return defaults;
   const entries = Object.entries(workingHours);

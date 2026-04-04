@@ -55,8 +55,8 @@ function createDefaultWeeklySchedule(): WeeklySchedule {
     wednesday: { closed: false, open: '09:00', close: '17:00' },
     thursday: { closed: false, open: '09:00', close: '17:00' },
     friday: { closed: false, open: '09:00', close: '17:00' },
-    saturday: { closed: true, open: '09:00', close: '17:00' },
-    sunday: { closed: true, open: '09:00', close: '17:00' },
+    saturday: { closed: false, open: '09:00', close: '17:00' },
+    sunday: { closed: false, open: '09:00', close: '17:00' },
   };
 }
 
