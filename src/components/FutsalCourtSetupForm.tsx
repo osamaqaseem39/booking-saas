@@ -7,24 +7,19 @@ import {
   type FutsalCourtDetail,
 } from '../api/saasClient';
 import type { BusinessLocationRow } from '../types/domain';
-
-function parseNum(s: string): number | undefined {
-  const t = s.trim();
-  if (!t) return undefined;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : undefined;
-}
+import { ArenaCourtSharedTurfSections } from './arena/ArenaCourtSharedTurfSections';
+import {
+  emptySharedArenaTurfState,
+  sharedDetailToFormState,
+  sharedTurfFormStateToPayload,
+  type SharedArenaTurfFormState,
+} from './arena/sharedArenaTurfFormState';
 
 function parseIntOpt(s: string): number | undefined {
   const t = s.trim();
   if (!t) return undefined;
   const n = Number.parseInt(t, 10);
   return Number.isFinite(n) ? n : undefined;
-}
-
-function strFromApi(v: unknown): string {
-  if (v === null || v === undefined) return '';
-  return String(v);
 }
 
 export function FutsalCourtSetupForm({
@@ -38,7 +33,9 @@ export function FutsalCourtSetupForm({
   onSuccess: () => void;
   existingCourtId?: string;
 }) {
-  const [name, setName] = useState('');
+  const [shared, setShared] = useState<SharedArenaTurfFormState>(() =>
+    emptySharedArenaTurfState(),
+  );
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
   const [courtStatus, setCourtStatus] = useState<'active' | 'maintenance'>(
     'active',
@@ -46,8 +43,13 @@ export function FutsalCourtSetupForm({
   const [futsalFormat, setFutsalFormat] = useState<
     '5v5' | '6v6' | '7v7' | ''
   >('');
-  const [pricePerSlot, setPricePerSlot] = useState('');
-  const [slotDuration, setSlotDuration] = useState('');
+  const [futsalGoalPostsAvailable, setFutsalGoalPostsAvailable] =
+    useState(false);
+  const [futsalGoalPostSize, setFutsalGoalPostSize] = useState('');
+  const [futsalLineMarkings, setFutsalLineMarkings] = useState<
+    'permanent' | 'temporary' | ''
+  >('');
+
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(!!existingCourtId);
@@ -57,6 +59,13 @@ export function FutsalCourtSetupForm({
     if (!existingCourtId) {
       setLoadingDetail(false);
       setInitialLoadError(null);
+      setShared(emptySharedArenaTurfState());
+      setArenaLocationId(locationId);
+      setCourtStatus('active');
+      setFutsalFormat('');
+      setFutsalGoalPostsAvailable(false);
+      setFutsalGoalPostSize('');
+      setFutsalLineMarkings('');
       return;
     }
     let cancelled = false;
@@ -65,13 +74,20 @@ export function FutsalCourtSetupForm({
       try {
         const d: FutsalCourtDetail = await getFutsalCourt(existingCourtId);
         if (cancelled) return;
-        setName(d.name ?? '');
+        setShared({
+          ...sharedDetailToFormState(d, emptySharedArenaTurfState()),
+          name: d.name ?? '',
+        });
         setArenaLocationId(d.businessLocationId ?? locationId);
         setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
         const ff = d.futsalFormat;
         setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
-        setPricePerSlot(strFromApi(d.pricePerSlot));
-        setSlotDuration(strFromApi(d.slotDurationMinutes));
+        setFutsalGoalPostsAvailable(d.futsalGoalPostsAvailable === true);
+        setFutsalGoalPostSize(d.futsalGoalPostSize ?? '');
+        const lm = d.futsalLineMarkings;
+        setFutsalLineMarkings(
+          lm === 'permanent' || lm === 'temporary' ? lm : '',
+        );
       } catch (e) {
         if (!cancelled) {
           setInitialLoadError(
@@ -87,6 +103,12 @@ export function FutsalCourtSetupForm({
     };
   }, [existingCourtId, locationId]);
 
+  useEffect(() => {
+    if (!existingCourtId && locationId) {
+      setArenaLocationId(locationId);
+    }
+  }, [locationId, existingCourtId]);
+
   const locationOptions = useMemo(
     () =>
       [...locations].sort((a, b) =>
@@ -98,9 +120,8 @@ export function FutsalCourtSetupForm({
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
-    if (!effectiveLocationId || !name.trim()) return;
-    const arena = locations.find((l) => l.id === arenaLocationId);
-    const slotM = parseIntOpt(slotDuration);
+    if (!effectiveLocationId || !shared.name.trim()) return;
+    const slotM = parseIntOpt(shared.slotDuration);
     if (
       slotM !== undefined &&
       (slotM < 60 || slotM % 30 !== 0)
@@ -108,14 +129,18 @@ export function FutsalCourtSetupForm({
       setErr('Slot duration must be at least 60 and in 30-minute intervals.');
       return;
     }
+    const arena = locations.find((l) => l.id === arenaLocationId);
+    const sharedPayload = sharedTurfFormStateToPayload(shared);
     const body: CreateFutsalCourtBody = {
       businessLocationId: effectiveLocationId,
-      name: name.trim(),
+      name: shared.name.trim(),
       courtStatus,
       arenaLabel: arena?.name?.trim() || undefined,
+      ...sharedPayload,
       futsalFormat: futsalFormat || undefined,
-      pricePerSlot: parseNum(pricePerSlot),
-      slotDurationMinutes: slotM,
+      futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
+      futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
+      futsalLineMarkings: futsalLineMarkings || undefined,
     };
     setSaving(true);
     setErr(null);
@@ -141,82 +166,85 @@ export function FutsalCourtSetupForm({
     return <div className="empty-state">Loading court…</div>;
   }
 
-  return (
-    <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
-      {err && <div className="err-banner">{err}</div>}
-      <div className="turf-setup-card">
-        <h4>Futsal pitch</h4>
-        <div className="form-grid">
-          <div>
-            <label>Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              maxLength={160}
-            />
-          </div>
-          <div>
-            <label>Location</label>
-            <select
-              value={arenaLocationId}
-              onChange={(e) => setArenaLocationId(e.target.value)}
-              disabled={!!existingCourtId}
-            >
-              {locationOptions.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label>Status</label>
-            <select
-              value={courtStatus}
-              onChange={(e) =>
-                setCourtStatus(e.target.value as 'active' | 'maintenance')
-              }
-            >
-              <option value="active">Active</option>
-              <option value="maintenance">Maintenance</option>
-            </select>
-          </div>
-          <div>
-            <label>Format</label>
-            <select
-              value={futsalFormat}
-              onChange={(e) =>
-                setFutsalFormat(e.target.value as typeof futsalFormat)
-              }
-            >
-              <option value="">—</option>
-              <option value="5v5">5v5</option>
-              <option value="6v6">6v6</option>
-              <option value="7v7">7v7</option>
-            </select>
-          </div>
-          <div>
-            <label>Price per slot</label>
-            <input
-              value={pricePerSlot}
-              onChange={(e) => setPricePerSlot(e.target.value)}
-              inputMode="decimal"
-            />
-          </div>
-          <div>
-            <label>Slot duration (minutes)</label>
-            <input
-              value={slotDuration}
-              onChange={(e) => setSlotDuration(e.target.value)}
-              placeholder="60, 90, …"
-            />
-          </div>
-        </div>
+  const gameSection = (
+    <div className="form-grid">
+      <div>
+        <label>Format</label>
+        <select
+          value={futsalFormat}
+          onChange={(e) =>
+            setFutsalFormat(e.target.value as typeof futsalFormat)
+          }
+        >
+          <option value="">—</option>
+          <option value="5v5">5v5</option>
+          <option value="6v6">6v6</option>
+          <option value="7v7">7v7</option>
+        </select>
       </div>
-      <button type="submit" className="btn-primary" disabled={saving}>
-        {saving ? 'Saving…' : existingCourtId ? 'Save changes' : 'Create'}
-      </button>
-    </form>
+      <div>
+        <label className="turf-setup-inline">
+          <input
+            type="checkbox"
+            checked={futsalGoalPostsAvailable}
+            onChange={(e) => setFutsalGoalPostsAvailable(e.target.checked)}
+          />
+          Goal posts available
+        </label>
+      </div>
+      <div>
+        <label>Goal post size</label>
+        <input
+          value={futsalGoalPostSize}
+          onChange={(e) => setFutsalGoalPostSize(e.target.value)}
+          maxLength={80}
+        />
+      </div>
+      <div>
+        <label>Line markings</label>
+        <select
+          value={futsalLineMarkings}
+          onChange={(e) =>
+            setFutsalLineMarkings(e.target.value as typeof futsalLineMarkings)
+          }
+        >
+          <option value="">—</option>
+          <option value="permanent">Permanent</option>
+          <option value="temporary">Temporary</option>
+        </select>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="turf-setup-form-wrap">
+      <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
+        {err && <div className="err-banner turf-setup-form-error">{err}</div>}
+        <ArenaCourtSharedTurfSections
+          shared={shared}
+          setShared={setShared}
+          locationOptions={locationOptions}
+          arenaLocationId={arenaLocationId}
+          setArenaLocationId={setArenaLocationId}
+          courtStatus={courtStatus}
+          setCourtStatus={setCourtStatus}
+          existingCourtId={existingCourtId}
+          gameSection={gameSection}
+        />
+        <div className="turf-setup-form-actions">
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={saving || !shared.name.trim()}
+          >
+            {saving
+              ? 'Saving…'
+              : existingCourtId
+                ? 'Save changes'
+                : 'Create futsal pitch'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

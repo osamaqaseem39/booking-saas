@@ -7,24 +7,19 @@ import {
   type CricketCourtDetail,
 } from '../api/saasClient';
 import type { BusinessLocationRow } from '../types/domain';
-
-function parseNum(s: string): number | undefined {
-  const t = s.trim();
-  if (!t) return undefined;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : undefined;
-}
+import { ArenaCourtSharedTurfSections } from './arena/ArenaCourtSharedTurfSections';
+import {
+  emptySharedArenaTurfState,
+  sharedDetailToFormState,
+  sharedTurfFormStateToCricketPayload,
+  type SharedArenaTurfFormState,
+} from './arena/sharedArenaTurfFormState';
 
 function parseIntOpt(s: string): number | undefined {
   const t = s.trim();
   if (!t) return undefined;
   const n = Number.parseInt(t, 10);
   return Number.isFinite(n) ? n : undefined;
-}
-
-function strFromApi(v: unknown): string {
-  if (v === null || v === undefined) return '';
-  return String(v);
 }
 
 export function CricketCourtSetupForm({
@@ -38,7 +33,9 @@ export function CricketCourtSetupForm({
   onSuccess: () => void;
   existingCourtId?: string;
 }) {
-  const [name, setName] = useState('');
+  const [shared, setShared] = useState<SharedArenaTurfFormState>(() =>
+    emptySharedArenaTurfState(),
+  );
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
   const [courtStatus, setCourtStatus] = useState<'active' | 'maintenance'>(
     'active',
@@ -46,8 +43,12 @@ export function CricketCourtSetupForm({
   const [cricketFormat, setCricketFormat] = useState<
     'tape_ball' | 'tennis_ball' | 'hard_ball' | ''
   >('');
-  const [pricePerSlot, setPricePerSlot] = useState('');
-  const [slotDuration, setSlotDuration] = useState('');
+  const [cricketStumpsAvailable, setCricketStumpsAvailable] = useState(false);
+  const [cricketBowlingMachine, setCricketBowlingMachine] = useState(false);
+  const [cricketPracticeMode, setCricketPracticeMode] = useState<
+    'full_ground' | 'nets_mode' | ''
+  >('');
+
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(!!existingCourtId);
@@ -57,6 +58,13 @@ export function CricketCourtSetupForm({
     if (!existingCourtId) {
       setLoadingDetail(false);
       setInitialLoadError(null);
+      setShared(emptySharedArenaTurfState());
+      setArenaLocationId(locationId);
+      setCourtStatus('active');
+      setCricketFormat('');
+      setCricketStumpsAvailable(false);
+      setCricketBowlingMachine(false);
+      setCricketPracticeMode('');
       return;
     }
     let cancelled = false;
@@ -65,7 +73,10 @@ export function CricketCourtSetupForm({
       try {
         const d: CricketCourtDetail = await getCricketCourt(existingCourtId);
         if (cancelled) return;
-        setName(d.name ?? '');
+        setShared({
+          ...sharedDetailToFormState(d, emptySharedArenaTurfState()),
+          name: d.name ?? '',
+        });
         setArenaLocationId(d.businessLocationId ?? locationId);
         setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
         const cf = d.cricketFormat;
@@ -74,8 +85,12 @@ export function CricketCourtSetupForm({
             ? cf
             : '',
         );
-        setPricePerSlot(strFromApi(d.pricePerSlot));
-        setSlotDuration(strFromApi(d.slotDurationMinutes));
+        setCricketStumpsAvailable(d.cricketStumpsAvailable === true);
+        setCricketBowlingMachine(d.cricketBowlingMachine === true);
+        const pm = d.cricketPracticeMode;
+        setCricketPracticeMode(
+          pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
+        );
       } catch (e) {
         if (!cancelled) {
           setInitialLoadError(
@@ -91,6 +106,12 @@ export function CricketCourtSetupForm({
     };
   }, [existingCourtId, locationId]);
 
+  useEffect(() => {
+    if (!existingCourtId && locationId) {
+      setArenaLocationId(locationId);
+    }
+  }, [locationId, existingCourtId]);
+
   const locationOptions = useMemo(
     () =>
       [...locations].sort((a, b) =>
@@ -102,9 +123,8 @@ export function CricketCourtSetupForm({
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
-    if (!effectiveLocationId || !name.trim()) return;
-    const arena = locations.find((l) => l.id === arenaLocationId);
-    const slotM = parseIntOpt(slotDuration);
+    if (!effectiveLocationId || !shared.name.trim()) return;
+    const slotM = parseIntOpt(shared.slotDuration);
     if (
       slotM !== undefined &&
       (slotM < 60 || slotM % 30 !== 0)
@@ -112,14 +132,18 @@ export function CricketCourtSetupForm({
       setErr('Slot duration must be at least 60 and in 30-minute intervals.');
       return;
     }
+    const arena = locations.find((l) => l.id === arenaLocationId);
+    const sharedPayload = sharedTurfFormStateToCricketPayload(shared);
     const body: CreateCricketCourtBody = {
       businessLocationId: effectiveLocationId,
-      name: name.trim(),
+      name: shared.name.trim(),
       courtStatus,
       arenaLabel: arena?.name?.trim() || undefined,
+      ...sharedPayload,
       cricketFormat: cricketFormat || undefined,
-      pricePerSlot: parseNum(pricePerSlot),
-      slotDurationMinutes: slotM,
+      cricketStumpsAvailable: cricketStumpsAvailable || undefined,
+      cricketBowlingMachine: cricketBowlingMachine || undefined,
+      cricketPracticeMode: cricketPracticeMode || undefined,
     };
     setSaving(true);
     setErr(null);
@@ -145,82 +169,89 @@ export function CricketCourtSetupForm({
     return <div className="empty-state">Loading court…</div>;
   }
 
-  return (
-    <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
-      {err && <div className="err-banner">{err}</div>}
-      <div className="turf-setup-card">
-        <h4>Cricket pitch</h4>
-        <div className="form-grid">
-          <div>
-            <label>Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              maxLength={160}
-            />
-          </div>
-          <div>
-            <label>Location</label>
-            <select
-              value={arenaLocationId}
-              onChange={(e) => setArenaLocationId(e.target.value)}
-              disabled={!!existingCourtId}
-            >
-              {locationOptions.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label>Status</label>
-            <select
-              value={courtStatus}
-              onChange={(e) =>
-                setCourtStatus(e.target.value as 'active' | 'maintenance')
-              }
-            >
-              <option value="active">Active</option>
-              <option value="maintenance">Maintenance</option>
-            </select>
-          </div>
-          <div>
-            <label>Ball format</label>
-            <select
-              value={cricketFormat}
-              onChange={(e) =>
-                setCricketFormat(e.target.value as typeof cricketFormat)
-              }
-            >
-              <option value="">—</option>
-              <option value="tape_ball">Tape ball</option>
-              <option value="tennis_ball">Tennis ball</option>
-              <option value="hard_ball">Hard ball</option>
-            </select>
-          </div>
-          <div>
-            <label>Price per slot</label>
-            <input
-              value={pricePerSlot}
-              onChange={(e) => setPricePerSlot(e.target.value)}
-              inputMode="decimal"
-            />
-          </div>
-          <div>
-            <label>Slot duration (minutes)</label>
-            <input
-              value={slotDuration}
-              onChange={(e) => setSlotDuration(e.target.value)}
-              placeholder="60, 90, …"
-            />
-          </div>
-        </div>
+  const gameSection = (
+    <div className="form-grid">
+      <div>
+        <label>Ball format</label>
+        <select
+          value={cricketFormat}
+          onChange={(e) =>
+            setCricketFormat(e.target.value as typeof cricketFormat)
+          }
+        >
+          <option value="">—</option>
+          <option value="tape_ball">Tape ball</option>
+          <option value="tennis_ball">Tennis ball</option>
+          <option value="hard_ball">Hard ball</option>
+        </select>
       </div>
-      <button type="submit" className="btn-primary" disabled={saving}>
-        {saving ? 'Saving…' : existingCourtId ? 'Save changes' : 'Create'}
-      </button>
-    </form>
+      <div>
+        <label className="turf-setup-inline">
+          <input
+            type="checkbox"
+            checked={cricketStumpsAvailable}
+            onChange={(e) => setCricketStumpsAvailable(e.target.checked)}
+          />
+          Stumps available
+        </label>
+      </div>
+      <div>
+        <label className="turf-setup-inline">
+          <input
+            type="checkbox"
+            checked={cricketBowlingMachine}
+            onChange={(e) => setCricketBowlingMachine(e.target.checked)}
+          />
+          Bowling machine
+        </label>
+      </div>
+      <div>
+        <label>Practice mode</label>
+        <select
+          value={cricketPracticeMode}
+          onChange={(e) =>
+            setCricketPracticeMode(
+              e.target.value as typeof cricketPracticeMode,
+            )
+          }
+        >
+          <option value="">—</option>
+          <option value="full_ground">Full ground</option>
+          <option value="nets_mode">Nets mode</option>
+        </select>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="turf-setup-form-wrap">
+      <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
+        {err && <div className="err-banner turf-setup-form-error">{err}</div>}
+        <ArenaCourtSharedTurfSections
+          shared={shared}
+          setShared={setShared}
+          locationOptions={locationOptions}
+          arenaLocationId={arenaLocationId}
+          setArenaLocationId={setArenaLocationId}
+          courtStatus={courtStatus}
+          setCourtStatus={setCourtStatus}
+          existingCourtId={existingCourtId}
+          gameSection={gameSection}
+        />
+        <div className="turf-setup-form-actions">
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={saving || !shared.name.trim()}
+          >
+            {saving
+              ? 'Saving…'
+              : existingCourtId
+                ? 'Save changes'
+                : 'Create cricket pitch'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
