@@ -262,6 +262,8 @@ export default function BookingCreatePage() {
   const [users, setUsers] = useState<IamUserRow[]>([]);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [sport, setSport] = useState<BookingSportType>('futsal');
+  /** Empty = all locations (facility list follows Sport). When set, facility list shows every court/field at that location (sport still used for booking validation). */
+  const [facilityLocationId, setFacilityLocationId] = useState('');
   const [bookingDate, setBookingDate] = useState(() =>
     localDateYmd(),
   );
@@ -363,10 +365,15 @@ export default function BookingCreatePage() {
 
   useEffect(() => {
     void (async () => {
-      setCourtOpts(await listCourtOptions(sport));
+      const loc = facilityLocationId.trim();
+      setCourtOpts(
+        loc
+          ? await listCourtOptions(undefined, loc)
+          : await listCourtOptions(sport),
+      );
       setLines([defaultLine()]);
     })();
-  }, [sport]);
+  }, [sport, facilityLocationId]);
 
   useEffect(() => {
     try {
@@ -721,6 +728,27 @@ export default function BookingCreatePage() {
 
           <h3 style={{ margin: '0.9rem 0 0.2rem' }}>Facility and Date/Time</h3>
           <div className="form-row-2">
+            <div>
+              <label>Location</label>
+              <select
+                value={facilityLocationId}
+                onChange={(e) => setFacilityLocationId(e.target.value)}
+                aria-describedby="facility-location-hint"
+              >
+                <option value="">All locations</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                    {loc.city ? ` · ${loc.city}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p id="facility-location-hint" className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
+                {facilityLocationId.trim()
+                  ? 'All facility types at this location are listed below. Lines must still match the selected sport for booking validation.'
+                  : 'Facilities are filtered by sport. Pick a location to list every court and field there.'}
+              </p>
+            </div>
             <div>
               <label>Sport</label>
               <select

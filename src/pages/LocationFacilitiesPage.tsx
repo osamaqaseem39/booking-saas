@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   deleteFacilityByCode,
-  updateFacilityName,
   type FacilityRowCode,
 } from '../api/facilityMutations';
 import {
@@ -22,54 +21,30 @@ function setupPath(locationId: string, facilityCode: string) {
   return `/app/locations/${locationId}/facilities/setup/${facilityCode}`;
 }
 
+function editFacilityPath(
+  locId: string,
+  facilityCode: string,
+  courtId: string,
+) {
+  return `/app/locations/${locId}/facilities/edit/${facilityCode}/${courtId}`;
+}
+
 function FacilitiesTableBlock({
   title,
   rows,
   facilityCode,
+  locationId,
   onReload,
   setPageErr,
 }: {
   title: string;
   rows: NamedCourt[];
   facilityCode: FacilityRowCode;
+  locationId: string;
   onReload: () => void;
   setPageErr: (msg: string | null) => void;
 }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  function startEdit(r: NamedCourt) {
-    setPageErr(null);
-    setEditingId(r.id);
-    setEditName(r.name);
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditName('');
-  }
-
-  async function saveEdit() {
-    if (!editingId) return;
-    const trimmed = editName.trim();
-    if (!trimmed) {
-      setPageErr('Name is required.');
-      return;
-    }
-    setSaving(true);
-    setPageErr(null);
-    try {
-      await updateFacilityName(facilityCode, editingId, trimmed);
-      cancelEdit();
-      onReload();
-    } catch (e) {
-      setPageErr(e instanceof Error ? e.message : 'Failed to update facility');
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function removeRow(r: NamedCourt) {
     const yes = window.confirm(
@@ -80,7 +55,6 @@ function FacilitiesTableBlock({
     setPageErr(null);
     try {
       await deleteFacilityByCode(facilityCode, r.id);
-      if (editingId === r.id) cancelEdit();
       onReload();
     } catch (e) {
       setPageErr(e instanceof Error ? e.message : 'Failed to delete facility');
@@ -92,46 +66,6 @@ function FacilitiesTableBlock({
   return (
     <div style={{ marginBottom: '1.25rem' }}>
       <h3 style={{ fontSize: '1rem', margin: '0 0 0.5rem' }}>{title}</h3>
-      {editingId ? (
-        <div
-          className="connection-panel"
-          style={{ marginBottom: '0.75rem', padding: '0.75rem 1rem' }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-              alignItems: 'flex-end',
-            }}
-          >
-            <div style={{ flex: '1 1 200px' }}>
-              <label htmlFor={`edit-${facilityCode}-${editingId}`}>Name</label>
-              <input
-                id={`edit-${facilityCode}-${editingId}`}
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-            </div>
-            <button
-              type="button"
-              className="btn-primary btn-compact"
-              disabled={saving}
-              onClick={() => void saveEdit()}
-            >
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-compact"
-              disabled={saving}
-              onClick={cancelEdit}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : null}
       <div className="table-wrap">
         {rows.length === 0 ? (
           <div className="empty-state">None yet</div>
@@ -160,18 +94,16 @@ function FacilitiesTableBlock({
                         alignItems: 'center',
                       }}
                     >
-                      <button
-                        type="button"
+                      <Link
+                        to={editFacilityPath(locationId, facilityCode, r.id)}
                         className="btn-ghost btn-compact"
-                        disabled={deletingId === r.id || saving}
-                        onClick={() => startEdit(r)}
                       >
                         Edit
-                      </button>
+                      </Link>
                       <button
                         type="button"
                         className="btn-danger btn-compact"
-                        disabled={deletingId === r.id || saving}
+                        disabled={deletingId === r.id}
                         onClick={() => void removeRow(r)}
                       >
                         {deletingId === r.id ? 'Deleting…' : 'Delete'}
@@ -299,6 +231,7 @@ export default function LocationFacilitiesPage() {
             title="Turf courts"
             rows={turf}
             facilityCode="turf-court"
+            locationId={locationId}
             onReload={load}
             setPageErr={setErr}
           />
@@ -306,6 +239,7 @@ export default function LocationFacilitiesPage() {
             title="Padel courts"
             rows={padel}
             facilityCode="padel-court"
+            locationId={locationId}
             onReload={load}
             setPageErr={setErr}
           />
@@ -313,6 +247,7 @@ export default function LocationFacilitiesPage() {
             title="Futsal fields"
             rows={futsal}
             facilityCode="futsal-field"
+            locationId={locationId}
             onReload={load}
             setPageErr={setErr}
           />
@@ -320,6 +255,7 @@ export default function LocationFacilitiesPage() {
             title="Cricket indoor"
             rows={cricket}
             facilityCode="cricket-indoor"
+            locationId={locationId}
             onReload={load}
             setPageErr={setErr}
           />

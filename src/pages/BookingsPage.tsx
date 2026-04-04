@@ -12,7 +12,6 @@ import { useSession } from '../context/SessionContext';
 import type {
   BookingRecord,
   BookingSportType,
-  CourtOption,
   BookingStatus,
   CourtKind,
   PaymentMethod,
@@ -153,13 +152,9 @@ export default function BookingsPage() {
     })();
     void (async () => {
       try {
-        const all = await Promise.all([
-          listCourtOptions('futsal'),
-          listCourtOptions('cricket'),
-          listCourtOptions('padel'),
-        ]);
+        const rows = await listCourtOptions(undefined);
         const map: Record<string, string> = {};
-        for (const row of all.flat() as CourtOption[]) {
+        for (const row of rows) {
           map[row.id] = row.label.split('—').slice(1).join('—').trim() || row.label;
         }
         setCourtsMap(map);

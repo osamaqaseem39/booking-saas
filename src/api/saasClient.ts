@@ -859,6 +859,24 @@ export type CreateTurfCourtBody = {
   };
 };
 
+/** GET /arena/turf-courts/:id — full record (JSON from TypeORM entity). */
+export type TurfCourtDetail = Partial<CreateTurfCourtBody> & {
+  id: string;
+  name: string;
+  tenantId?: string;
+  businessLocationId?: string | null;
+  supportsFutsal?: boolean;
+  supportsCricket?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getTurfCourt(id: string): Promise<TurfCourtDetail> {
+  return request<TurfCourtDetail>(`/arena/turf-courts/${id}`, {
+    method: 'GET',
+  });
+}
+
 export async function createTurfCourt(
   body: CreateTurfCourtBody,
 ): Promise<NamedCourt> {
@@ -929,6 +947,22 @@ export type CreatePadelCourtBody = {
   isActive?: boolean;
 };
 
+/** GET /arena/padel-court/:id — full record. */
+export type PadelCourtDetail = Partial<CreatePadelCourtBody> & {
+  id: string;
+  name: string;
+  tenantId?: string;
+  businessLocationId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getPadelCourt(id: string): Promise<PadelCourtDetail> {
+  return request<PadelCourtDetail>(`/arena/padel-court/${id}`, {
+    method: 'GET',
+  });
+}
+
 export async function createPadelCourt(
   body: CreatePadelCourtBody,
 ): Promise<NamedCourt> {
@@ -938,9 +972,13 @@ export async function createPadelCourt(
   });
 }
 
+export type UpdatePadelCourtBody = Partial<
+  Omit<CreatePadelCourtBody, 'businessLocationId'>
+>;
+
 export async function updatePadelCourt(
   id: string,
-  body: { name?: string },
+  body: UpdatePadelCourtBody,
 ): Promise<NamedCourt> {
   return request<NamedCourt>(`/arena/padel-court/${id}`, {
     method: 'PATCH',
@@ -953,6 +991,24 @@ export async function deletePadelCourt(
 ): Promise<{ deleted: true; id: string }> {
   return request<{ deleted: true; id: string }>(`/arena/padel-court/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export type FutsalFieldDetail = {
+  id: string;
+  tenantId?: string;
+  businessLocationId?: string | null;
+  name: string;
+  description?: string | null;
+  dimensions?: string | null;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getFutsalField(id: string): Promise<FutsalFieldDetail> {
+  return request<FutsalFieldDetail>(`/arena/futsal-field/${id}`, {
+    method: 'GET',
   });
 }
 
@@ -970,7 +1026,12 @@ export async function createFutsalField(body: {
 
 export async function updateFutsalField(
   id: string,
-  body: { name?: string; description?: string; dimensions?: string },
+  body: {
+    name?: string;
+    description?: string;
+    dimensions?: string;
+    isActive?: boolean;
+  },
 ): Promise<NamedCourt> {
   return request<NamedCourt>(`/arena/futsal-field/${id}`, {
     method: 'PATCH',
@@ -983,6 +1044,26 @@ export async function deleteFutsalField(
 ): Promise<{ deleted: true; id: string }> {
   return request<{ deleted: true; id: string }>(`/arena/futsal-field/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export type CricketIndoorCourtDetail = {
+  id: string;
+  tenantId?: string;
+  businessLocationId?: string | null;
+  name: string;
+  description?: string | null;
+  laneCount?: number | null;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function getCricketIndoorCourt(
+  id: string,
+): Promise<CricketIndoorCourtDetail> {
+  return request<CricketIndoorCourtDetail>(`/arena/cricket-indoor/${id}`, {
+    method: 'GET',
   });
 }
 
@@ -1000,7 +1081,12 @@ export async function createCricketIndoorCourt(body: {
 
 export async function updateCricketIndoorCourt(
   id: string,
-  body: { name?: string; description?: string; laneCount?: number },
+  body: {
+    name?: string;
+    description?: string;
+    laneCount?: number;
+    isActive?: boolean;
+  },
 ): Promise<NamedCourt> {
   return request<NamedCourt>(`/arena/cricket-indoor/${id}`, {
     method: 'PATCH',
@@ -1016,14 +1102,77 @@ export async function deleteCricketIndoorCourt(
   });
 }
 
+/**
+ * Bookable courts for the active tenant. When `businessLocationId` is set, only courts at that location.
+ * When `sport` is omitted, returns padel, futsal, and cricket options together (turf rows deduped by id).
+ */
 export async function listCourtOptions(
-  sport: BookingSportType,
+  sport?: BookingSportType,
+  businessLocationId?: string,
 ): Promise<CourtOption[]> {
   if (!getToken() || !getTenantId()) return [];
+  const loc = businessLocationId?.trim() || undefined;
   try {
     const out: CourtOption[] = [];
+    const seenTurf = new Set<string>();
+
+    if (sport === undefined) {
+      const [padelRows, turfFut, fields, turfCric, indoor] = await Promise.all([
+        listPadelCourts(loc),
+        listTurfCourts('futsal', loc),
+        listFutsalFields(loc),
+        listTurfCourts('cricket', loc),
+        listCricketIndoor(loc),
+      ]);
+      for (const r of padelRows) {
+        out.push({
+          kind: 'padel_court',
+          id: r.id,
+          label: `Padel — ${r.name}`,
+          businessLocationId: r.businessLocationId,
+        });
+      }
+      for (const r of turfFut) {
+        if (seenTurf.has(r.id)) continue;
+        seenTurf.add(r.id);
+        out.push({
+          kind: 'turf_court',
+          id: r.id,
+          label: `Turf — ${r.name}`,
+          businessLocationId: r.businessLocationId,
+        });
+      }
+      for (const r of fields) {
+        out.push({
+          kind: 'futsal_field',
+          id: r.id,
+          label: `Futsal field — ${r.name}`,
+          businessLocationId: r.businessLocationId,
+        });
+      }
+      for (const r of turfCric) {
+        if (seenTurf.has(r.id)) continue;
+        seenTurf.add(r.id);
+        out.push({
+          kind: 'turf_court',
+          id: r.id,
+          label: `Turf — ${r.name}`,
+          businessLocationId: r.businessLocationId,
+        });
+      }
+      for (const r of indoor) {
+        out.push({
+          kind: 'cricket_indoor_court',
+          id: r.id,
+          label: `Cricket indoor — ${r.name}`,
+          businessLocationId: r.businessLocationId,
+        });
+      }
+      return out;
+    }
+
     if (sport === 'padel') {
-      const rows = await listPadelCourts();
+      const rows = await listPadelCourts(loc);
       for (const r of rows) {
         out.push({
           kind: 'padel_court',
@@ -1034,8 +1183,8 @@ export async function listCourtOptions(
       }
     } else if (sport === 'futsal') {
       const [turf, fields] = await Promise.all([
-        listTurfCourts('futsal'),
-        listFutsalFields(),
+        listTurfCourts('futsal', loc),
+        listFutsalFields(loc),
       ]);
       for (const r of turf) {
         out.push({
@@ -1055,8 +1204,8 @@ export async function listCourtOptions(
       }
     } else {
       const [turf, indoor] = await Promise.all([
-        listTurfCourts('cricket'),
-        listCricketIndoor(),
+        listTurfCourts('cricket', loc),
+        listCricketIndoor(loc),
       ]);
       for (const r of turf) {
         out.push({

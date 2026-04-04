@@ -3,10 +3,6 @@ import {
   deleteFutsalField,
   deletePadelCourt,
   deleteTurfCourt,
-  updateCricketIndoorCourt,
-  updateFutsalField,
-  updatePadelCourt,
-  updateTurfCourt,
 } from './saasClient';
 
 export type FacilityRowCode =
@@ -14,31 +10,6 @@ export type FacilityRowCode =
   | 'padel-court'
   | 'futsal-field'
   | 'cricket-indoor';
-
-export async function updateFacilityName(
-  code: FacilityRowCode,
-  id: string,
-  name: string,
-): Promise<void> {
-  const trimmed = name.trim();
-  if (code === 'turf-court') {
-    await updateTurfCourt(id, { name: trimmed });
-    return;
-  }
-  if (code === 'padel-court') {
-    await updatePadelCourt(id, { name: trimmed });
-    return;
-  }
-  if (code === 'futsal-field') {
-    await updateFutsalField(id, { name: trimmed });
-    return;
-  }
-  if (code === 'cricket-indoor') {
-    await updateCricketIndoorCourt(id, { name: trimmed });
-    return;
-  }
-  throw new Error('Unknown facility type');
-}
 
 export async function deleteFacilityByCode(
   code: FacilityRowCode,

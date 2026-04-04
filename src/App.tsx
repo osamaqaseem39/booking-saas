@@ -14,6 +14,7 @@ import ManageTimeSlotsPage from './pages/ManageTimeSlotsPage';
 import BusinessesPage from './pages/BusinessesPage';
 import EndUsersPage from './pages/EndUsersPage';
 import AddFacilityPage from './pages/AddFacilityPage';
+import FacilityEditPage from './pages/FacilityEditPage';
 import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
 import LocationCreatePage from './pages/LocationCreatePage';
 import LocationDetailPage from './pages/LocationDetailPage';
@@ -115,6 +116,14 @@ export default function App() {
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
                   <LocationFacilitySetupPage />
+                </RequireRoles>
+              }
+            />
+            <Route
+              path="locations/:locationId/facilities/edit/:facilityCode/:courtId"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <FacilityEditPage />
                 </RequireRoles>
               }
             />

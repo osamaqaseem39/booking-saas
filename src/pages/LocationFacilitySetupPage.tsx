@@ -142,7 +142,7 @@ export default function LocationFacilitySetupPage() {
           <TurfCourtSetupForm
             locationId={locationId}
             locations={locations}
-            onCreated={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilites')}
           />
         </div>
       ) : facilityCode === 'padel-court' ? (
@@ -154,7 +154,7 @@ export default function LocationFacilitySetupPage() {
           <PadelCourtSetupForm
             locationId={locationId}
             locations={locations}
-            onCreated={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilites')}
           />
         </>
       ) : (

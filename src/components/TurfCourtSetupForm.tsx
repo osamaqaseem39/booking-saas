@@ -1,5 +1,11 @@
-import { type FormEvent, useMemo, useState } from 'react';
-import { createTurfCourt, type CreateTurfCourtBody } from '../api/saasClient';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  createTurfCourt,
+  getTurfCourt,
+  updateTurfCourt,
+  type CreateTurfCourtBody,
+  type TurfCourtDetail,
+} from '../api/saasClient';
 import type { BusinessLocationRow } from '../types/domain';
 
 type Vent = 'natural' | 'fans' | 'ac';
@@ -21,6 +27,11 @@ function parseIntOpt(s: string): number | undefined {
 function triBool(s: '' | 'yes' | 'no'): boolean | undefined {
   if (s === '') return undefined;
   return s === 'yes';
+}
+
+function strFromApi(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  return String(v);
 }
 
 function buildPayload(
@@ -184,11 +195,14 @@ function buildPayload(
 export function TurfCourtSetupForm({
   locationId,
   locations,
-  onCreated,
+  onSuccess,
+  existingCourtId,
 }: {
   locationId: string;
   locations: BusinessLocationRow[];
-  onCreated: () => void;
+  onSuccess: () => void;
+  /** When set, load this court and PATCH on save instead of creating. */
+  existingCourtId?: string;
 }) {
   const [name, setName] = useState('');
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
@@ -268,6 +282,191 @@ export function TurfCourtSetupForm({
 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(!!existingCourtId);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!existingCourtId) {
+      setLoadingDetail(false);
+      setInitialLoadError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetail(true);
+    setInitialLoadError(null);
+    void (async () => {
+      try {
+        const d: TurfCourtDetail = await getTurfCourt(existingCourtId);
+        if (cancelled) return;
+
+        setName(d.name ?? '');
+        setArenaLocationId(d.businessLocationId ?? locationId);
+        setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
+        setImageLines(Array.isArray(d.imageUrls) ? d.imageUrls.join('\n') : '');
+        setCeilingHeightValue(strFromApi(d.ceilingHeightValue));
+        setCeilingHeightUnit(
+          d.ceilingHeightUnit === 'ft' || d.ceilingHeightUnit === 'm'
+            ? d.ceilingHeightUnit
+            : 'ft',
+        );
+        const cov = d.coveredType;
+        setCoveredType(
+          cov === 'open' || cov === 'semi_covered' || cov === 'fully_indoor'
+            ? cov
+            : '',
+        );
+        setSideNetting(
+          d.sideNetting === true ? 'yes' : d.sideNetting === false ? 'no' : '',
+        );
+        setNetHeight(d.netHeight ?? '');
+        const bt = d.boundaryType;
+        setBoundaryType(bt === 'net' || bt === 'wall' ? bt : '');
+        const vents = d.ventilation;
+        setVentilation(
+          Array.isArray(vents)
+            ? (vents.filter(
+                (x): x is Vent =>
+                  x === 'natural' || x === 'fans' || x === 'ac',
+              ) as Vent[])
+            : [],
+        );
+        const li = d.lighting;
+        setLighting(
+          li === 'led_floodlights' || li === 'mixed' || li === 'daylight'
+            ? li
+            : '',
+        );
+        setLengthM(strFromApi(d.lengthM));
+        setWidthM(strFromApi(d.widthM));
+        const st = d.surfaceType;
+        setSurfaceType(
+          st === 'artificial_turf' || st === 'hard_surface' ? st : '',
+        );
+        setTurfQuality(d.turfQuality ?? '');
+        setShockAbsorption(
+          d.shockAbsorptionLayer === true
+            ? 'yes'
+            : d.shockAbsorptionLayer === false
+              ? 'no'
+              : '',
+        );
+
+        if (d.sportMode === 'futsal_only') {
+          setSupportFutsal(true);
+          setSupportCricket(false);
+        } else if (d.sportMode === 'cricket_only') {
+          setSupportFutsal(false);
+          setSupportCricket(true);
+        } else if (d.sportMode === 'both') {
+          setSupportFutsal(true);
+          setSupportCricket(true);
+        } else {
+          setSupportFutsal(d.supportsFutsal !== false);
+          setSupportCricket(d.supportsCricket !== false);
+        }
+
+        const ff = d.futsalFormat;
+        setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
+        setFutsalGoalPosts(
+          d.futsalGoalPostsAvailable === true
+            ? 'yes'
+            : d.futsalGoalPostsAvailable === false
+              ? 'no'
+              : '',
+        );
+        setFutsalGoalPostSize(d.futsalGoalPostSize ?? '');
+        const flm = d.futsalLineMarkings;
+        setFutsalLineMarkings(
+          flm === 'permanent' || flm === 'temporary' ? flm : '',
+        );
+
+        const cf = d.cricketFormat;
+        setCricketFormat(
+          cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
+            ? cf
+            : '',
+        );
+        setCricketStumps(
+          d.cricketStumpsAvailable === true
+            ? 'yes'
+            : d.cricketStumpsAvailable === false
+              ? 'no'
+              : '',
+        );
+        setCricketBowlingMachine(
+          d.cricketBowlingMachine === true
+            ? 'yes'
+            : d.cricketBowlingMachine === false
+              ? 'no'
+              : '',
+        );
+        const cpm = d.cricketPracticeMode;
+        setCricketPracticeMode(
+          cpm === 'full_ground' || cpm === 'nets_mode' ? cpm : '',
+        );
+
+        setFutsalPricePerSlot(strFromApi(d.futsalPricePerSlot));
+        setCricketPricePerSlot(strFromApi(d.cricketPricePerSlot));
+
+        const peak = d.peakPricing;
+        if (peak && typeof peak === 'object') {
+          setPeakWeekdayEvening(strFromApi(peak.weekdayEvening));
+          setPeakWeekend(strFromApi(peak.weekend));
+        } else {
+          setPeakWeekdayEvening('');
+          setPeakWeekend('');
+        }
+
+        const disc = d.discountMembership;
+        if (disc && typeof disc === 'object') {
+          setDiscountLabel(disc.label ? String(disc.label) : '');
+          setDiscountAmount(strFromApi(disc.amount));
+          setDiscountPercent(strFromApi(disc.percentOff));
+        } else {
+          setDiscountLabel('');
+          setDiscountAmount('');
+          setDiscountPercent('');
+        }
+
+        setSlotDuration(strFromApi(d.slotDurationMinutes));
+        setBufferMinutes(strFromApi(d.bufferBetweenSlotsMinutes));
+        setAllowParallel(
+          d.allowParallelBooking === true
+            ? 'yes'
+            : d.allowParallelBooking === false
+              ? 'no'
+              : '',
+        );
+
+        const am = d.amenities;
+        setAmenChanging(!!am?.changingRoom);
+        setAmenWashroom(!!am?.washroom);
+        setAmenParking(!!am?.parking);
+        setAmenWater(!!am?.drinkingWater);
+        setAmenSeating(!!am?.seatingArea);
+
+        const rules = d.rules;
+        setMaxPlayers(
+          rules?.maxPlayers !== undefined && rules.maxPlayers !== null
+            ? String(rules.maxPlayers)
+            : '',
+        );
+        setSafetyInstructions(rules?.safetyInstructions ?? '');
+        setCancellationPolicy(rules?.cancellationPolicy ?? '');
+      } catch (e) {
+        if (!cancelled) {
+          setInitialLoadError(
+            e instanceof Error ? e.message : 'Failed to load court',
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingDetail(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [existingCourtId, locationId]);
 
   const locationOptions = useMemo(
     () =>
@@ -288,11 +487,12 @@ export function TurfCourtSetupForm({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!locationId || !name.trim()) return;
+    const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
+    if (!effectiveLocationId || !name.trim()) return;
     setSaving(true);
     setErr(null);
     try {
-      const payload = buildPayload(locationId, {
+      const payload = buildPayload(effectiveLocationId, {
         name,
         arenaLocationId,
         locations,
@@ -340,13 +540,25 @@ export function TurfCourtSetupForm({
         safetyInstructions,
         cancellationPolicy,
       });
-      await createTurfCourt(payload);
-      onCreated();
+      if (existingCourtId) {
+        const { businessLocationId: _loc, ...patch } = payload;
+        await updateTurfCourt(existingCourtId, patch);
+      } else {
+        await createTurfCourt(payload);
+      }
+      onSuccess();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }
+  }
+
+  if (initialLoadError) {
+    return <div className="err-banner">{initialLoadError}</div>;
+  }
+  if (loadingDetail && existingCourtId) {
+    return <div className="empty-state">Loading court…</div>;
   }
 
   return (
@@ -375,6 +587,12 @@ export function TurfCourtSetupForm({
             <select
               value={arenaLocationId}
               onChange={(e) => setArenaLocationId(e.target.value)}
+              disabled={!!existingCourtId}
+              title={
+                existingCourtId
+                  ? 'Location cannot be changed for an existing court.'
+                  : undefined
+              }
             >
               {locationOptions.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -955,9 +1173,13 @@ export function TurfCourtSetupForm({
           <button
             type="submit"
             className="btn-primary"
-            disabled={saving || !name.trim()}
+            disabled={saving || !name.trim() || loadingDetail}
           >
-            {saving ? 'Saving…' : 'Create turf court'}
+            {saving
+              ? 'Saving…'
+              : existingCourtId
+                ? 'Save changes'
+                : 'Create turf court'}
           </button>
         </div>
       </form>

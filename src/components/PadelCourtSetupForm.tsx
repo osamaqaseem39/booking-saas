@@ -1,7 +1,10 @@
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   createPadelCourt,
+  getPadelCourt,
+  updatePadelCourt,
   type CreatePadelCourtBody,
+  type PadelCourtDetail,
 } from '../api/saasClient';
 import type { BusinessLocationRow } from '../types/domain';
 
@@ -21,6 +24,11 @@ function parseIntOpt(s: string): number | undefined {
 
 function glassBool(s: 'yes' | 'no'): boolean {
   return s === 'yes';
+}
+
+function strFromApi(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  return String(v);
 }
 
 function buildPayload(
@@ -57,6 +65,8 @@ function buildPayload(
     amenParking: boolean;
     gameRules: string;
     cancellationPolicy: string;
+    description: string;
+    isActive: boolean;
   },
 ): CreatePadelCourtBody {
   const ceilingH = parseNum(p.ceilingHeightValue);
@@ -137,23 +147,31 @@ function buildPayload(
     };
   }
 
+  const desc = p.description.trim();
+  if (desc) body.description = desc;
+  body.isActive = p.isActive;
+
   return body;
 }
 
 export function PadelCourtSetupForm({
   locationId,
   locations,
-  onCreated,
+  onSuccess,
+  existingCourtId,
 }: {
   locationId: string;
   locations: BusinessLocationRow[];
-  onCreated: () => void;
+  onSuccess: () => void;
+  existingCourtId?: string;
 }) {
   const [name, setName] = useState('');
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
   const [courtStatus, setCourtStatus] = useState<'active' | 'maintenance'>(
     'active',
   );
+  const [description, setDescription] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [imageLines, setImageLines] = useState('');
 
   const [ceilingHeightValue, setCeilingHeightValue] = useState('');
@@ -198,6 +216,99 @@ export function PadelCourtSetupForm({
 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(!!existingCourtId);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!existingCourtId) {
+      setLoadingDetail(false);
+      setInitialLoadError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetail(true);
+    setInitialLoadError(null);
+    void (async () => {
+      try {
+        const d: PadelCourtDetail = await getPadelCourt(existingCourtId);
+        if (cancelled) return;
+
+        setName(d.name ?? '');
+        setArenaLocationId(d.businessLocationId ?? locationId);
+        setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
+        setDescription(d.description ?? '');
+        setIsActive(d.isActive !== false);
+        setImageLines(Array.isArray(d.imageUrls) ? d.imageUrls.join('\n') : '');
+        setCeilingHeightValue(strFromApi(d.ceilingHeightValue));
+        setCeilingHeightUnit(
+          d.ceilingHeightUnit === 'ft' || d.ceilingHeightUnit === 'm'
+            ? d.ceilingHeightUnit
+            : 'm',
+        );
+        const cov = d.coveredType;
+        setCoveredType(
+          cov === 'indoor' || cov === 'semi_covered' ? cov : 'indoor',
+        );
+        setGlassWalls(d.glassWalls === false ? 'no' : 'yes');
+        const wt = d.wallType;
+        setWallType(wt === 'full_glass' || wt === 'glass_mesh' ? wt : 'full_glass');
+        setLighting(d.lighting ?? '');
+        setVentilation(d.ventilation ?? '');
+        setLengthM(strFromApi(d.lengthM) || '20');
+        setWidthM(strFromApi(d.widthM) || '10');
+        const st = d.surfaceType;
+        setSurfaceType(
+          st === 'synthetic_turf' || st === 'acrylic' ? st : '',
+        );
+        setMatchType(d.matchType === 'singles' ? 'singles' : 'doubles');
+        setPricePerSlot(strFromApi(d.pricePerSlot));
+        const peak = d.peakPricing;
+        if (peak && typeof peak === 'object') {
+          setPeakWeekdayEvening(strFromApi(peak.weekdayEvening));
+          setPeakWeekend(strFromApi(peak.weekend));
+        } else {
+          setPeakWeekdayEvening('');
+          setPeakWeekend('');
+        }
+        setMembershipPrice(strFromApi(d.membershipPrice));
+        const sd = d.slotDurationMinutes;
+        setSlotDuration(sd === 60 ? '60' : sd === 90 ? '90' : '');
+        setBufferMinutes(strFromApi(d.bufferBetweenSlotsMinutes));
+
+        const ex = d.extras;
+        setExtraRacket(!!ex?.racketRental);
+        setExtraBall(!!ex?.ballRental);
+        setExtraCoaching(!!ex?.coachingAvailable);
+
+        const am = d.amenities;
+        setAmenSeating(!!am?.seating);
+        setAmenChanging(!!am?.changingRoom);
+        setAmenParking(!!am?.parking);
+
+        const rules = d.rules;
+        setGameRules(rules?.gameRules ?? '');
+        setCancellationPolicy(rules?.cancellationPolicy ?? '');
+        if (rules?.maxPlayers !== undefined && rules.maxPlayers !== null) {
+          setMaxPlayers(String(rules.maxPlayers));
+        } else if (d.maxPlayers !== undefined && d.maxPlayers !== null) {
+          setMaxPlayers(String(d.maxPlayers));
+        } else {
+          setMaxPlayers('4');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setInitialLoadError(
+            e instanceof Error ? e.message : 'Failed to load court',
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingDetail(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [existingCourtId, locationId]);
 
   const locationOptions = useMemo(
     () =>
@@ -209,11 +320,12 @@ export function PadelCourtSetupForm({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!locationId || !name.trim()) return;
+    const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
+    if (!effectiveLocationId || !name.trim()) return;
     setSaving(true);
     setErr(null);
     try {
-      const payload = buildPayload(locationId, {
+      const payload = buildPayload(effectiveLocationId, {
         name,
         arenaLocationId,
         locations,
@@ -245,14 +357,28 @@ export function PadelCourtSetupForm({
         amenParking,
         gameRules,
         cancellationPolicy,
+        description,
+        isActive,
       });
-      await createPadelCourt(payload);
-      onCreated();
+      if (existingCourtId) {
+        const { businessLocationId: _loc, ...patch } = payload;
+        await updatePadelCourt(existingCourtId, patch);
+      } else {
+        await createPadelCourt(payload);
+      }
+      onSuccess();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }
+  }
+
+  if (initialLoadError) {
+    return <div className="err-banner">{initialLoadError}</div>;
+  }
+  if (loadingDetail && existingCourtId) {
+    return <div className="empty-state">Loading court…</div>;
   }
 
   return (
@@ -278,6 +404,12 @@ export function PadelCourtSetupForm({
             <select
               value={arenaLocationId}
               onChange={(e) => setArenaLocationId(e.target.value)}
+              disabled={!!existingCourtId}
+              title={
+                existingCourtId
+                  ? 'Location cannot be changed for an existing court.'
+                  : undefined
+              }
             >
               {locationOptions.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -297,6 +429,25 @@ export function PadelCourtSetupForm({
               <option value="active">Active</option>
               <option value="maintenance">Maintenance</option>
             </select>
+          </div>
+          <div>
+            <label>Description (optional)</label>
+            <textarea
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Short public description"
+            />
+          </div>
+          <div>
+            <label className="turf-setup-inline">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+              />
+              Accepting bookings (active listing)
+            </label>
           </div>
           <div>
             <label>Image URLs (one per line)</label>
@@ -646,9 +797,13 @@ export function PadelCourtSetupForm({
         <button
           type="submit"
           className="btn-primary"
-          disabled={saving || !name.trim()}
+          disabled={saving || !name.trim() || loadingDetail}
         >
-          {saving ? 'Saving…' : 'Create padel court'}
+          {saving
+            ? 'Saving…'
+            : existingCourtId
+              ? 'Save changes'
+              : 'Create padel court'}
         </button>
       </div>
       </form>
