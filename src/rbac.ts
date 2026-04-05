@@ -90,25 +90,42 @@ export function rolesForNav(userRoles: string[]): NavRole[] {
   return [...r];
 }
 
-export function navVisibleForRoles(userRoles: string[]): NavItem[] {
+function dedupeNavByTo(items: NavItem[]): NavItem[] {
+  return items.filter(
+    (item, index, arr) => arr.findIndex((x) => x.to === item.to) === index,
+  );
+}
+
+/** Main nav plus optional footer (e.g. business admin: locations / facilities / users at bottom). */
+export function navSectionsForRoles(userRoles: string[]): {
+  main: NavItem[];
+  footer: NavItem[];
+} {
   const expanded = rolesForNav(userRoles);
-  const filtered = NAV_ITEMS.filter((item) => {
-    if (item.hideWhen?.(userRoles)) return false;
-    return item.anyOf.some((need) => expanded.includes(need));
-  });
+  const filtered = dedupeNavByTo(
+    NAV_ITEMS.filter((item) => {
+      if (item.hideWhen?.(userRoles)) return false;
+      return item.anyOf.some((need) => expanded.includes(need));
+    }),
+  );
   const businessAdminOnly =
     userRoles.includes('business-admin') &&
     !userRoles.includes('platform-owner');
   if (!businessAdminOnly) {
-    return filtered;
+    return { main: filtered, footer: [] };
   }
-  const primary: NavItem[] = [];
-  const bottom: NavItem[] = [];
+  const main: NavItem[] = [];
+  const footer: NavItem[] = [];
   for (const item of filtered) {
-    if (BUSINESS_ADMIN_NAV_BOTTOM.has(item.to)) bottom.push(item);
-    else primary.push(item);
+    if (BUSINESS_ADMIN_NAV_BOTTOM.has(item.to)) footer.push(item);
+    else main.push(item);
   }
-  return [...primary, ...bottom];
+  return { main, footer };
+}
+
+export function navVisibleForRoles(userRoles: string[]): NavItem[] {
+  const { main, footer } = navSectionsForRoles(userRoles);
+  return [...main, ...footer];
 }
 
 export function userMayAssignRoles(userRoles: string[]): boolean {

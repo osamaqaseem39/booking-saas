@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Outlet } from 'react-router-dom';
 import { listBusinesses } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
-import { navVisibleForRoles } from '../rbac';
+import { navSectionsForRoles } from '../rbac';
 import type { BusinessRow } from '../types/domain';
 
 export default function ConsoleLayout() {
@@ -19,9 +19,7 @@ export default function ConsoleLayout() {
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
-  const nav = navVisibleForRoles(roles).filter(
-    (item, index, arr) => arr.findIndex((x) => x.to === item.to) === index,
-  );
+  const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
   const canListBiz = roles.some(
     (r) => r === 'platform-owner' || r === 'business-admin',
   );
@@ -101,16 +99,35 @@ export default function ConsoleLayout() {
             Console
           </span>
         </div>
-        {nav.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/app'}
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        <div className="console-nav-main">
+          {navMain.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/app'}
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+        {navFooter.length > 0 ? (
+          <>
+            <div className="console-nav-divider" role="presentation" />
+            <div className="console-nav-footer">
+              {navFooter.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/app'}
+                  className={({ isActive }) => (isActive ? 'active' : '')}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          </>
+        ) : null}
       </nav>
       <div className="console-main">
         <header className="console-topbar">
