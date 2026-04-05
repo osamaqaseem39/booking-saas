@@ -809,13 +809,14 @@ table.data tbody tr:last-child td {
 .console-nav {
   width: 240px;
   flex-shrink: 0;
+  height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 1rem 0;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .console-nav-main {
@@ -1150,6 +1151,12 @@ table.data tbody tr:last-child td {
 .owner-live-view {
   display: grid;
   gap: 0.9rem;
+}
+
+.owner-live-view--embedded {
+  margin-top: 1.75rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid var(--border);
 }
 
 .owner-live-head {
