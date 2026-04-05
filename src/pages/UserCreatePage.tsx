@@ -63,7 +63,16 @@ export default function UserCreatePage() {
           Back to list
         </Link>
       </div>
-      <p className="muted">Create a business user account for console access.</p>
+      <p className="muted">
+        Create a business user account for console access.
+        {!canAssign && (
+          <>
+            {' '}
+            New users are added as staff for your active tenant (use the tenant
+            selector in the header).
+          </>
+        )}
+      </p>
       {err && <div className="err-banner">{err}</div>}
       <form
         className="form-grid"

@@ -1276,3 +1276,138 @@ table.data tbody tr:last-child td {
   margin: 0;
   font-size: 0.76rem;
 }
+
+/* Facilities live — box cards */
+.facilities-live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.facilities-live-box {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 1rem 1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 200px;
+  background: linear-gradient(165deg, rgba(28, 36, 46, 0.92), rgba(18, 23, 29, 0.98));
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.facilities-live-box--idle {
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.facilities-live-box--live {
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.12),
+    0 8px 28px rgba(34, 197, 94, 0.08);
+  background: linear-gradient(
+    165deg,
+    rgba(20, 55, 42, 0.55),
+    rgba(18, 23, 29, 0.98)
+  );
+}
+
+.facilities-live-box--soon {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.12);
+  background: linear-gradient(
+    165deg,
+    rgba(55, 48, 26, 0.45),
+    rgba(18, 23, 29, 0.98)
+  );
+}
+
+.facilities-live-box--inactive {
+  opacity: 0.72;
+  border-color: rgba(100, 116, 139, 0.35);
+  background: linear-gradient(165deg, rgba(40, 44, 52, 0.75), rgba(18, 23, 29, 0.95));
+}
+
+.facilities-live-box__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.facilities-live-box__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.facilities-live-box__subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.facilities-live-box__biz {
+  margin: 0;
+  font-size: 0.76rem;
+}
+
+.facilities-live-box__pill {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+}
+
+.facilities-live-box__pill--live {
+  background: rgba(34, 197, 94, 0.22);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.facilities-live-box__pill--soon {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.facilities-live-box__stats {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.facilities-live-box__stat {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 0.35rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+}
+
+.facilities-live-box__stat-label {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.facilities-live-box__stat-value {
+  word-break: break-word;
+}
+
+.facilities-live-box__stat-meta {
+  font-size: 0.72rem;
+}
+
+.facilities-live-box__emph {
+  color: #a7f3d0;
+  font-weight: 600;
+}

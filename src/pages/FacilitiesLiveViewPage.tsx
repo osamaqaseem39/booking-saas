@@ -2,48 +2,63 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   getBusinessDashboardView,
+  listBookingsForTenant,
   listBusinessLocations,
   listCricketCourts,
   listFutsalCourts,
   listPadelCourts,
 } from '../api/saasClient';
+import type { BookingRecord } from '../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../types/domain';
+import {
+  computeFacilityLiveSnapshot,
+  facilityTypeToCourtKind,
+  type FacilityLiveType,
+} from '../utils/facilityLiveStats';
 
-type FacilityCard = {
+type FacilityCardRow = {
   id: string;
   name: string;
-  type: 'futsalCourt' | 'cricketCourt' | 'padel';
+  type: FacilityLiveType;
   locationId?: string | null;
   facilityStatus?: string;
   facilityIsActive?: boolean;
 };
 
-function statusClass(status: string | undefined, isActive: boolean | undefined): string {
-  const s = (status ?? '').toLowerCase();
-  if (s === 'maintenance') return 'badge badge-cancelled';
-  if (s === 'inactive') return 'badge badge-cancelled';
-  if (s === 'active') return 'badge badge-confirmed';
-  if (isActive === true) return 'badge badge-confirmed';
-  if (isActive === false) return 'badge badge-cancelled';
-  return 'badge badge-neutral';
+function tenantForLocation(
+  loc: BusinessLocationRow | undefined,
+  dashboard: BusinessDashboardView | null,
+): string | null {
+  if (!loc) return null;
+  const fromLoc = loc.business?.tenantId?.trim();
+  if (fromLoc) return fromLoc;
+  const row = dashboard?.businesses.find((b) => b.businessId === loc.businessId);
+  const tid = row?.tenantId?.trim();
+  return tid || null;
 }
 
 export default function FacilitiesLiveViewPage() {
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [facilities, setFacilities] = useState<FacilityCard[]>([]);
+  const [facilities, setFacilities] = useState<FacilityCardRow[]>([]);
+  const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  /** Recompute on-screen “now” without waiting for the next API poll */
+  const [clock, setClock] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setClock((c) => c + 1), 15000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const buildFacilityCards = useCallback(
     (
       futsalCourtRows: NamedCourt[],
       cricketCourtRows: NamedCourt[],
       padelRows: NamedCourt[],
-    ): FacilityCard[] => {
+    ): FacilityCardRow[] => {
       return [
         ...futsalCourtRows.map((r) => ({
           id: r.id,
@@ -89,7 +104,23 @@ export default function FacilitiesLiveViewPage() {
         ]);
         setDashboard(dash);
         setLocations(locs);
-        setFacilities(buildFacilityCards(fcRows, ccRows, padelRows));
+        const facilityRows = buildFacilityCards(fcRows, ccRows, padelRows);
+        setFacilities(facilityRows);
+
+        const tenantSet = new Set<string>();
+        const locById = new Map(locs.map((l) => [l.id, l]));
+        for (const f of facilityRows) {
+          const loc = f.locationId ? locById.get(f.locationId) : undefined;
+          const tid = tenantForLocation(loc, dash);
+          if (tid) tenantSet.add(tid);
+        }
+        const tenantList = [...tenantSet];
+        const bookingLists = await Promise.all(
+          tenantList.map((tid) =>
+            listBookingsForTenant(tid).catch(() => [] as BookingRecord[]),
+          ),
+        );
+        setBookings(bookingLists.flat());
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load facilities live view');
       } finally {
@@ -114,7 +145,7 @@ export default function FacilitiesLiveViewPage() {
     return map;
   }, [dashboard]);
 
-  const filteredLocations = useMemo(() => {
+  const filteredFacilities = useMemo(() => {
     const q = query.trim().toLowerCase();
     const locationById = new Map(locations.map((loc) => [loc.id, loc]));
     if (!q) return facilities;
@@ -132,15 +163,38 @@ export default function FacilitiesLiveViewPage() {
     });
   }, [businessById, facilities, locations, query]);
 
+  const facilitySnapshots = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof computeFacilityLiveSnapshot>>();
+    const now = new Date();
+    for (const facility of filteredFacilities) {
+      const kind = facilityTypeToCourtKind(facility.type);
+      const cardId = `${facility.type}-${facility.id}`;
+      const isActive = facility.facilityIsActive !== false;
+      map.set(
+        cardId,
+        computeFacilityLiveSnapshot(bookings, kind, facility.id, {
+          now,
+          facilityActive: isActive,
+          facilityStatus: facility.facilityStatus,
+        }),
+      );
+    }
+    return map;
+  }, [bookings, clock, filteredFacilities]);
+
+  const typeLabel = (t: FacilityCardRow['type']) =>
+    t === 'futsalCourt' ? 'Futsal' : t === 'cricketCourt' ? 'Cricket' : 'Padel';
+
   return (
     <div className="owner-live-view">
       <div className="owner-live-head">
         <div>
           <h1 className="page-title" style={{ marginBottom: '0.35rem' }}>
-            Facilities Live View
+            Facilities live
           </h1>
           <p className="muted" style={{ margin: 0 }}>
-            Real-time facility cards with booking context for business owners.
+            Box view per facility: current session, next slot, and booked hours. Refreshes every
+            30s.
           </p>
         </div>
         <div className="owner-live-actions">
@@ -161,10 +215,10 @@ export default function FacilitiesLiveViewPage() {
       {error && <div className="err-banner">{error}</div>}
       <div className="connection-panel owner-live-filter-panel">
         <label>
-          <span className="muted">Search facility/location</span>
+          <span className="muted">Search facility / location</span>
           <input
             className="input"
-            placeholder="Location, city, business, or type"
+            placeholder="Name, city, business, or type"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -177,107 +231,99 @@ export default function FacilitiesLiveViewPage() {
       </div>
 
       {loading ? (
-        <div className="empty-state">Loading facilities...</div>
+        <div className="empty-state">Loading facilities…</div>
       ) : (
-        <div className="owner-live-business-grid">
-          {filteredLocations.map((facility) => {
+        <div className="facilities-live-grid">
+          {filteredFacilities.map((facility) => {
             const location = facility.locationId
               ? locations.find((loc) => loc.id === facility.locationId)
               : undefined;
             const business = location ? businessById.get(location.businessId) : undefined;
             const cardId = `${facility.type}-${facility.id}`;
-            const isExpanded = expandedCardId === cardId;
+            const snap = facilitySnapshots.get(cardId);
+            const v = snap?.visualState ?? 'idle';
+            const boxClass =
+              v === 'live'
+                ? 'facilities-live-box facilities-live-box--live'
+                : v === 'soon'
+                  ? 'facilities-live-box facilities-live-box--soon'
+                  : v === 'inactive'
+                    ? 'facilities-live-box facilities-live-box--inactive'
+                    : 'facilities-live-box facilities-live-box--idle';
+
             return (
-              <article
-                key={cardId}
-                className={`owner-live-facility-card owner-live-facility-square${isExpanded ? ' expanded' : ''}`}
-                role="button"
-                tabIndex={0}
-                onClick={() =>
-                  setExpandedCardId((cur) => (cur === cardId ? null : cardId))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedCardId((cur) => (cur === cardId ? null : cardId));
-                  }
-                }}
-                aria-expanded={isExpanded}
-              >
-                <div className="owner-live-facility-head">
-                  <strong>{facility.name}</strong>
-                  <span
-                    className={statusClass(
-                      facility.facilityStatus,
-                      facility.facilityIsActive,
-                    )}
-                  >
-                    {facility.facilityStatus ??
-                      (facility.facilityIsActive === true
-                        ? 'active'
-                        : facility.facilityIsActive === false
-                          ? 'inactive'
-                          : 'unknown')}
-                  </span>
-                </div>
-                <p className="muted owner-live-facility-address">
-                  {business?.businessName ?? 'Unknown business'}
-                </p>
-                <p className="muted owner-live-facility-address">
-                  {[
-                    location?.name,
-                    location?.area,
-                    location?.city,
-                    location?.country,
-                  ]
-                    .filter(Boolean)
-                    .join(', ') || 'No location'}
-                </p>
-                <div className="owner-live-business-kpis">
-                  <span>
-                    {facility.type === 'futsalCourt'
-                      ? 'Futsal pitch'
-                      : facility.type === 'cricketCourt'
-                        ? 'Cricket pitch'
-                        : 'Padel court'}
-                  </span>
-                  <span>{location?.locationType ?? 'location'}</span>
-                  <span>{business?.bookingCount ?? 0} bookings</span>
-                  <span>{business?.pendingBookingCount ?? 0} pending</span>
-                </div>
-                {!isExpanded ? (
-                  <p className="muted owner-live-facility-address owner-live-expand-hint">
-                    Click for details
-                  </p>
-                ) : (
-                  <div className="owner-live-facility-details">
-                    <p className="muted owner-live-facility-address">
-                      <strong>Facility ID:</strong> {facility.id}
-                    </p>
-                    <p className="muted owner-live-facility-address">
-                      <strong>Location:</strong> {location?.name ?? 'N/A'}
-                    </p>
-                    <p className="muted owner-live-facility-address">
-                      <strong>City:</strong> {location?.city ?? 'N/A'}
-                    </p>
-                    <p className="muted owner-live-facility-address">
-                      <strong>Area:</strong> {location?.area ?? 'N/A'}
-                    </p>
-                    <p className="muted owner-live-facility-address">
-                      <strong>Status:</strong>{' '}
-                      {facility.facilityStatus ??
-                        (facility.facilityIsActive === true
-                          ? 'active'
-                          : facility.facilityIsActive === false
-                            ? 'inactive'
-                            : 'unknown')}
+              <article key={cardId} className={boxClass}>
+                <div className="facilities-live-box__top">
+                  <div>
+                    <h2 className="facilities-live-box__title">{facility.name}</h2>
+                    <p className="facilities-live-box__subtitle">
+                      {typeLabel(facility.type)}
+                      {location?.name ? ` · ${location.name}` : ''}
                     </p>
                   </div>
-                )}
+                  {v === 'live' && (
+                    <span className="facilities-live-box__pill facilities-live-box__pill--live">
+                      Live
+                    </span>
+                  )}
+                  {v === 'soon' && !snap?.ongoing && (
+                    <span className="facilities-live-box__pill facilities-live-box__pill--soon">
+                      Next soon
+                    </span>
+                  )}
+                </div>
+
+                <p className="facilities-live-box__biz muted">
+                  {business?.businessName ?? '—'}
+                  {location?.city ? ` · ${location.city}` : ''}
+                </p>
+
+                <div className="facilities-live-box__stats">
+                  <div className="facilities-live-box__stat">
+                    <span className="facilities-live-box__stat-label">Now</span>
+                    <span className="facilities-live-box__stat-value">
+                      {snap?.ongoing ? (
+                        <>
+                          <span className="facilities-live-box__emph">{snap.ongoing.label}</span>
+                          <span className="muted facilities-live-box__stat-meta">
+                            {' '}
+                            · {snap.ongoing.booking.bookingStatus}
+                          </span>
+                        </>
+                      ) : v === 'inactive' ? (
+                        <span className="muted">Unavailable</span>
+                      ) : (
+                        <span className="muted">Available</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="facilities-live-box__stat">
+                    <span className="facilities-live-box__stat-label">Next</span>
+                    <span className="facilities-live-box__stat-value">
+                      {snap?.next ? (
+                        <span>{snap.next.label}</span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="facilities-live-box__stat">
+                    <span className="facilities-live-box__stat-label">Booked today</span>
+                    <span className="facilities-live-box__stat-value">
+                      {snap ? `${snap.hoursBookedToday} h` : '—'}
+                    </span>
+                  </div>
+                  <div className="facilities-live-box__stat">
+                    <span className="facilities-live-box__stat-label">Last 7 days</span>
+                    <span className="facilities-live-box__stat-value">
+                      {snap ? `${snap.hoursBookedWeek} h` : '—'}
+                    </span>
+                  </div>
+                </div>
               </article>
             );
           })}
-          {filteredLocations.length === 0 && (
+          {filteredFacilities.length === 0 && (
             <div className="empty-state">No facilities match your search.</div>
           )}
         </div>

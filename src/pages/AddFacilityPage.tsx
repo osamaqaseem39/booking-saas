@@ -8,16 +8,28 @@ import {
   createCricketCourt,
   createFutsalCourt,
   createPadelCourt,
+  getCricketCourt,
+  getFutsalCourt,
+  getPadelCourt,
   listBusinessLocations,
   listCricketCourts,
   listFutsalCourts,
   listPadelCourts,
+  updateFutsalCourt,
 } from '../api/saasClient';
 import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
+  isCourtSetupAllowedForLocation,
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow, NamedCourt } from '../types/domain';
+import {
+  cricketDetailToCreateBody,
+  cricketSharedBodyFromFutsalDetail,
+  futsalDetailToCreateBody,
+  futsalSharedBodyFromCricketDetail,
+  padelDetailToCreateBody,
+} from '../utils/facilityDuplicate';
 
 function setupPath(locationId: string, facilityCode: string) {
   return `/app/locations/${locationId}/facilities/setup/${facilityCode}`;
@@ -70,6 +82,15 @@ export default function AddFacilityPage() {
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [dupModal, setDupModal] = useState<{
+    row: {
+      id: string;
+      name: string;
+      code: string;
+      businessLocationId?: string | null;
+    };
+  } | null>(null);
+  const [dupLinkedTwin, setDupLinkedTwin] = useState(false);
 
   async function reloadFacilitiesFor(locationIdArg: string, locs: BusinessLocationRow[]) {
     if (!locationIdArg) {
@@ -225,37 +246,69 @@ export default function AddFacilityPage() {
     }
   }
 
-  async function duplicateFacility(row: {
-    id: string;
-    name: string;
-    code: string;
-    businessLocationId?: string | null;
-  }) {
-    const businessLocationId = row.businessLocationId?.trim();
+  function canOfferLinkedTwinFor(row: { code: string }) {
+    if (!location || !isArenaLocation) return false;
+    if (row.code === 'futsal-court') {
+      return isCourtSetupAllowedForLocation(
+        location,
+        CRICKET_COURT_SETUP_CODE,
+      );
+    }
+    if (row.code === 'cricket-court') {
+      return isCourtSetupAllowedForLocation(
+        location,
+        FUTSAL_COURT_SETUP_CODE,
+      );
+    }
+    return false;
+  }
+
+  async function confirmDuplicateFacility() {
+    if (!dupModal) return;
+    const row = dupModal.row;
+    const businessLocationId =
+      row.businessLocationId?.trim() || locationId || '';
     if (!businessLocationId) {
       setErr('Cannot duplicate: facility has no linked location.');
       return;
     }
+    const withLinkedTwin = dupLinkedTwin && canOfferLinkedTwinFor(row);
     setDuplicatingId(row.id);
     setErr(null);
     try {
-      const copyName = `${row.name} (Copy)`;
-      if (row.code === 'futsal-court') {
-        await createFutsalCourt({
-          businessLocationId,
-          name: copyName,
-        });
+      if (row.code === 'padel-court') {
+        const d = await getPadelCourt(row.id);
+        await createPadelCourt(padelDetailToCreateBody(d, businessLocationId));
+      } else if (row.code === 'futsal-court') {
+        const d = await getFutsalCourt(row.id);
+        const primary = await createFutsalCourt(
+          futsalDetailToCreateBody(d, businessLocationId),
+        );
+        if (withLinkedTwin) {
+          const twinCricket = await createCricketCourt(
+            cricketSharedBodyFromFutsalDetail(d, businessLocationId),
+          );
+          await updateFutsalCourt(primary.id, {
+            linkedTwinCourtKind: 'cricket_court',
+            linkedTwinCourtId: twinCricket.id,
+          });
+        }
       } else if (row.code === 'cricket-court') {
-        await createCricketCourt({
-          businessLocationId,
-          name: copyName,
-        });
-      } else if (row.code === 'padel-court') {
-        await createPadelCourt({
-          businessLocationId,
-          name: copyName,
-        });
+        const d = await getCricketCourt(row.id);
+        const primary = await createCricketCourt(
+          cricketDetailToCreateBody(d, businessLocationId),
+        );
+        if (withLinkedTwin) {
+          const twinFutsal = await createFutsalCourt(
+            futsalSharedBodyFromCricketDetail(d, businessLocationId),
+          );
+          await updateFutsalCourt(twinFutsal.id, {
+            linkedTwinCourtKind: 'cricket_court',
+            linkedTwinCourtId: primary.id,
+          });
+        }
       }
+      setDupModal(null);
       await reloadFacilitiesFor(locationId, locations);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to duplicate facility');
@@ -488,11 +541,12 @@ export default function AddFacilityPage() {
                           disabled={
                             duplicatingId === row.id || deletingId === row.id
                           }
-                          onClick={() => void duplicateFacility(row)}
+                          onClick={() => {
+                            setDupLinkedTwin(false);
+                            setDupModal({ row });
+                          }}
                         >
-                          {duplicatingId === row.id
-                            ? 'Duplicating…'
-                            : 'Duplicate'}
+                          Duplicate
                         </button>
                       </div>
                     </td>
@@ -503,6 +557,89 @@ export default function AddFacilityPage() {
           </table>
         )}
       </div>
+
+      {dupModal ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 18, 28, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 80,
+            padding: '1rem',
+          }}
+          role="presentation"
+          onClick={() => setDupModal(null)}
+        >
+          <div
+            className="connection-panel"
+            style={{ maxWidth: '420px', width: '100%' }}
+            role="dialog"
+            aria-labelledby="dup-facility-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="dup-facility-title" style={{ fontSize: '1.1rem' }}>
+              Duplicate facility
+            </h2>
+            <p className="muted" style={{ marginTop: '0.5rem' }}>
+              Copies every saved field from{' '}
+              <strong>{dupModal.row.name}</strong> and creates a new row as{' '}
+              <strong>draft</strong> (not bookable until you set status to
+              active).
+            </p>
+            {canOfferLinkedTwinFor(dupModal.row) ? (
+              <label
+                className="turf-setup-inline"
+                style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  alignItems: 'flex-start',
+                  marginTop: '0.85rem',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={dupLinkedTwin}
+                  onChange={(e) => setDupLinkedTwin(e.target.checked)}
+                />
+                <span>
+                  {dupModal.row.code === 'futsal-court'
+                    ? 'Also create a linked cricket pitch for the same physical turf. Bookings on either side share one calendar.'
+                    : 'Also create a linked futsal pitch for the same physical turf. Bookings on either side share one calendar.'}
+                </span>
+              </label>
+            ) : null}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                marginTop: '1rem',
+              }}
+            >
+              <button
+                type="button"
+                className="btn-ghost btn-compact"
+                onClick={() => setDupModal(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary btn-compact"
+                disabled={duplicatingId === dupModal.row.id}
+                onClick={() => void confirmDuplicateFacility()}
+              >
+                {duplicatingId === dupModal.row.id
+                  ? 'Duplicating…'
+                  : 'Create duplicate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

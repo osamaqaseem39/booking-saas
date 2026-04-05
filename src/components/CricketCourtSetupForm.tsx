@@ -37,9 +37,9 @@ export function CricketCourtSetupForm({
     emptySharedArenaTurfState(),
   );
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
-  const [courtStatus, setCourtStatus] = useState<'active' | 'maintenance'>(
-    'active',
-  );
+  const [courtStatus, setCourtStatus] = useState<
+    'active' | 'maintenance' | 'draft'
+  >('active');
   const [cricketFormat, setCricketFormat] = useState<
     'tape_ball' | 'tennis_ball' | 'hard_ball' | ''
   >('');
@@ -78,7 +78,13 @@ export function CricketCourtSetupForm({
           name: d.name ?? '',
         });
         setArenaLocationId(d.businessLocationId ?? locationId);
-        setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
+        setCourtStatus(
+          d.courtStatus === 'maintenance'
+            ? 'maintenance'
+            : d.courtStatus === 'draft'
+              ? 'draft'
+              : 'active',
+        );
         const cf = d.cricketFormat;
         setCricketFormat(
           cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'

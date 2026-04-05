@@ -895,7 +895,7 @@ export type CreateFutsalCourtBody = {
   businessLocationId: string;
   name: string;
   arenaLabel?: string;
-  courtStatus?: 'active' | 'maintenance';
+  courtStatus?: 'active' | 'maintenance' | 'draft';
   imageUrls?: string[];
   ceilingHeightValue?: number;
   ceilingHeightUnit?: 'ft' | 'm';
@@ -924,6 +924,9 @@ export type CreateFutsalCourtBody = {
   slotDurationMinutes?: number;
   bufferBetweenSlotsMinutes?: number;
   allowParallelBooking?: boolean;
+  /** Linked cricket pitch: same physical turf, one shared booking calendar. */
+  linkedTwinCourtKind?: 'futsal_court' | 'cricket_court';
+  linkedTwinCourtId?: string;
   amenities?: {
     changingRoom?: boolean;
     washroom?: boolean;
@@ -985,7 +988,7 @@ export type CreateCricketCourtBody = {
   businessLocationId: string;
   name: string;
   arenaLabel?: string;
-  courtStatus?: 'active' | 'maintenance';
+  courtStatus?: 'active' | 'maintenance' | 'draft';
   imageUrls?: string[];
   ceilingHeightValue?: number;
   ceilingHeightUnit?: 'ft' | 'm';
@@ -1014,6 +1017,8 @@ export type CreateCricketCourtBody = {
   slotDurationMinutes?: number;
   bufferBetweenSlotsMinutes?: number;
   allowParallelBooking?: boolean;
+  linkedTwinCourtKind?: 'futsal_court' | 'cricket_court';
+  linkedTwinCourtId?: string;
   amenities?: {
     changingRoom?: boolean;
     washroom?: boolean;
@@ -1078,7 +1083,7 @@ export type CreatePadelCourtBody = {
   businessLocationId: string;
   name: string;
   arenaLabel?: string;
-  courtStatus?: 'active' | 'maintenance';
+  courtStatus?: 'active' | 'maintenance' | 'draft';
   description?: string;
   imageUrls?: string[];
   ceilingHeightValue?: number;

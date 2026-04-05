@@ -37,7 +37,7 @@ function buildPayload(
     name: string;
     arenaLocationId: string;
     locations: BusinessLocationRow[];
-    courtStatus: 'active' | 'maintenance';
+    courtStatus: 'active' | 'maintenance' | 'draft';
     imageLines: string;
     ceilingHeightValue: string;
     ceilingHeightUnit: 'ft' | 'm';
@@ -167,9 +167,9 @@ export function PadelCourtSetupForm({
 }) {
   const [name, setName] = useState('');
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
-  const [courtStatus, setCourtStatus] = useState<'active' | 'maintenance'>(
-    'active',
-  );
+  const [courtStatus, setCourtStatus] = useState<
+    'active' | 'maintenance' | 'draft'
+  >('active');
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [imageLines, setImageLines] = useState('');
@@ -235,9 +235,15 @@ export function PadelCourtSetupForm({
 
         setName(d.name ?? '');
         setArenaLocationId(d.businessLocationId ?? locationId);
-        setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
+        setCourtStatus(
+          d.courtStatus === 'maintenance'
+            ? 'maintenance'
+            : d.courtStatus === 'draft'
+              ? 'draft'
+              : 'active',
+        );
         setDescription(d.description ?? '');
-        setIsActive(d.isActive !== false);
+        setIsActive(d.courtStatus === 'active' && d.isActive !== false);
         setImageLines(Array.isArray(d.imageUrls) ? d.imageUrls.join('\n') : '');
         setCeilingHeightValue(strFromApi(d.ceilingHeightValue));
         setCeilingHeightUnit(
@@ -422,12 +428,15 @@ export function PadelCourtSetupForm({
             <label>Court status</label>
             <select
               value={courtStatus}
-              onChange={(e) =>
-                setCourtStatus(e.target.value as 'active' | 'maintenance')
-              }
+              onChange={(e) => {
+                const v = e.target.value as 'active' | 'maintenance' | 'draft';
+                setCourtStatus(v);
+                if (v === 'draft') setIsActive(false);
+              }}
             >
               <option value="active">Active</option>
               <option value="maintenance">Maintenance</option>
+              <option value="draft">Draft (not bookable)</option>
             </select>
           </div>
           <div>

@@ -1,5 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { SessionProvider } from './context/SessionContext';
+import { SessionProvider, useSession } from './context/SessionContext';
 import ConsoleLayout from './layout/ConsoleLayout';
 import RequireRoles from './layout/RequireRoles';
 import RequireSelfOrRoles from './layout/RequireSelfOrRoles';
@@ -31,6 +31,15 @@ import UserCreatePage from './pages/UserCreatePage';
 import UserDetailPage from './pages/UserDetailPage';
 import UserEditPage from './pages/UserEditPage';
 import UsersPage from './pages/UsersPage';
+
+function HealthAccess() {
+  const { session } = useSession();
+  const roles = session?.roles ?? [];
+  if (roles.includes('business-admin') && !roles.includes('platform-owner')) {
+    return <Navigate to="/app" replace />;
+  }
+  return <HealthPage />;
+}
 
 export default function App() {
   return (
@@ -257,7 +266,7 @@ export default function App() {
               }
             />
             <Route path="arena" element={<Navigate to="/app/Facilites" replace />} />
-            <Route path="health" element={<HealthPage />} />
+            <Route path="health" element={<HealthAccess />} />
           </Route>
           <Route path="/" element={<Navigate to="/app" replace />} />
           <Route path="*" element={<Navigate to="/app" replace />} />

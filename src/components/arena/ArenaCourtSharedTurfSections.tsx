@@ -8,8 +8,8 @@ type Props = {
   locationOptions: BusinessLocationRow[];
   arenaLocationId: string;
   setArenaLocationId: (id: string) => void;
-  courtStatus: 'active' | 'maintenance';
-  setCourtStatus: (v: 'active' | 'maintenance') => void;
+  courtStatus: 'active' | 'maintenance' | 'draft';
+  setCourtStatus: (v: 'active' | 'maintenance' | 'draft') => void;
   existingCourtId?: string;
   /** Futsal / cricket specific controls */
   gameSection: ReactNode;
@@ -64,11 +64,14 @@ export function ArenaCourtSharedTurfSections({
             <select
               value={courtStatus}
               onChange={(e) =>
-                setCourtStatus(e.target.value as 'active' | 'maintenance')
+                setCourtStatus(
+                  e.target.value as 'active' | 'maintenance' | 'draft',
+                )
               }
             >
               <option value="active">Active</option>
               <option value="maintenance">Maintenance</option>
+              <option value="draft">Draft (not bookable)</option>
             </select>
           </div>
           <div>

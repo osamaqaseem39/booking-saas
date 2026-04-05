@@ -37,9 +37,9 @@ export function FutsalCourtSetupForm({
     emptySharedArenaTurfState(),
   );
   const [arenaLocationId, setArenaLocationId] = useState(locationId);
-  const [courtStatus, setCourtStatus] = useState<'active' | 'maintenance'>(
-    'active',
-  );
+  const [courtStatus, setCourtStatus] = useState<
+    'active' | 'maintenance' | 'draft'
+  >('active');
   const [futsalFormat, setFutsalFormat] = useState<
     '5v5' | '6v6' | '7v7' | ''
   >('');
@@ -79,7 +79,13 @@ export function FutsalCourtSetupForm({
           name: d.name ?? '',
         });
         setArenaLocationId(d.businessLocationId ?? locationId);
-        setCourtStatus(d.courtStatus === 'maintenance' ? 'maintenance' : 'active');
+        setCourtStatus(
+          d.courtStatus === 'maintenance'
+            ? 'maintenance'
+            : d.courtStatus === 'draft'
+              ? 'draft'
+              : 'active',
+        );
         const ff = d.futsalFormat;
         setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
         setFutsalGoalPostsAvailable(d.futsalGoalPostsAvailable === true);

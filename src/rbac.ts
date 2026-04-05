@@ -7,6 +7,8 @@ export interface NavItem {
   label: string;
   /** Any of these roles grants access. 'authenticated' = signed-in with at least one role from /iam/me */
   anyOf: NavRole[];
+  /** If true, hide this nav link for the given role set (e.g. business admins). */
+  hideWhen?: (userRoles: string[]) => boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -66,7 +68,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Billing',
     anyOf: ['platform-owner', 'business-admin', 'business-staff'],
   },
-  { to: '/app/health', label: 'API health', anyOf: ['authenticated'] },
+  {
+    to: '/app/health',
+    label: 'API health',
+    anyOf: ['authenticated'],
+    hideWhen: (roles) =>
+      roles.includes('business-admin') && !roles.includes('platform-owner'),
+  },
 ];
 
 export function rolesForNav(userRoles: string[]): NavRole[] {
@@ -77,9 +85,10 @@ export function rolesForNav(userRoles: string[]): NavRole[] {
 
 export function navVisibleForRoles(userRoles: string[]): NavItem[] {
   const expanded = rolesForNav(userRoles);
-  return NAV_ITEMS.filter((item) =>
-    item.anyOf.some((need) => expanded.includes(need)),
-  );
+  return NAV_ITEMS.filter((item) => {
+    if (item.hideWhen?.(userRoles)) return false;
+    return item.anyOf.some((need) => expanded.includes(need));
+  });
 }
 
 export function userMayAssignRoles(userRoles: string[]): boolean {
