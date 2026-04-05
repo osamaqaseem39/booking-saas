@@ -11,10 +11,11 @@ export interface NavItem {
   hideWhen?: (userRoles: string[]) => boolean;
 }
 
-/** Shown after all other links for business admins (not platform owners). */
+/** Footer links for business admins (not platform owners): locations, facilities, time slots, users. */
 const BUSINESS_ADMIN_NAV_BOTTOM = new Set([
   '/app/locations',
   '/app/Facilites',
+  '/app/time-slots',
   '/app/users',
 ]);
 
@@ -29,11 +30,6 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/locations',
     label: 'Locations',
     anyOf: ['platform-owner', 'business-admin', 'customer-end-user'],
-  },
-  {
-    to: '/app/Facilites',
-    label: 'Facilities',
-    anyOf: ['platform-owner', 'business-admin'],
   },
   {
     to: '/app/end-users',
@@ -54,6 +50,11 @@ export const NAV_ITEMS: NavItem[] = [
       'business-staff',
       'customer-end-user',
     ],
+  },
+  {
+    to: '/app/Facilites',
+    label: 'Facilities',
+    anyOf: ['platform-owner', 'business-admin'],
   },
   {
     to: '/app/time-slots',
@@ -91,7 +92,7 @@ function dedupeNavByTo(items: NavItem[]): NavItem[] {
   );
 }
 
-/** Main nav plus optional footer (e.g. business admin: locations / facilities / users at bottom). */
+/** Main nav plus optional footer (business admin: locations, facilities, time slots, users). */
 export function navSectionsForRoles(userRoles: string[]): {
   main: NavItem[];
   footer: NavItem[];
