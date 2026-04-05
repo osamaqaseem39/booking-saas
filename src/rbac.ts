@@ -11,6 +11,13 @@ export interface NavItem {
   hideWhen?: (userRoles: string[]) => boolean;
 }
 
+/** Shown after all other links for business admins (not platform owners). */
+const BUSINESS_ADMIN_NAV_BOTTOM = new Set([
+  '/app/locations',
+  '/app/Facilites',
+  '/app/users',
+]);
+
 export const NAV_ITEMS: NavItem[] = [
   { to: '/app', label: 'Overview', anyOf: ['authenticated'] },
   {
@@ -85,10 +92,23 @@ export function rolesForNav(userRoles: string[]): NavRole[] {
 
 export function navVisibleForRoles(userRoles: string[]): NavItem[] {
   const expanded = rolesForNav(userRoles);
-  return NAV_ITEMS.filter((item) => {
+  const filtered = NAV_ITEMS.filter((item) => {
     if (item.hideWhen?.(userRoles)) return false;
     return item.anyOf.some((need) => expanded.includes(need));
   });
+  const businessAdminOnly =
+    userRoles.includes('business-admin') &&
+    !userRoles.includes('platform-owner');
+  if (!businessAdminOnly) {
+    return filtered;
+  }
+  const primary: NavItem[] = [];
+  const bottom: NavItem[] = [];
+  for (const item of filtered) {
+    if (BUSINESS_ADMIN_NAV_BOTTOM.has(item.to)) bottom.push(item);
+    else primary.push(item);
+  }
+  return [...primary, ...bottom];
 }
 
 export function userMayAssignRoles(userRoles: string[]): boolean {
