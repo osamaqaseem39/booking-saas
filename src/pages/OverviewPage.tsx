@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import {
   listBookingsForTenant,
   listBusinesses,
   listBusinessLocations,
   listInvoicesForTenant,
 } from '../api/saasClient';
+import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 import { useSession } from '../context/SessionContext';
 import type { BookingRecord, BookingStatus, PaymentStatus } from '../types/booking';
 import type { BusinessLocationRow, BusinessRow, InvoiceRow } from '../types/domain';
@@ -32,6 +33,9 @@ function fmtCurrency(amount: number, currency = 'PKR'): string {
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { session, tenantId } = useSession();
+  const { selectedLocationId, dashboardLocations } =
+    useOutletContext<DashboardOutletContext>();
+
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
   const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
@@ -52,11 +56,8 @@ export default function OverviewPage() {
   // ── Business-user state ───────────────────────────────────────────────────
   const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
   const [tenantBookings, setTenantBookings] = useState<BookingRecord[]>([]);
-  const [tenantLocations, setTenantLocations] = useState<BusinessLocationRow[]>([]);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [tenantError, setTenantError] = useState<string | null>(null);
-  /** 'all' | location.id */
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [bizBookingStatus, setBizBookingStatus] = useState<'all' | BookingStatus>('all');
   const [bizPayStatus, setBizPayStatus] = useState<'all' | PaymentStatus>('all');
 
@@ -101,19 +102,16 @@ export default function OverviewPage() {
 
   // ── Business-user load ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isBusinessUser) return;
-    if (!tenantId.trim()) return;
+    if (!isBusinessUser || !tenantId.trim()) return;
     void (async () => {
       setTenantLoading(true);
       setTenantError(null);
       try {
-        const [biz, loc, bookings] = await Promise.all([
+        const [biz, bookings] = await Promise.all([
           listBusinesses(),
-          listBusinessLocations(),
           listBookingsForTenant(tenantId),
         ]);
         setTenantBusinessName(biz[0]?.businessName || 'Your business');
-        setTenantLocations(loc);
         setTenantBookings(bookings);
       } catch (e) {
         setTenantError(e instanceof Error ? e.message : 'Failed to load business overview');
@@ -223,6 +221,11 @@ export default function OverviewPage() {
     };
   }, [locationFilteredBookings, todayStr, thisMonthStr]);
 
+  const activeLocationName = useMemo(() => {
+    if (selectedLocationId === 'all') return tenantBusinessName;
+    return dashboardLocations.find((l) => l.id === selectedLocationId)?.name ?? tenantBusinessName;
+  }, [selectedLocationId, dashboardLocations, tenantBusinessName]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="overview-page">
@@ -231,33 +234,7 @@ export default function OverviewPage() {
       {/* ── Business-user dashboard ── */}
       {isBusinessUser && (
         <div className="overview-content">
-
-          {/* Location selector bar */}
-          <div className="biz-location-bar">
-            <button
-              type="button"
-              className={selectedLocationId === 'all' ? 'biz-loc-tab biz-loc-tab--active' : 'biz-loc-tab'}
-              onClick={() => setSelectedLocationId('all')}
-            >
-              All locations
-            </button>
-            {tenantLocations.map((loc) => (
-              <button
-                key={loc.id}
-                type="button"
-                className={selectedLocationId === loc.id ? 'biz-loc-tab biz-loc-tab--active' : 'biz-loc-tab'}
-                onClick={() => setSelectedLocationId(loc.id)}
-              >
-                {loc.name}
-              </button>
-            ))}
-          </div>
-
-          <h2 className="overview-subtitle" style={{ marginTop: '1.1rem' }}>
-            {selectedLocationId === 'all'
-              ? tenantBusinessName
-              : (tenantLocations.find((l) => l.id === selectedLocationId)?.name ?? tenantBusinessName)}
-          </h2>
+          <h2 className="overview-subtitle">{activeLocationName}</h2>
 
           {tenantError && <div className="err-banner">{tenantError}</div>}
 
@@ -322,8 +299,11 @@ export default function OverviewPage() {
                     </select>
                   </label>
                 </div>
-                <p className="muted biz-filter-count" style={{ marginTop: '0.5rem', fontSize: '0.82rem' }}>
+                <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.82rem' }}>
                   Showing {filteredBookings.length} of {locationFilteredBookings.length} bookings
+                  {selectedLocationId !== 'all' && (
+                    <span> · {dashboardLocations.find((l) => l.id === selectedLocationId)?.name}</span>
+                  )}
                 </p>
               </div>
 
@@ -349,7 +329,7 @@ export default function OverviewPage() {
                       </tr>
                     ) : (
                       filteredBookings.map((bk) => {
-                        const loc = tenantLocations.find((l) => l.id === bk.arenaId);
+                        const loc = dashboardLocations.find((l) => l.id === bk.arenaId);
                         return (
                           <tr
                             key={bk.bookingId}

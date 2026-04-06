@@ -638,21 +638,38 @@ export default function FacilitiesLiveViewPage() {
               <div className="form-row-2">
                 <div>
                   <label>Duration</label>
-                  <select
-                    value={String(quickBooking.durationMins)}
-                    onChange={(e) =>
-                      setQuickBooking((cur) =>
-                        cur ? { ...cur, durationMins: Number(e.target.value) || 60 } : cur,
-                      )
-                    }
-                    disabled={quickBookingSubmitting}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.4rem',
+                      flexWrap: 'wrap',
+                      marginTop: '0.35rem',
+                    }}
                   >
-                    {[30, 60, 90, 120, 150, 180].map((m) => (
-                      <option key={m} value={m}>
-                        {m} min
-                      </option>
-                    ))}
-                  </select>
+                    {[30, 60, 90, 120, 150, 180].map((m) => {
+                      const active = quickBooking.durationMins === m;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          className={active ? 'btn-primary' : 'btn-ghost'}
+                          style={{
+                            padding: '0.35rem 0.7rem',
+                            borderRadius: '999px',
+                            fontSize: '0.86rem',
+                          }}
+                          disabled={quickBookingSubmitting}
+                          onClick={() =>
+                            setQuickBooking((cur) =>
+                              cur ? { ...cur, durationMins: m } : cur,
+                            )
+                          }
+                        >
+                          {m} min
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label>End time</label>

@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Outlet } from 'react-router-dom';
-import { listBusinesses } from '../api/saasClient';
+import { listBusinesses, listBusinessLocations } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { navSectionsForRoles } from '../rbac';
-import type { BusinessRow } from '../types/domain';
+import type { BusinessLocationRow, BusinessRow } from '../types/domain';
+
+export interface DashboardOutletContext {
+  selectedLocationId: string;
+  setSelectedLocationId: (id: string) => void;
+  dashboardLocations: BusinessLocationRow[];
+}
 
 export default function ConsoleLayout() {
   const {
@@ -15,14 +21,16 @@ export default function ConsoleLayout() {
     setTenantId,
     signOut,
   } = useSession();
+
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
+  const [dashboardLocations, setDashboardLocations] = useState<BusinessLocationRow[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
+  const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
   const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
-  const canListBiz = roles.some(
-    (r) => r === 'platform-owner' || r === 'business-admin',
-  );
+  const canListBiz = roles.some((r) => r === 'platform-owner' || r === 'business-admin');
 
   useEffect(() => {
     if (!canListBiz || !userId.trim()) {
@@ -43,13 +51,34 @@ export default function ConsoleLayout() {
     if (!businesses.length) return;
     const nextTenant = businesses[0]?.tenantId;
     if (!nextTenant) return;
-
     const valid = businesses.some((b) => b.tenantId === tenantId);
     const tenantIdSafe = (tenantId ?? '').toString().trim();
     if (!tenantIdSafe || !valid) {
       setTenantId(nextTenant);
     }
   }, [businesses, tenantId, setTenantId]);
+
+  // Load locations for business-user topbar filter
+  useEffect(() => {
+    if (!isBusinessUser || !tenantId.trim()) {
+      setDashboardLocations([]);
+      setSelectedLocationId('all');
+      return;
+    }
+    void (async () => {
+      try {
+        const locs = await listBusinessLocations();
+        setDashboardLocations(locs);
+      } catch {
+        setDashboardLocations([]);
+      }
+    })();
+  }, [isBusinessUser, tenantId]);
+
+  // Reset selection when tenant changes
+  useEffect(() => {
+    setSelectedLocationId('all');
+  }, [tenantId]);
 
   if (loading && !session) {
     return (
@@ -90,6 +119,12 @@ export default function ConsoleLayout() {
     );
   }
 
+  const outletContext: DashboardOutletContext = {
+    selectedLocationId,
+    setSelectedLocationId,
+    dashboardLocations,
+  };
+
   return (
     <div className="console-root">
       <nav className="console-nav">
@@ -129,35 +164,62 @@ export default function ConsoleLayout() {
           </>
         ) : null}
       </nav>
+
       <div className="console-main">
         <header className="console-topbar">
-          {!isPlatformOwner && (
-            <div className="tenant-select">
-              <span className="muted" style={{ fontSize: '0.75rem' }}>
-                Active tenant
-              </span>
-              {businesses.length > 0 ? (
-                <select
-                  value={tenantId}
-                  onChange={(e) => setTenantId(e.target.value)}
+          <div className="console-topbar-left">
+            {!isPlatformOwner && (
+              <div className="tenant-select">
+                <span className="muted" style={{ fontSize: '0.75rem' }}>
+                  Active tenant
+                </span>
+                {businesses.length > 0 ? (
+                  <select
+                    value={tenantId}
+                    onChange={(e) => setTenantId(e.target.value)}
+                  >
+                    {businesses.map((b) => (
+                      <option key={b.id} value={b.tenantId}>
+                        {b.businessName} · {b.tenantId.slice(0, 8)}…
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={tenantId}
+                    onChange={(e) => setTenantId(e.target.value)}
+                    placeholder="Tenant UUID"
+                    style={{ minWidth: '260px' }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Location filter — business users only */}
+            {isBusinessUser && dashboardLocations.length > 0 && (
+              <div className="topbar-loc-bar">
+                <button
+                  type="button"
+                  className={selectedLocationId === 'all' ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
+                  onClick={() => setSelectedLocationId('all')}
                 >
-                  {businesses.map((b) => (
-                    <option key={b.id} value={b.tenantId}>
-                      {b.businessName} · {b.tenantId.slice(0, 8)}…
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={tenantId}
-                  onChange={(e) => setTenantId(e.target.value)}
-                  placeholder="Tenant UUID"
-                  style={{ minWidth: '260px' }}
-                />
-              )}
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  All
+                </button>
+                {dashboardLocations.map((loc) => (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    className={selectedLocationId === loc.id ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
+                    onClick={() => setSelectedLocationId(loc.id)}
+                  >
+                    {loc.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             <span className="muted" style={{ fontSize: '0.8rem' }}>
               {session.fullName}
             </span>
@@ -166,13 +228,14 @@ export default function ConsoleLayout() {
             </button>
           </div>
         </header>
+
         {error && (
           <div className="err-banner" style={{ margin: '0.75rem 1.25rem 0' }}>
             {error}
           </div>
         )}
         <main className="console-body">
-          <Outlet />
+          <Outlet context={outletContext} />
         </main>
       </div>
     </div>
