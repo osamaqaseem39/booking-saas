@@ -53,7 +53,7 @@ function FacilitiesTableBlock({
     setDeletingId(r.id);
     setPageErr(null);
     try {
-      await deleteFacilityByCode(facilityCode, r.id);
+      await deleteFacilityByCode(facilityCode, r.id, locationId);
       onReload();
     } catch (e) {
       setPageErr(e instanceof Error ? e.message : 'Failed to delete facility');

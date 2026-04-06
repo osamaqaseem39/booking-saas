@@ -88,17 +88,20 @@ export default function LocationsPage() {
     <div>
       <div className="page-head-row">
         <h1 className="page-title">Locations</h1>
-        <Link to="/app/locations/new" className="btn-primary">
-          Add location
-        </Link>
+        {isOwner ? (
+          <Link to="/app/locations/new" className="btn-primary">
+            Add location
+          </Link>
+        ) : null}
       </div>
       <p className="muted">
         {isOwner
           ? 'As platform owner you see every venue/branch linked to any business.'
           : 'You see locations only for businesses you belong to.'}{' '}
-        Each row has a <strong>location type</strong> (arena, branch, etc.)
-        and <strong>facility types</strong> (which court kinds the site offers).
-        Facility types are stored on the location, not in a separate catalog.
+        Each row has a <strong>venue type</strong> set when the location is
+        created (platform). That type controls which facility setup forms appear
+        under <strong>Facilities</strong>. Facility tags (courts / gaming
+        stations) are stored on the location.
       </p>
       {err && <div className="err-banner">{err}</div>}
 

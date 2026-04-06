@@ -4,6 +4,13 @@ import { listBusinessLocations } from '../api/saasClient';
 import { CricketCourtSetupForm } from '../components/CricketCourtSetupForm';
 import { FutsalCourtSetupForm } from '../components/FutsalCourtSetupForm';
 import { PadelCourtSetupForm } from '../components/PadelCourtSetupForm';
+import { GamingFacilitySetupForm } from '../components/gaming/GamingFacilitySetupForm';
+import {
+  formatGamingSetupLabel,
+  GAMING_SETUP_CODES,
+  isGamingSetupAllowedForLocation,
+  isGamingSetupCode,
+} from '../constants/gamingFacilityTypes';
 import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
@@ -11,11 +18,13 @@ import {
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
-const CODES = new Set([
+const ARENA_SETUP_CODES = new Set<string>([
   FUTSAL_COURT_SETUP_CODE,
   CRICKET_COURT_SETUP_CODE,
   'padel-court',
 ]);
+
+const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
 
 export default function LocationFacilitySetupPage() {
   const { locationId = '', facilityCode = '' } = useParams<{
@@ -40,6 +49,9 @@ export default function LocationFacilitySetupPage() {
     if (facilityCode === 'padel-court') {
       return { label: 'Padel court' };
     }
+    if (isGamingSetupCode(facilityCode)) {
+      return { label: formatGamingSetupLabel(facilityCode) };
+    }
     return { label: facilityCode };
   }, [facilityCode]);
 
@@ -54,7 +66,8 @@ export default function LocationFacilitySetupPage() {
     })();
   }, []);
 
-  const validCode = CODES.has(facilityCode);
+  const validCode =
+    ARENA_SETUP_CODES.has(facilityCode) || GAMING_CODES_SET.has(facilityCode);
 
   if (!validCode) {
     return (
@@ -69,8 +82,15 @@ export default function LocationFacilitySetupPage() {
     );
   }
 
-  const typeAllowed =
-    location && isCourtSetupAllowedForLocation(location, facilityCode);
+  const arenaAllowed =
+    location &&
+    ARENA_SETUP_CODES.has(facilityCode) &&
+    isCourtSetupAllowedForLocation(location, facilityCode);
+  const gamingAllowed =
+    location &&
+    GAMING_CODES_SET.has(facilityCode) &&
+    isGamingSetupAllowedForLocation(location, facilityCode);
+  const typeAllowed = Boolean(arenaAllowed || gamingAllowed);
 
   return (
     <div>
@@ -89,6 +109,19 @@ export default function LocationFacilitySetupPage() {
         <div className="err-banner">
           This location does not include “{facilityCode}”. Edit the location’s
           facility types on the Locations page, then try again.
+        </div>
+      ) : GAMING_CODES_SET.has(facilityCode) && isGamingSetupCode(facilityCode) ? (
+        <div className="turf-setup-page">
+          <p className="muted turf-setup-page-intro">
+            Location: <strong>{location.name}</strong>. {label.label} station —
+            pricing and slots follow the same structure as arena facilities.
+          </p>
+          <GamingFacilitySetupForm
+            facilityCode={facilityCode}
+            locationId={locationId}
+            locations={locations}
+            onSuccess={() => navigate('/app/Facilites')}
+          />
         </div>
       ) : facilityCode === FUTSAL_COURT_SETUP_CODE ? (
         <div className="turf-setup-page">

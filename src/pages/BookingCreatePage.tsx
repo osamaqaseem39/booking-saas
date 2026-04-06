@@ -863,7 +863,7 @@ export default function BookingCreatePage() {
           {!existingByPhone && digitsOnly(phone) && (
             <>
               <div>
-                <label>Booking source</label>
+                <label>Booking from</label>
                 <ButtonOptionGroup
                   value={bookingSource}
                   onChange={(next) => setBookingSource(next as BookingSource)}

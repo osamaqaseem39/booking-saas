@@ -4,6 +4,7 @@ import {
   createBusinessLocation,
   listBusinesses,
 } from '../api/saasClient';
+import { GAMING_LOCATION_FACILITY_OPTIONS } from '../constants/gamingFacilityTypes';
 import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
 import WorkingHoursEditor, {
   createDefaultWorkingHoursPayload,
@@ -24,6 +25,13 @@ import {
   normalizeCoordinate,
 } from '../utils/coordinates';
 import { normalizePhoneForStorage } from '../utils/phone';
+
+const ARENA_FACILITY_CODE_SET = new Set(
+  LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
+);
+const GAMING_FACILITY_CODE_SET = new Set(
+  GAMING_LOCATION_FACILITY_OPTIONS.map((o) => o.value),
+);
 
 export default function LocationCreatePage() {
   const navigate = useNavigate();
@@ -55,12 +63,12 @@ export default function LocationCreatePage() {
     createDefaultWorkingHoursPayload(),
   );
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
-  const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
   const countryOptions = Object.keys(LOCATION_HIERARCHY);
   const stateOptions = getStatesByCountry(country);
   const cityOptions = getCitiesByCountryState(country, stateProvince);
   const areaOptions = getAreasByCountryStateCity(country, stateProvince, city);
   const isArenaType = locationType === 'arena';
+  const isGamingZoneType = locationType === 'gaming-zone';
 
   useEffect(() => {
     void (async () => {
@@ -187,9 +195,15 @@ export default function LocationCreatePage() {
 
   function onLocationTypeChange(nextType: string) {
     setLocationType(nextType);
-    if (nextType !== 'arena') {
-      setFacilityTypes([]);
-    }
+    setFacilityTypes((prev) => {
+      if (nextType === 'arena') {
+        return prev.filter((c) => ARENA_FACILITY_CODE_SET.has(c));
+      }
+      if (nextType === 'gaming-zone') {
+        return prev.filter((c) => GAMING_FACILITY_CODE_SET.has(c));
+      }
+      return [];
+    });
   }
 
   function toggleFacilityType(code: string, enabled: boolean) {
@@ -207,7 +221,10 @@ export default function LocationCreatePage() {
         </Link>
       </div>
       <p className="muted">
-        Create location profile, contact details, geolocation, and facility types.
+        Create a venue record on the server (required <strong>venue type</strong>,
+        address, media, hours). That type is stored in the backend and decides
+        which facility setup forms appear for owners under{' '}
+        <strong>Facilities</strong> (arena courts vs gaming stations).
       </p>
       {err && <div className="err-banner">{err}</div>}
       <form
@@ -437,25 +454,46 @@ export default function LocationCreatePage() {
           </div>
           <div>
             <label>Facility types at this location</label>
-            {!isArenaType && (
+            {!isArenaType && !isGamingZoneType && (
               <p className="muted" style={{ margin: '0.4rem 0 0.65rem' }}>
-                Facility court switches apply to <strong>Arena</strong> type only.
+                Facility switches apply to <strong>Arena</strong> and{' '}
+                <strong>Gaming Zone</strong> types only.
               </p>
             )}
-            <div className="checkbox-grid">
-              {facilityOptions.map((o) => (
-                <label key={o.value} className="ui-switch">
-                  <input
-                    type="checkbox"
-                    checked={facilityTypes.includes(o.value)}
-                    onChange={(e) => toggleFacilityType(o.value, e.target.checked)}
-                    disabled={!isArenaType}
-                  />
-                  <span className="ui-switch-track" />
-                  <span className="ui-switch-text">{o.label}</span>
-                </label>
-              ))}
-            </div>
+            {isArenaType && (
+              <div className="checkbox-grid">
+                {LOCATION_FACILITY_TYPE_OPTIONS.map((o) => (
+                  <label key={o.value} className="ui-switch">
+                    <input
+                      type="checkbox"
+                      checked={facilityTypes.includes(o.value)}
+                      onChange={(e) =>
+                        toggleFacilityType(o.value, e.target.checked)
+                      }
+                    />
+                    <span className="ui-switch-track" />
+                    <span className="ui-switch-text">{o.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {isGamingZoneType && (
+              <div className="checkbox-grid">
+                {GAMING_LOCATION_FACILITY_OPTIONS.map((o) => (
+                  <label key={o.value} className="ui-switch">
+                    <input
+                      type="checkbox"
+                      checked={facilityTypes.includes(o.value)}
+                      onChange={(e) =>
+                        toggleFacilityType(o.value, e.target.checked)
+                      }
+                    />
+                    <span className="ui-switch-track" />
+                    <span className="ui-switch-text">{o.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <button

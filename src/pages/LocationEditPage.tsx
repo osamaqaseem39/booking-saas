@@ -5,6 +5,7 @@ import {
   listBusinessLocations,
   updateBusinessLocation,
 } from '../api/saasClient';
+import { GAMING_LOCATION_FACILITY_OPTIONS } from '../constants/gamingFacilityTypes';
 import { LOCATION_FACILITY_TYPE_OPTIONS } from '../constants/locationFacilityTypes';
 import WorkingHoursEditor, {
   createDefaultWorkingHoursPayload,
@@ -19,7 +20,11 @@ import {
 } from '../constants/locationHierarchy';
 import ImageGallery from '../components/ImageGallery';
 import ImageUpload from '../components/ImageUpload';
-import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
+import {
+  formatLocationTypeLabel,
+  LOCATION_TYPE_OPTIONS,
+} from '../constants/locationTypes';
+import { useSession } from '../context/SessionContext';
 import type { BusinessLocationRow } from '../types/domain';
 import {
   formatCoordinateForInput,
@@ -27,7 +32,16 @@ import {
 } from '../utils/coordinates';
 import { normalizePhoneForStorage } from '../utils/phone';
 
+const ARENA_FACILITY_CODE_SET = new Set(
+  LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
+);
+const GAMING_FACILITY_CODE_SET = new Set(
+  GAMING_LOCATION_FACILITY_OPTIONS.map((o) => o.value),
+);
+
 export default function LocationEditPage() {
+  const { session } = useSession();
+  const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
   const { locationId = '' } = useParams<{ locationId: string }>();
   const navigate = useNavigate();
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
@@ -59,12 +73,12 @@ export default function LocationEditPage() {
   const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<string[]>([]);
-  const facilityOptions = LOCATION_FACILITY_TYPE_OPTIONS;
   const countryOptions = Object.keys(LOCATION_HIERARCHY);
   const stateOptions = getStatesByCountry(country);
   const cityOptions = getCitiesByCountryState(country, stateProvince);
   const areaOptions = getAreasByCountryStateCity(country, stateProvince, city);
   const isArenaType = locationType === 'arena';
+  const isGamingZoneType = locationType === 'gaming-zone';
 
   const location = useMemo(
     () => rows.find((r) => r.id === locationId) ?? null,
@@ -150,7 +164,11 @@ export default function LocationEditPage() {
     if (workingHoursError) {
       return workingHoursError;
     }
-    if (locationType === 'custom' && !customType.trim()) {
+    if (
+      isPlatformOwner &&
+      locationType === 'custom' &&
+      !customType.trim()
+    ) {
       return 'Custom location type is required.';
     }
     return null;
@@ -172,7 +190,7 @@ export default function LocationEditPage() {
       const normalizedPhone = normalizePhoneForStorage(phone);
       await updateBusinessLocation(locationId, {
         branchName: branchName.trim(),
-        locationType: lt,
+        ...(isPlatformOwner ? { locationType: lt } : {}),
         facilityTypes,
         name: name.trim(),
         addressLine: addressLine.trim(),
@@ -252,9 +270,15 @@ export default function LocationEditPage() {
 
   function onLocationTypeChange(nextType: string) {
     setLocationType(nextType);
-    if (nextType !== 'arena') {
-      setFacilityTypes([]);
-    }
+    setFacilityTypes((prev) => {
+      if (nextType === 'arena') {
+        return prev.filter((c) => ARENA_FACILITY_CODE_SET.has(c));
+      }
+      if (nextType === 'gaming-zone') {
+        return prev.filter((c) => GAMING_FACILITY_CODE_SET.has(c));
+      }
+      return [];
+    });
   }
 
   function toggleFacilityType(code: string, enabled: boolean) {
@@ -281,8 +305,14 @@ export default function LocationEditPage() {
       ) : (
         <>
           <p className="muted" style={{ maxWidth: '920px', margin: '0 auto' }}>
-            Update location profile, address, media, hours, and facility types — same layout as{' '}
-            <strong>Add location</strong>.
+            Update location profile, address, media, hours, and facility tags.
+            {!isPlatformOwner ? (
+              <>
+                {' '}
+                <strong>Venue type</strong> was set when this site was created and
+                controls which setup forms you see under <strong>Facilities</strong>.
+              </>
+            ) : null}
           </p>
           <form
             className="form-grid form-page-locations"
@@ -303,22 +333,46 @@ export default function LocationEditPage() {
                     required
                   />
                 </div>
-                <div>
-                  <label>Location type *</label>
-                  <select
-                    value={locationType}
-                    onChange={(e) => onLocationTypeChange(e.target.value)}
-                  >
-                    {LOCATION_TYPE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                    <option value="custom">Custom…</option>
-                  </select>
-                </div>
+                {isPlatformOwner ? (
+                  <div>
+                    <label>Venue type *</label>
+                    <select
+                      value={locationType}
+                      onChange={(e) => onLocationTypeChange(e.target.value)}
+                    >
+                      {LOCATION_TYPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                      <option value="custom">Custom…</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label>Venue type</label>
+                    <div
+                      style={{
+                        padding: '0.65rem 0.85rem',
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {formatLocationTypeLabel(
+                        locationType === 'custom' ? customType : locationType,
+                      )}
+                    </div>
+                    <p className="muted" style={{ marginTop: '0.4rem', fontSize: '0.82rem' }}>
+                      Only platform staff can change venue type.{' '}
+                      <strong>Facilities</strong> shows arena or gaming setup
+                      forms based on this value.
+                    </p>
+                  </div>
+                )}
               </div>
-              {locationType === 'custom' && (
+              {isPlatformOwner && locationType === 'custom' && (
                 <div className="form-row-2">
                   <div>
                     <label>Custom type (max 80 chars) *</label>
@@ -524,25 +578,46 @@ export default function LocationEditPage() {
               </div>
               <div>
                 <label>Facility types at this location</label>
-                {!isArenaType && (
+                {!isArenaType && !isGamingZoneType && (
                   <p className="muted" style={{ margin: '0.4rem 0 0.65rem' }}>
-                    Facility court switches apply to <strong>Arena</strong> type only.
+                    Facility switches apply to <strong>Arena</strong> and{' '}
+                    <strong>Gaming Zone</strong> types only.
                   </p>
                 )}
-                <div className="checkbox-grid">
-                  {facilityOptions.map((o) => (
-                    <label key={o.value} className="ui-switch">
-                      <input
-                        type="checkbox"
-                        checked={facilityTypes.includes(o.value)}
-                        onChange={(e) => toggleFacilityType(o.value, e.target.checked)}
-                        disabled={!isArenaType}
-                      />
-                      <span className="ui-switch-track" />
-                      <span className="ui-switch-text">{o.label}</span>
-                    </label>
-                  ))}
-                </div>
+                {isArenaType && (
+                  <div className="checkbox-grid">
+                    {LOCATION_FACILITY_TYPE_OPTIONS.map((o) => (
+                      <label key={o.value} className="ui-switch">
+                        <input
+                          type="checkbox"
+                          checked={facilityTypes.includes(o.value)}
+                          onChange={(e) =>
+                            toggleFacilityType(o.value, e.target.checked)
+                          }
+                        />
+                        <span className="ui-switch-track" />
+                        <span className="ui-switch-text">{o.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {isGamingZoneType && (
+                  <div className="checkbox-grid">
+                    {GAMING_LOCATION_FACILITY_OPTIONS.map((o) => (
+                      <label key={o.value} className="ui-switch">
+                        <input
+                          type="checkbox"
+                          checked={facilityTypes.includes(o.value)}
+                          onChange={(e) =>
+                            toggleFacilityType(o.value, e.target.checked)
+                          }
+                        />
+                        <span className="ui-switch-track" />
+                        <span className="ui-switch-text">{o.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

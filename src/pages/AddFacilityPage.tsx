@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import {
   deleteFacilityByCode,
   type FacilityRowCode,
@@ -18,10 +18,19 @@ import {
   updateFutsalCourt,
 } from '../api/saasClient';
 import {
+  formatGamingSetupLabel,
+  GAMING_SETUP_OPTIONS,
+  isGamingSetupCode,
+} from '../constants/gamingFacilityTypes';
+import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
   isCourtSetupAllowedForLocation,
 } from '../constants/locationFacilityTypes';
+import {
+  duplicateGamingStation,
+  listGamingStationsForLocation,
+} from '../utils/gamingStationLocalStore';
 import type { BusinessLocationRow, NamedCourt } from '../types/domain';
 import {
   cricketDetailToCreateBody,
@@ -52,11 +61,10 @@ const SETUP_OPTIONS_BY_LOCATION_TYPE: Record<string, SetupOption[]> = {
     { code: CRICKET_COURT_SETUP_CODE, label: 'Cricket pitch' },
     { code: 'padel-court', label: 'Padel' },
   ],
-  'gaming-zone': [
-    { code: 'ps4', label: 'PS4' },
-    { code: 'ps5', label: 'PS5' },
-    { code: 'pc', label: 'PC' },
-  ],
+  'gaming-zone': GAMING_SETUP_OPTIONS.map((o) => ({
+    code: o.value,
+    label: o.label,
+  })),
   snooker: [],
   'table-tennis': [],
 };
@@ -65,11 +73,13 @@ function hasSetupForm(code: string): boolean {
   return (
     code === FUTSAL_COURT_SETUP_CODE ||
     code === CRICKET_COURT_SETUP_CODE ||
-    code === 'padel-court'
+    code === 'padel-court' ||
+    isGamingSetupCode(code)
   );
 }
 
 export default function AddFacilityPage() {
+  const routeLocation = useLocation();
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const topbarLocationLocked = selectedLocationId !== 'all';
@@ -165,6 +175,7 @@ export default function AddFacilityPage() {
   const showLocationPicker = locations.length > 1 && !topbarLocationLocked;
   const visibleSetupOptions = useMemo(() => {
     if (!location) return [];
+    /** Buttons follow `location.locationType` from the API (set when the location was created). */
     const options =
       SETUP_OPTIONS_BY_LOCATION_TYPE[location.locationType ?? ''] ?? [];
     // Arena: always show futsal, cricket, and padel so owners see all three choices.
@@ -174,6 +185,19 @@ export default function AddFacilityPage() {
     return options;
   }, [location]);
   const isArenaLocation = (location?.locationType ?? '') === 'arena';
+  const isGamingLocation = (location?.locationType ?? '') === 'gaming-zone';
+
+  const gamingRows = useMemo(() => {
+    if (!isGamingLocation || !locationId) return [];
+    return listGamingStationsForLocation(locationId).map((r) => ({
+      id: r.id,
+      name: r.name,
+      businessLocationId: r.businessLocationId,
+      type: formatGamingSetupLabel(r.setupCode),
+      code: r.setupCode as FacilityRowCode,
+    }));
+  }, [isGamingLocation, locationId, routeLocation.pathname]);
+
   const allFacilities = useMemo(
     () => [
       ...futsalCourts.map((r) => ({
@@ -187,9 +211,20 @@ export default function AddFacilityPage() {
         code: 'cricket-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
+      ...gamingRows,
     ],
-    [cricketCourts, futsalCourts, padel],
+    [cricketCourts, futsalCourts, padel, gamingRows],
   );
+
+  const gamingFacilityCards = useMemo(() => {
+    if (!isGamingLocation || !locationId) return [];
+    const rows = listGamingStationsForLocation(locationId);
+    return GAMING_SETUP_OPTIONS.map((o) => ({
+      key: o.value,
+      label: o.label,
+      count: rows.filter((r) => r.setupCode === o.value).length,
+    })).filter((c) => c.count > 0);
+  }, [isGamingLocation, locationId, routeLocation.pathname]);
   const facilityTypeOptions = useMemo(
     () => Array.from(new Set(allFacilities.map((f) => f.type))).sort((a, b) => a.localeCompare(b)),
     [allFacilities],
@@ -246,7 +281,11 @@ export default function AddFacilityPage() {
     setDeletingId(row.id);
     setErr(null);
     try {
-      await deleteFacilityByCode(row.code as FacilityRowCode, row.id);
+      await deleteFacilityByCode(
+        row.code as FacilityRowCode,
+        row.id,
+        rowLocId || undefined,
+      );
       await reloadFacilitiesFor(locationId, locations);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to delete facility');
@@ -316,6 +355,8 @@ export default function AddFacilityPage() {
             linkedTwinCourtId: primary.id,
           });
         }
+      } else if (isGamingSetupCode(row.code)) {
+        duplicateGamingStation(businessLocationId, row.id);
       }
       setDupModal(null);
       await reloadFacilitiesFor(locationId, locations);
@@ -413,6 +454,29 @@ export default function AddFacilityPage() {
             <h2>Available facility types</h2>
             <p className="muted" style={{ marginTop: '0.45rem' }}>
               No facilities added yet for this location.
+            </p>
+          </div>
+        )
+      ) : isGamingLocation ? (
+        gamingFacilityCards.length > 0 ? (
+          <div className="connection-grid" style={{ marginTop: '1rem' }}>
+            {gamingFacilityCards.map((card) => (
+              <div
+                key={card.key}
+                className="connection-panel"
+                style={{ margin: 0, padding: '0.9rem 1rem' }}
+              >
+                <h2>{card.label}</h2>
+                <strong style={{ fontSize: '1.25rem' }}>{card.count}</strong>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="connection-panel" style={{ marginTop: '1rem' }}>
+            <h2>Gaming stations</h2>
+            <p className="muted" style={{ marginTop: '0.45rem' }}>
+              No stations saved yet. Use the buttons above (stored in this browser
+              until the gaming API is connected).
             </p>
           </div>
         )

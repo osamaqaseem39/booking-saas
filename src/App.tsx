@@ -101,7 +101,7 @@ export default function App() {
             <Route
               path="locations/new"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner']}>
                   <LocationCreatePage />
                 </RequireRoles>
               }

@@ -3,19 +3,25 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CricketCourtSetupForm } from '../components/CricketCourtSetupForm';
 import { FutsalCourtSetupForm } from '../components/FutsalCourtSetupForm';
 import { PadelCourtSetupForm } from '../components/PadelCourtSetupForm';
+import { GamingFacilitySetupForm } from '../components/gaming/GamingFacilitySetupForm';
 import { listBusinessLocations } from '../api/saasClient';
+import {
+  GAMING_SETUP_CODES,
+  isGamingSetupCode,
+} from '../constants/gamingFacilityTypes';
 import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
 } from '../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../types/domain';
 
-const EDITABLE_CODES = new Set([
+const EDITABLE_CODES = new Set<string>([
   FUTSAL_COURT_SETUP_CODE,
   CRICKET_COURT_SETUP_CODE,
   'padel-court',
   'futsal-field',
   'cricket-indoor',
+  ...GAMING_SETUP_CODES,
 ]);
 
 export default function FacilityEditPage() {
@@ -75,6 +81,8 @@ export default function FacilityEditPage() {
       : facilityCode === CRICKET_COURT_SETUP_CODE
         ? 'cricket-court'
         : facilityCode;
+
+  const gamingEditCode = isGamingSetupCode(facilityCode) ? facilityCode : null;
 
   if (!locationId || !courtId || !facilityCode) {
     return <p className="muted">Missing route parameters.</p>;
@@ -150,6 +158,18 @@ export default function FacilityEditPage() {
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
+            onSuccess={() => navigate('/app/Facilites')}
+          />
+        </div>
+      ) : null}
+
+      {gamingEditCode && location ? (
+        <div className="turf-setup-page" style={{ marginTop: '1rem' }}>
+          <GamingFacilitySetupForm
+            facilityCode={gamingEditCode}
+            locationId={locationId}
+            locations={locations}
+            existingStationId={courtId}
             onSuccess={() => navigate('/app/Facilites')}
           />
         </div>
