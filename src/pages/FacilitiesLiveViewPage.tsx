@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  createBooking,
+  createIamUser,
+  getBookingAvailability,
   getBusinessDashboardView,
+  listIamUsers,
   listBookingsForTenant,
   listBusinessLocations,
   listCricketCourts,
@@ -10,6 +14,7 @@ import {
 } from '../api/saasClient';
 import type { BookingRecord } from '../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../types/domain';
+import { formatTime12h } from '../utils/timeDisplay';
 import {
   computeFacilityLiveSnapshot,
   facilityTypeToCourtKind,
@@ -24,6 +29,63 @@ type FacilityCardRow = {
   facilityStatus?: string;
   facilityIsActive?: boolean;
 };
+
+type QuickBookingState = {
+  facility: FacilityCardRow;
+  location: BusinessLocationRow | null;
+  date: string;
+  startTime: string;
+  durationMins: number;
+  phone: string;
+};
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function localDateYmd(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  return `${y}-${m}-${day}`;
+}
+
+function nextHalfHourTime(now = new Date()): string {
+  const d = new Date(now);
+  d.setSeconds(0, 0);
+  const mins = d.getMinutes();
+  if (mins <= 30) d.setMinutes(30, 0, 0);
+  else d.setHours(d.getHours() + 1, 0, 0, 0);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map((x) => Number(x || 0));
+  return h * 60 + m;
+}
+
+function minutesToTime(v: number): string {
+  const hh = Math.floor(v / 60) % 24;
+  const mm = v % 60;
+  return `${pad2(hh)}:${pad2(mm)}`;
+}
+
+function endTimeFrom(startTime: string, durationMins: number): string {
+  const end = Math.min(timeToMinutes(startTime) + durationMins, 23 * 60 + 30);
+  return minutesToTime(end);
+}
+
+function digitsOnly(v: string): string {
+  return v.replace(/\D/g, '');
+}
+
+function normalizePhone(value: string): string {
+  const digits = digitsOnly(value);
+  if (!digits) return '+92';
+  if (digits.startsWith('92')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+92${digits.slice(1)}`;
+  return `+92${digits}`;
+}
 
 function tenantForLocation(
   loc: BusinessLocationRow | undefined,
@@ -46,6 +108,11 @@ export default function FacilitiesLiveViewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quickBooking, setQuickBooking] = useState<QuickBookingState | null>(null);
+  const [quickPrice, setQuickPrice] = useState<number | null>(null);
+  const [quickPriceLoading, setQuickPriceLoading] = useState(false);
+  const [quickBookingSubmitting, setQuickBookingSubmitting] = useState(false);
+  const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
   /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
   useEffect(() => {
@@ -185,6 +252,139 @@ export default function FacilitiesLiveViewPage() {
   const typeLabel = (t: FacilityCardRow['type']) =>
     t === 'futsalCourt' ? 'Futsal' : t === 'cricketCourt' ? 'Cricket' : 'Padel';
 
+  const loadQuickPrice = useCallback(async (state: QuickBookingState) => {
+    const sportType =
+      state.facility.type === 'futsalCourt'
+        ? 'futsal'
+        : state.facility.type === 'cricketCourt'
+          ? 'cricket'
+          : 'padel';
+    const startTime = state.startTime;
+    const endTime = endTimeFrom(startTime, state.durationMins);
+    setQuickPriceLoading(true);
+    try {
+      const avail = await getBookingAvailability({
+        date: state.date,
+        startTime,
+        endTime,
+        sportType,
+      });
+      const courtKind = facilityTypeToCourtKind(state.facility.type);
+      const row = avail.availableCourts.find(
+        (c) => c.kind === courtKind && c.id === state.facility.id,
+      );
+      if (!row || row.pricePerSlot == null) {
+        setQuickPrice(null);
+        return;
+      }
+      const slotDuration = row.slotDurationMinutes && row.slotDurationMinutes > 0 ? row.slotDurationMinutes : 60;
+      const computed = row.pricePerSlot * (state.durationMins / slotDuration);
+      setQuickPrice(Number.isFinite(computed) ? Math.max(0, Math.round(computed)) : null);
+    } catch {
+      setQuickPrice(null);
+    } finally {
+      setQuickPriceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!quickBooking) return;
+    void loadQuickPrice(quickBooking);
+  }, [quickBooking, loadQuickPrice]);
+
+  useEffect(() => {
+    if (!quickBooking) return;
+    const maxStart = 23 * 60 + 30 - quickBooking.durationMins;
+    if (timeToMinutes(quickBooking.startTime) <= maxStart) return;
+    setQuickBooking((cur) =>
+      cur ? { ...cur, startTime: minutesToTime(Math.max(0, maxStart)) } : cur,
+    );
+  }, [quickBooking]);
+
+  async function submitQuickBooking(): Promise<void> {
+    if (!quickBooking) return;
+    const location = quickBooking.location;
+    if (!location) {
+      setQuickBookingError('Location is required for booking.');
+      return;
+    }
+    const phone = normalizePhone(quickBooking.phone);
+    const digits = digitsOnly(phone);
+    if (!digits) {
+      setQuickBookingError('Phone number is required.');
+      return;
+    }
+    const startTime = quickBooking.startTime;
+    const endTime = endTimeFrom(startTime, quickBooking.durationMins);
+    if (quickPrice == null) {
+      setQuickBookingError('Price is unavailable for this slot. Try another time.');
+      return;
+    }
+    const sportType =
+      quickBooking.facility.type === 'futsalCourt'
+        ? 'futsal'
+        : quickBooking.facility.type === 'cricketCourt'
+          ? 'cricket'
+          : 'padel';
+    const courtKind = facilityTypeToCourtKind(quickBooking.facility.type);
+
+    setQuickBookingError(null);
+    setQuickBookingSubmitting(true);
+    try {
+      const users = await listIamUsers();
+      const existing =
+        users.find((u) => {
+          const p = digitsOnly(u.phone ?? '');
+          return p && (p === digits || p.endsWith(digits) || digits.endsWith(p));
+        }) ?? null;
+      let userId = existing?.id ?? '';
+      if (!userId) {
+        const created = await createIamUser({
+          fullName: `Guest ${digits.slice(-4) || 'User'}`,
+          email: `quick-${digits}-${Date.now()}@bukit.local`,
+          phone,
+          password: `Quick!${Math.random().toString(36).slice(2, 8)}9`,
+        });
+        userId = created.id;
+      }
+
+      await createBooking({
+        userId,
+        sportType,
+        bookingDate: quickBooking.date,
+        items: [
+          {
+            courtKind,
+            courtId: quickBooking.facility.id,
+            startTime,
+            endTime,
+            price: quickPrice,
+            currency: location.currency ?? 'PKR',
+            status: 'reserved',
+          },
+        ],
+        pricing: {
+          subTotal: quickPrice,
+          discount: 0,
+          tax: 0,
+          totalAmount: quickPrice,
+        },
+        payment: {
+          paymentStatus: 'pending',
+          paymentMethod: 'cash',
+        },
+        bookingStatus: 'pending',
+      });
+
+      setQuickBooking(null);
+      await load(true);
+    } catch (e) {
+      setQuickBookingError(e instanceof Error ? e.message : 'Failed to create quick booking.');
+    } finally {
+      setQuickBookingSubmitting(false);
+    }
+  }
+
   return (
     <div className="owner-live-view">
       <div className="owner-live-head">
@@ -252,7 +452,46 @@ export default function FacilitiesLiveViewPage() {
                     : 'facilities-live-box facilities-live-box--idle';
 
             return (
-              <article key={cardId} className={boxClass}>
+              <article
+                key={cardId}
+                className={boxClass}
+                role="button"
+                tabIndex={0}
+                style={{ cursor: 'pointer' }}
+                onClick={() =>
+                  {
+                    const defaultDuration = 60;
+                    const nowStart = nextHalfHourTime();
+                    const maxStart = 23 * 60 + 30 - defaultDuration;
+                    const safeStart = timeToMinutes(nowStart) <= maxStart ? nowStart : minutesToTime(maxStart);
+                    setQuickBooking({
+                      facility,
+                      location: location ?? null,
+                      date: localDateYmd(),
+                      startTime: safeStart,
+                      durationMins: defaultDuration,
+                      phone: '+92',
+                    });
+                  }
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const defaultDuration = 60;
+                    const nowStart = nextHalfHourTime();
+                    const maxStart = 23 * 60 + 30 - defaultDuration;
+                    const safeStart = timeToMinutes(nowStart) <= maxStart ? nowStart : minutesToTime(maxStart);
+                    setQuickBooking({
+                      facility,
+                      location: location ?? null,
+                      date: localDateYmd(),
+                      startTime: safeStart,
+                      durationMins: defaultDuration,
+                      phone: '+92',
+                    });
+                  }
+                }}
+              >
                 <div className="facilities-live-box__top">
                   <div>
                     <h2 className="facilities-live-box__title">{facility.name}</h2>
@@ -328,6 +567,143 @@ export default function FacilitiesLiveViewPage() {
           )}
         </div>
       )}
+      {quickBooking ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 18, 28, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 80,
+            padding: '1rem',
+          }}
+          role="presentation"
+          onClick={() => {
+            if (!quickBookingSubmitting) setQuickBooking(null);
+          }}
+        >
+          <div
+            className="connection-panel"
+            style={{ maxWidth: '560px', width: '100%' }}
+            role="dialog"
+            aria-labelledby="quick-booking-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="quick-booking-title" style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+              Quick booking
+            </h2>
+            <div className="form-grid">
+              {quickBookingError && <div className="err-banner">{quickBookingError}</div>}
+              <div className="detail-row">
+                <span>Location</span>
+                <span>{quickBooking.location?.name ?? '—'}</span>
+              </div>
+              <div className="detail-row">
+                <span>Facility</span>
+                <span>{quickBooking.facility.name}</span>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Date</label>
+                  <input
+                    value={quickBooking.date}
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <label>Start time</label>
+                  <select
+                    value={quickBooking.startTime}
+                    onChange={(e) =>
+                      setQuickBooking((cur) => (cur ? { ...cur, startTime: e.target.value } : cur))
+                    }
+                    disabled={quickBookingSubmitting}
+                  >
+                    {Array.from({ length: 48 }).map((_, i) => {
+                      const mins = i * 30;
+                      const maxStart = 23 * 60 + 30 - quickBooking.durationMins;
+                      if (mins > maxStart) return null;
+                      const value = minutesToTime(mins);
+                      return (
+                        <option key={value} value={value}>
+                          {formatTime12h(value)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Duration</label>
+                  <select
+                    value={String(quickBooking.durationMins)}
+                    onChange={(e) =>
+                      setQuickBooking((cur) =>
+                        cur ? { ...cur, durationMins: Number(e.target.value) || 60 } : cur,
+                      )
+                    }
+                    disabled={quickBookingSubmitting}
+                  >
+                    {[30, 60, 90, 120, 150, 180].map((m) => (
+                      <option key={m} value={m}>
+                        {m} min
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>End time</label>
+                  <input value={formatTime12h(endTimeFrom(quickBooking.startTime, quickBooking.durationMins))} readOnly />
+                </div>
+              </div>
+              <div className="detail-row">
+                <span>Price (backend)</span>
+                <span>
+                  {quickPriceLoading
+                    ? 'Loading...'
+                    : quickPrice == null
+                      ? 'Unavailable'
+                      : `PKR ${quickPrice}`}
+                </span>
+              </div>
+              <div>
+                <label>Number</label>
+                <input
+                  value={quickBooking.phone}
+                  onChange={(e) =>
+                    setQuickBooking((cur) =>
+                      cur ? { ...cur, phone: normalizePhone(e.target.value) } : cur,
+                    )
+                  }
+                  placeholder="+92..."
+                  disabled={quickBookingSubmitting}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn-ghost btn-compact"
+                onClick={() => setQuickBooking(null)}
+                disabled={quickBookingSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary btn-compact"
+                onClick={() => void submitQuickBooking()}
+                disabled={quickBookingSubmitting || quickPriceLoading || quickPrice == null}
+              >
+                {quickBookingSubmitting ? 'Booking...' : 'Confirm booking'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

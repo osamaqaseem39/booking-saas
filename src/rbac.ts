@@ -56,6 +56,16 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    to: '/app/bookings/new',
+    label: 'Add booking',
+    anyOf: [
+      'platform-owner',
+      'business-admin',
+      'business-staff',
+      'customer-end-user',
+    ],
+  },
+  {
     to: '/app/time-slots',
     label: 'Time slots',
     anyOf: ['platform-owner', 'business-admin', 'business-staff'],
