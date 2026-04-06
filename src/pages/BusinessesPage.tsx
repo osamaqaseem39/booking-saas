@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { deleteBusiness, listBusinesses } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import type { BusinessRow } from '../types/domain';
@@ -15,6 +15,7 @@ export default function BusinessesPage() {
   const [sortBy, setSortBy] = useState<'name' | 'tenantId' | 'members'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const { session, setTenantId } = useSession();
+  const navigate = useNavigate();
   const canCreateBusiness = (session?.roles ?? []).includes('platform-owner');
 
   async function reloadBusinesses() {
@@ -210,7 +211,13 @@ export default function BusinessesPage() {
             </thead>
             <tbody>
               {filteredRows.map((b) => (
-                <tr key={b.id}>
+                <tr
+                  key={b.id}
+                  onClick={() => {
+                    setTenantId(b.tenantId);
+                    navigate(`/app/businesses/${b.id}`);
+                  }}
+                >
                   <td>{b.businessName}</td>
                   <td>
                     <code style={{ fontSize: '0.75rem' }}>{b.tenantId}</code>
@@ -219,13 +226,16 @@ export default function BusinessesPage() {
                   <td>{toProperCase(b.status ?? 'active')}</td>
                   <td>{b.memberships?.length ?? 0}</td>
                   <td style={{ width: '260px' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div
+                      style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Link
                         to={`/app/businesses/${b.id}`}
                         className="action-link"
                         onClick={() => setTenantId(b.tenantId)}
                       >
-                        Tenant Stats
+                        View
                       </Link>
                       <Link
                         to={`/app/businesses/${b.id}/edit`}

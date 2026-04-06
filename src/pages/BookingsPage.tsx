@@ -81,6 +81,12 @@ export default function BookingsPage() {
   const [gameFilter, setGameFilter] = useState<
     'all' | 'upcoming' | 'completed' | 'canceled'
   >('all');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<
+    'all' | BookingStatus
+  >('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<
+    'all' | PaymentStatus
+  >('all');
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
@@ -100,6 +106,13 @@ export default function BookingsPage() {
       if (dayFilter === 'tomorrow' && b.bookingDate !== tomorrow) return false;
       if (gameFilter === 'completed' && b.bookingStatus !== 'completed') return false;
       if (gameFilter === 'canceled' && b.bookingStatus !== 'cancelled') return false;
+      if (bookingStatusFilter !== 'all' && b.bookingStatus !== bookingStatusFilter)
+        return false;
+      if (
+        paymentStatusFilter !== 'all' &&
+        b.payment.paymentStatus !== paymentStatusFilter
+      )
+        return false;
       if (gameFilter === 'upcoming') {
         const isUpcomingDate = b.bookingDate >= today;
         const isOpenStatus = b.bookingStatus === 'pending' || b.bookingStatus === 'confirmed';
@@ -107,7 +120,14 @@ export default function BookingsPage() {
       }
       return true;
     });
-  }, [bookings, dayFilter, gameFilter, selectedLocationId]);
+  }, [
+    bookings,
+    dayFilter,
+    gameFilter,
+    selectedLocationId,
+    bookingStatusFilter,
+    paymentStatusFilter,
+  ]);
   const bookingStats = useMemo(() => {
     const total = filteredBookings.length;
     const pending = filteredBookings.filter((b) => b.bookingStatus === 'pending').length;
@@ -295,6 +315,51 @@ export default function BookingsPage() {
           </button>
         </div>
       </div>
+      <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.75rem',
+            alignItems: 'end',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ minWidth: '180px' }}>
+            <label>Booking status</label>
+            <select
+              value={bookingStatusFilter}
+              onChange={(e) =>
+                setBookingStatusFilter(e.target.value as 'all' | BookingStatus)
+              }
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no_show">No Show</option>
+            </select>
+          </div>
+          <div style={{ minWidth: '180px' }}>
+            <label>Payment status</label>
+            <select
+              value={paymentStatusFilter}
+              onChange={(e) =>
+                setPaymentStatusFilter(e.target.value as 'all' | PaymentStatus)
+              }
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
+            </select>
+          </div>
+          <span className="muted" style={{ marginLeft: 'auto', paddingBottom: '0.2rem' }}>
+            Showing {filteredBookings.length} of {bookings.length} bookings
+          </span>
+        </div>
+      </section>
       {error && <div className="err-banner">{error}</div>}
       <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
         <h3 style={{ marginBottom: '0.6rem' }}>Quick filters</h3>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Navigate, Outlet } from 'react-router-dom';
+import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { listBusinesses, listBusinessLocations } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { navSectionsForRoles } from '../rbac';
@@ -26,6 +26,7 @@ export default function ConsoleLayout() {
   const [dashboardLocations, setDashboardLocations] = useState<BusinessLocationRow[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const location = useLocation();
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -165,20 +166,69 @@ export default function ConsoleLayout() {
           </button>
         </div>
         <div className="console-nav-main">
-          {navMain.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/app'}
-              className={({ isActive }) => (isActive ? 'active' : '')}
-              title={isNavCollapsed ? item.label : undefined}
-            >
-              <span className="console-nav-link-icon" aria-hidden="true">
-                {navIconForPath(item.to)}
-              </span>
-              {!isNavCollapsed ? <span>{item.label}</span> : null}
-            </NavLink>
-          ))}
+          {navMain.map((item) => {
+            const subs = item.children ?? [];
+            const childPaths = new Set(subs.map((s) => s.to));
+            const childActive =
+              subs.length > 0 &&
+              (childPaths.has(location.pathname) ||
+                subs.some((s) => location.pathname.startsWith(`${s.to}/`)));
+            return (
+              <div key={item.to} className="console-nav-group">
+                <NavLink
+                  to={item.to}
+                  end={item.to === '/app'}
+                  className={({ isActive }) =>
+                    [
+                      subs.length ? 'console-nav-parent' : '',
+                      isActive ? 'active' : '',
+                      subs.length && childActive ? 'console-nav-parent--open' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
+                  }
+                  title={isNavCollapsed ? item.label : undefined}
+                >
+                  <span className="console-nav-link-icon" aria-hidden="true">
+                    {navIconForPath(item.to)}
+                  </span>
+                  {!isNavCollapsed ? <span>{item.label}</span> : null}
+                </NavLink>
+                {subs.length > 0 && !isNavCollapsed ? (
+                  <div className="console-nav-sub" role="group" aria-label={`${item.label} submenu`}>
+                    {subs.map((sub) => (
+                      <NavLink
+                        key={sub.to}
+                        to={sub.to}
+                        end
+                        className={({ isActive }) => (isActive ? 'active' : '')}
+                      >
+                        <span className="console-nav-link-icon" aria-hidden="true">
+                          {navIconForPath(sub.to)}
+                        </span>
+                        <span>{sub.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                ) : null}
+                {subs.length > 0 && isNavCollapsed
+                  ? subs.map((sub) => (
+                      <NavLink
+                        key={sub.to}
+                        to={sub.to}
+                        end
+                        className={({ isActive }) => (isActive ? 'active' : '')}
+                        title={sub.label}
+                      >
+                        <span className="console-nav-link-icon" aria-hidden="true">
+                          {navIconForPath(sub.to)}
+                        </span>
+                      </NavLink>
+                    ))
+                  : null}
+              </div>
+            );
+          })}
         </div>
         {navFooter.length > 0 ? (
           <>

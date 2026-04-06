@@ -6,6 +6,7 @@ import {
   getCourtSlotGrid,
   listBookings,
   listBookingsForTenant,
+  listBusinesses,
   listBusinessLocations,
   listCourtOptions,
   listIamUsers,
@@ -18,7 +19,7 @@ import type {
   BookingSportType,
   CourtKind,
 } from '../types/booking';
-import type { BusinessLocationRow, IamUserRow } from '../types/domain';
+import type { BusinessLocationRow, BusinessRow, IamUserRow } from '../types/domain';
 import { normalizePhoneForStorage } from '../utils/phone';
 import { formatTime12h } from '../utils/timeDisplay';
 
@@ -308,8 +309,10 @@ function ButtonOptionGroup({
 export default function BookingCreatePage() {
   const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
-  const { tenantId } = useSession();
+  const { tenantId, setTenantId, session } = useSession();
+  const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
+  const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [users, setUsers] = useState<IamUserRow[]>([]);
@@ -416,6 +419,25 @@ export default function BookingCreatePage() {
   }, [bookingDateChoices, bookingDate]);
 
   useEffect(() => {
+    if (!isPlatformOwner) return;
+    void (async () => {
+      try {
+        setBusinesses(await listBusinesses());
+      } catch {
+        setBusinesses([]);
+      }
+    })();
+  }, [isPlatformOwner]);
+
+  useEffect(() => {
+    if (!isPlatformOwner || businesses.length === 0) return;
+    const valid = businesses.some((b) => b.tenantId === tenantId);
+    if (!tenantId.trim() || !valid) {
+      setTenantId(businesses[0].tenantId);
+    }
+  }, [isPlatformOwner, businesses, tenantId, setTenantId]);
+
+  useEffect(() => {
     void (async () => {
       try {
         const rows: IamUserRow[] = await listIamUsers();
@@ -424,6 +446,13 @@ export default function BookingCreatePage() {
         setUsers([]);
       }
     })();
+  }, [tenantId]);
+
+  useEffect(() => {
+    if (!tenantId.trim()) {
+      setLocations([]);
+      return;
+    }
     void (async () => {
       try {
         const rows = await listBusinessLocations();
@@ -432,13 +461,18 @@ export default function BookingCreatePage() {
         setLocations([]);
       }
     })();
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     if (topbarLocationLocked) {
       setFacilityLocationId(selectedLocationId);
     }
   }, [selectedLocationId, topbarLocationLocked]);
+
+  useEffect(() => {
+    if (topbarLocationLocked) return;
+    setFacilityLocationId('');
+  }, [tenantId, topbarLocationLocked]);
 
   useEffect(() => {
     void (async () => {
@@ -581,7 +615,11 @@ export default function BookingCreatePage() {
 
   async function submitCreate() {
     if (!tenantId.trim()) {
-      setError('Pick an active tenant in the top bar.');
+      setError(
+        isPlatformOwner
+          ? 'Select a business before creating a booking.'
+          : 'Pick an active tenant in the top bar.',
+      );
       return;
     }
     setError(null);
@@ -757,7 +795,11 @@ export default function BookingCreatePage() {
       </p>
       <h1 className="page-title">Add booking</h1>
       {!tenantId.trim() && (
-        <div className="err-banner">Pick an active tenant in the top bar.</div>
+        <div className="err-banner">
+          {isPlatformOwner
+            ? 'Select a business below to load locations and facilities.'
+            : 'Pick an active tenant in the top bar.'}
+        </div>
       )}
       {error && <div className="err-banner">{error}</div>}
 
@@ -765,6 +807,31 @@ export default function BookingCreatePage() {
         <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '2fr 1fr' }}>
           <div>
         <div className="form-grid">
+          {isPlatformOwner && (
+            <>
+              <h3 style={{ marginBottom: '0.2rem' }}>Business</h3>
+              <div>
+                <label htmlFor="booking-business-tenant">Business</label>
+                <select
+                  id="booking-business-tenant"
+                  value={tenantId}
+                  onChange={(e) => setTenantId(e.target.value)}
+                  disabled={businesses.length === 0}
+                >
+                  {businesses.map((b) => (
+                    <option key={b.id} value={b.tenantId}>
+                      {b.businessName}
+                      {b.tenantId ? ` · ${b.tenantId.slice(0, 8)}…` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="muted" style={{ marginTop: '0.35rem', marginBottom: 0 }}>
+                  The booking is created for this tenant. Change business to pick a different
+                  location and facilities.
+                </p>
+              </div>
+            </>
+          )}
           <h3 style={{ marginBottom: '0.2rem' }}>Customer</h3>
           <div>
             <label>Customer phone (required)</label>
