@@ -570,6 +570,54 @@ table.data tbody tr:last-child td {
   color: var(--muted);
 }
 
+.sport-badge--futsal {
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  background: rgba(6, 78, 59, 0.35);
+}
+
+.sport-badge--cricket {
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(120, 53, 15, 0.3);
+}
+
+.sport-badge--padel {
+  color: #a78bfa;
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  background: rgba(67, 56, 202, 0.24);
+}
+
+.sport-stat-card--futsal {
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.12);
+}
+
+.sport-stat-card--futsal .overview-metric-label,
+.sport-stat-card--futsal .overview-metric-value {
+  color: #34d399;
+}
+
+.sport-stat-card--cricket {
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.12);
+}
+
+.sport-stat-card--cricket .overview-metric-label,
+.sport-stat-card--cricket .overview-metric-value {
+  color: #fbbf24;
+}
+
+.sport-stat-card--padel {
+  border-color: rgba(167, 139, 250, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.12);
+}
+
+.sport-stat-card--padel .overview-metric-label,
+.sport-stat-card--padel .overview-metric-value {
+  color: #a78bfa;
+}
+
 .detail-card {
   background: var(--surface);
   border: 1px solid var(--border);

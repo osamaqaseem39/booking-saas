@@ -46,6 +46,14 @@ function titleCaseWords(v: string): string {
     .join(' ');
 }
 
+function sportBadgeClass(sport: string | null | undefined): string {
+  const normalized = (sport ?? '').toLowerCase();
+  if (normalized === 'futsal') return 'badge sport-badge sport-badge--futsal';
+  if (normalized === 'cricket') return 'badge sport-badge sport-badge--cricket';
+  if (normalized === 'padel') return 'badge sport-badge sport-badge--padel';
+  return 'badge badge-neutral';
+}
+
 export default function BookingsPage() {
   const navigate = useNavigate();
   const { tenantId } = useSession();
@@ -110,6 +118,16 @@ export default function BookingsPage() {
     const paid = filteredBookings.filter((b) => b.payment.paymentStatus === 'paid').length;
     const revenue = filteredBookings.reduce((sum, b) => sum + (b.pricing.totalAmount || 0), 0);
     return { total, pending, confirmed, cancelled, paid, revenue };
+  }, [filteredBookings]);
+  const sportStats = useMemo(() => {
+    const stats = { futsal: 0, cricket: 0, padel: 0 };
+    for (const b of filteredBookings) {
+      const sport = (b.sportType ?? '').toLowerCase();
+      if (sport === 'futsal') stats.futsal += 1;
+      else if (sport === 'cricket') stats.cricket += 1;
+      else if (sport === 'padel') stats.padel += 1;
+    }
+    return stats;
   }, [filteredBookings]);
 
   const refresh = useCallback(async () => {
@@ -338,6 +356,20 @@ export default function BookingsPage() {
             </strong>
           </article>
         </div>
+        <div className="overview-totals-grid" style={{ marginTop: '0.55rem' }}>
+          <article className="overview-metric-card sport-stat-card sport-stat-card--futsal">
+            <span className="overview-metric-label">Futsal bookings</span>
+            <strong className="overview-metric-value">{sportStats.futsal}</strong>
+          </article>
+          <article className="overview-metric-card sport-stat-card sport-stat-card--cricket">
+            <span className="overview-metric-label">Cricket bookings</span>
+            <strong className="overview-metric-value">{sportStats.cricket}</strong>
+          </article>
+          <article className="overview-metric-card sport-stat-card sport-stat-card--padel">
+            <span className="overview-metric-label">Padel bookings</span>
+            <strong className="overview-metric-value">{sportStats.padel}</strong>
+          </article>
+        </div>
       </section>
       <div className="main-area" style={{ marginBottom: '0.75rem' }}>
         <section className="detail-card" style={{ gridColumn: '1 / -1' }}>
@@ -508,7 +540,11 @@ export default function BookingsPage() {
                       <td>{b.bookingDate}</td>
                       <td>{user?.name ?? `User ${b.userId.slice(0, 8)}`}</td>
                       <td>{user?.phone ?? '-'}</td>
-                      <td>{b.sportType}</td>
+                      <td>
+                        <span className={sportBadgeClass(b.sportType)}>
+                          {titleCaseWords(b.sportType ?? 'unknown')}
+                        </span>
+                      </td>
                       <td>
                         <span className={badgeClass(b.bookingStatus)}>
                           {b.bookingStatus}
