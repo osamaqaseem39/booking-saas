@@ -76,6 +76,11 @@ function bookingSourceFromRecord(booking: BookingRecord): BookingSource {
   return 'walkin';
 }
 
+function sortArrow(active: boolean, asc: boolean): string {
+  if (!active) return '';
+  return asc ? ' ↑' : ' ↓';
+}
+
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { session, tenantId } = useSession();
@@ -530,34 +535,55 @@ export default function OverviewPage() {
                 <h3 className="overview-subtitle" style={{ margin: 0 }}>
                   Booking list
                 </h3>
-                <div className="filter-chip-row">
-                  {[
-                    ['date_desc', 'Date ↓'],
-                    ['date_asc', 'Date ↑'],
-                    ['amount_desc', 'Amount ↓'],
-                    ['amount_asc', 'Amount ↑'],
-                    ['status', 'Status'],
-                  ].map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={bizListSort === value ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                      onClick={() => setBizListSort(value as typeof bizListSort)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <span className="muted" style={{ fontSize: '0.8rem' }}>
+                  Click Date / Amount / Booking headings to sort
+                </span>
               </div>
               <div className="table-wrap" style={{ marginTop: '1rem' }}>
                 <table className="data">
                   <thead>
                     <tr>
-                      <th>Date</th>
+                      <th
+                        style={{ cursor: 'pointer' }}
+                        onClick={() =>
+                          setBizListSort((cur) =>
+                            cur === 'date_desc' ? 'date_asc' : 'date_desc',
+                          )
+                        }
+                      >
+                        Date
+                        {sortArrow(
+                          bizListSort === 'date_asc' || bizListSort === 'date_desc',
+                          bizListSort === 'date_asc',
+                        )}
+                      </th>
                       <th>Sport</th>
                       <th>Location</th>
-                      <th>Amount</th>
-                      <th>Booking</th>
+                      <th
+                        style={{ cursor: 'pointer' }}
+                        onClick={() =>
+                          setBizListSort((cur) =>
+                            cur === 'amount_desc' ? 'amount_asc' : 'amount_desc',
+                          )
+                        }
+                      >
+                        Amount
+                        {sortArrow(
+                          bizListSort === 'amount_asc' || bizListSort === 'amount_desc',
+                          bizListSort === 'amount_asc',
+                        )}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer' }}
+                        onClick={() =>
+                          setBizListSort((cur) =>
+                            cur === 'status' ? 'date_desc' : 'status',
+                          )
+                        }
+                      >
+                        Booking
+                        {sortArrow(bizListSort === 'status', true)}
+                      </th>
                       <th>Payment</th>
                     </tr>
                   </thead>
