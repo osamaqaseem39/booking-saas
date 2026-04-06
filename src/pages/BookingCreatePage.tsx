@@ -740,6 +740,7 @@ export default function BookingCreatePage() {
                 value={facilityLocationId}
                 onChange={(e) => setFacilityLocationId(e.target.value)}
                 aria-describedby="facility-location-hint"
+                size={Math.min(Math.max(locations.length + 1, 3), 6)}
               >
                 <option value="">All locations</option>
                 {locations.map((loc) => (
@@ -760,6 +761,7 @@ export default function BookingCreatePage() {
               <select
                 value={sport}
                 onChange={(e) => setSport(e.target.value as BookingSportType)}
+                size={3}
               >
                 <option value="futsal">Futsal</option>
                 <option value="cricket">Cricket</option>
@@ -841,6 +843,7 @@ export default function BookingCreatePage() {
                       <select
                         value={ln.facilityKey}
                         onChange={(e) => applyFacility(idx, e.target.value)}
+                        size={Math.min(Math.max(courtOpts.length + 1, 3), 8)}
                       >
                         <option value="">Select…</option>
                         {courtOpts.map((o) => (
@@ -927,6 +930,7 @@ export default function BookingCreatePage() {
                             };
                             setLines(next);
                           }}
+                          size={3}
                         >
                           <option value="reserved">Reserved</option>
                           <option value="confirmed">Confirmed</option>
