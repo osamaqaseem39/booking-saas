@@ -480,46 +480,58 @@ export default function OverviewPage() {
                 </div>
               </div>
 
-              {/* Filters */}
-              <div className="connection-panel overview-panel biz-filter-panel">
-                <div className="filter-chip-group">
-                  <span className="muted">Booking status</span>
-                  <div className="filter-chip-row">
-                    {(['all', 'pending', 'confirmed', 'completed', 'cancelled', 'no_show'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={bizBookingStatus === s ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setBizBookingStatus(s)}
-                      >
-                        {s === 'all' ? 'All' : titleCase(s)}
-                      </button>
-                    ))}
+              <div className="overview-filter-card connection-panel biz-filter-panel">
+                <div className="overview-filter-card-head">
+                  <h3 className="overview-filter-card-title">Booking list filters</h3>
+                  <p className="overview-filter-card-desc muted">
+                    Narrow the table below. Location scope uses the pills in the top bar.
+                  </p>
+                </div>
+                <div className="overview-filter-toolbar">
+                  <div className="overview-filter-field">
+                    <label htmlFor="ov-biz-booking-status">Booking status</label>
+                    <select
+                      id="ov-biz-booking-status"
+                      className="overview-select"
+                      value={bizBookingStatus}
+                      onChange={(e) =>
+                        setBizBookingStatus(e.target.value as typeof bizBookingStatus)
+                      }
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="no_show">No show</option>
+                    </select>
+                  </div>
+                  <div className="overview-filter-field">
+                    <label htmlFor="ov-biz-pay-status">Payment status</label>
+                    <select
+                      id="ov-biz-pay-status"
+                      className="overview-select"
+                      value={bizPayStatus}
+                      onChange={(e) => setBizPayStatus(e.target.value as typeof bizPayStatus)}
+                    >
+                      <option value="all">All payments</option>
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="failed">Failed</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                  </div>
+                  <div className="overview-filter-toolbar-meta">
+                    <span className="overview-result-pill">
+                      {sortedFilteredBookings.length} / {locationFilteredBookings.length} bookings
+                    </span>
+                    {selectedLocationId !== 'all' && (
+                      <span className="overview-scope-pill">
+                        {dashboardLocations.find((l) => l.id === selectedLocationId)?.name ?? 'Location'}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
-                  <span className="muted">Payment status</span>
-                  <div className="filter-chip-row">
-                    {(['all', 'pending', 'paid', 'failed', 'refunded'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={bizPayStatus === s ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setBizPayStatus(s)}
-                      >
-                        {s === 'all' ? 'All' : titleCase(s)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
-                <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.82rem' }}>
-                  Showing {sortedFilteredBookings.length} of {locationFilteredBookings.length} bookings
-                  {selectedLocationId !== 'all' && (
-                    <span> · {dashboardLocations.find((l) => l.id === selectedLocationId)?.name}</span>
-                  )}
-                </p>
-              </div>
               </div>
 
               {/* Booking list */}
@@ -729,100 +741,102 @@ export default function OverviewPage() {
             <p className="muted">Loading all tenants and activity…</p>
           ) : (
             <>
-              <div className="connection-panel overview-panel">
-                <div className="filter-chip-group">
-                  <span className="muted">Date range</span>
-                  <div className="filter-chip-row">
-                    {([
-                      ['7', '7d'],
-                      ['30', '30d'],
-                      ['90', '90d'],
-                      ['all', 'All'],
-                    ] as const).map(([v, label]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className={dateRange === v ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setDateRange(v)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+              <div className="overview-filter-card connection-panel overview-panel">
+                <div className="overview-filter-card-head">
+                  <h3 className="overview-filter-card-title">Tenant table filters</h3>
+                  <p className="overview-filter-card-desc muted">
+                    Controls which bookings and invoices count toward each tenant card.
+                  </p>
                 </div>
-                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
-                  <span className="muted">Booking status</span>
-                  <div className="filter-chip-row">
-                    {(['all', 'pending', 'confirmed', 'cancelled', 'completed', 'no_show'] as const).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className={ownerBookingStatus === v ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setOwnerBookingStatus(v)}
-                      >
-                        {v === 'all' ? 'All' : titleCase(v)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
-                  <span className="muted">Invoice status</span>
-                  <div className="filter-chip-row">
-                    <button
-                      type="button"
-                      className={invoiceStatus === 'all' ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                      onClick={() => setInvoiceStatus('all')}
+                <div className="overview-filter-form">
+                  <div className="overview-filter-field">
+                    <label htmlFor="ov-owner-date-range">Booking date window</label>
+                    <select
+                      id="ov-owner-date-range"
+                      className="overview-select"
+                      value={dateRange}
+                      onChange={(e) => setDateRange(e.target.value as typeof dateRange)}
                     >
-                      All
-                    </button>
-                    {invoiceStatusOptions.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={invoiceStatus === s ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setInvoiceStatus(s)}
-                      >
-                        {titleCase(s)}
-                      </button>
-                    ))}
+                      <option value="7">Last 7 days</option>
+                      <option value="30">Last 30 days</option>
+                      <option value="90">Last 90 days</option>
+                      <option value="all">All time</option>
+                    </select>
                   </div>
-                </div>
-                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
-                  <span className="muted">Sort tenants</span>
-                  <div className="filter-chip-row">
-                    {([
-                      ['bookings', 'Bookings'],
-                      ['invoices', 'Invoices'],
-                      ['locations', 'Locations'],
-                      ['name', 'Name'],
-                    ] as const).map(([v, label]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className={sortBy === v ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setSortBy(v)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="filter-chip"
-                      onClick={() => setOwnerSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                  <div className="overview-filter-field">
+                    <label htmlFor="ov-owner-booking-status">Booking status</label>
+                    <select
+                      id="ov-owner-booking-status"
+                      className="overview-select"
+                      value={ownerBookingStatus}
+                      onChange={(e) =>
+                        setOwnerBookingStatus(e.target.value as typeof ownerBookingStatus)
+                      }
                     >
-                      {ownerSortDir === 'asc' ? 'Asc ↑' : 'Desc ↓'}
-                    </button>
+                      <option value="all">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="completed">Completed</option>
+                      <option value="no_show">No show</option>
+                    </select>
+                  </div>
+                  <div className="overview-filter-field">
+                    <label htmlFor="ov-owner-invoice-status">Invoice status</label>
+                    <select
+                      id="ov-owner-invoice-status"
+                      className="overview-select"
+                      value={invoiceStatus}
+                      onChange={(e) => setInvoiceStatus(e.target.value)}
+                    >
+                      <option value="all">All invoice statuses</option>
+                      {invoiceStatusOptions.map((s) => (
+                        <option key={s} value={s}>
+                          {titleCase(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="overview-filter-field overview-filter-field--sort">
+                    <span className="overview-filter-field-label" id="ov-owner-sort-label">
+                      Sort tenants
+                    </span>
+                    <div className="overview-sort-inline">
+                      <select
+                        id="ov-owner-sort-by"
+                        className="overview-select"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                        aria-labelledby="ov-owner-sort-label"
+                      >
+                        <option value="bookings">By bookings</option>
+                        <option value="invoices">By invoices</option>
+                        <option value="locations">By locations</option>
+                        <option value="name">By business name</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="overview-sort-dir-btn"
+                        title={ownerSortDir === 'desc' ? 'Descending (high → low)' : 'Ascending (low → high)'}
+                        aria-label={
+                          ownerSortDir === 'desc' ? 'Switch to ascending order' : 'Switch to descending order'
+                        }
+                        onClick={() => setOwnerSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                      >
+                        {ownerSortDir === 'desc' ? '↓' : '↑'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <label className="overview-search">
-                  <span className="muted">Search tenant</span>
+                <div className="overview-filter-field overview-filter-field--full">
+                  <label htmlFor="ov-owner-tenant-search">Search tenants</label>
                   <input
-                    className="input"
-                    placeholder="Business name or tenant ID"
+                    id="ov-owner-tenant-search"
+                    placeholder="Business name or tenant ID…"
                     value={tenantQuery}
                     onChange={(e) => setTenantQuery(e.target.value)}
                   />
-                </label>
+                </div>
               </div>
 
               <div className="overview-totals-grid">

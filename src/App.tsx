@@ -12,7 +12,6 @@ import BookingCreatePage from './pages/BookingCreatePage';
 import BookingEditPage from './pages/BookingEditPage';
 import ManageTimeSlotsPage from './pages/ManageTimeSlotsPage';
 import BusinessesPage from './pages/BusinessesPage';
-import EndUsersPage from './pages/EndUsersPage';
 import AddFacilityPage from './pages/AddFacilityPage';
 import FacilityEditPage from './pages/FacilityEditPage';
 import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
@@ -136,14 +135,7 @@ export default function App() {
                 </RequireRoles>
               }
             />
-            <Route
-              path="end-users"
-              element={
-                <RequireRoles anyOf={['platform-owner']}>
-                  <EndUsersPage />
-                </RequireRoles>
-              }
-            />
+            <Route path="end-users" element={<Navigate to="/app/users?kind=customers" replace />} />
             <Route
               path="onboard"
               element={

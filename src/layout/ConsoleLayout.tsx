@@ -132,8 +132,7 @@ export default function ConsoleLayout() {
     if (to === '/app/businesses') return '🏢';
     if (to === '/app/locations') return '📍';
     if (to === '/app/Facilites') return '⚽';
-    if (to === '/app/end-users') return '👥';
-    if (to === '/app/users') return '🧑‍💼';
+    if (to === '/app/users') return '👥';
     if (to === '/app/bookings') return '📅';
     if (to === '/app/bookings/new') return '➕';
     if (to === '/app/time-slots') return '🕒';
