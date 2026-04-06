@@ -520,6 +520,7 @@ export default function OverviewPage() {
                   )}
                 </p>
               </div>
+              </div>
 
               {/* Booking list */}
               <div

@@ -82,6 +82,8 @@ function toLocalDateTime(date: string, time: string): Date {
   return new Date(`${date}T${time}:00`);
 }
 
+const BOOKING_TIMING_LOG = '[BookingTiming][Full]';
+
 function makePassword(): string {
   const rand = Math.random().toString(36).slice(2, 8);
   return `Walkin!${rand}9`;
@@ -379,8 +381,22 @@ export default function BookingCreatePage() {
           const starts = grid.segments
             .filter((s) => s.state === 'free')
             .map((s) => s.startTime);
+          console.info(BOOKING_TIMING_LOG, 'slot-grid-loaded', {
+            lineIndex: idx,
+            courtKind: ln.courtKind,
+            courtId: ln.courtId.trim(),
+            bookingDate,
+            locationClosed: grid.locationClosed,
+            freeSlots: starts.length,
+          });
           next[idx] = { starts, source: 'api' };
         } catch {
+          console.warn(BOOKING_TIMING_LOG, 'slot-grid-fallback-local', {
+            lineIndex: idx,
+            courtKind: ln.courtKind,
+            courtId: ln.courtId.trim(),
+            bookingDate,
+          });
           next[idx] = { starts: [], source: 'local' };
         }
       }
@@ -581,7 +597,7 @@ export default function BookingCreatePage() {
       setError('At least one facility line is required.');
       return;
     }
-    for (const ln of lines) {
+    for (const [idx, ln] of lines.entries()) {
       if (!ln.courtId.trim()) {
         setError('Each line requires a facility.');
         return;
@@ -597,14 +613,43 @@ export default function BookingCreatePage() {
       const startMinutes = timeToMinutes(startTime);
       const endMinutes = timeToMinutes(endTime);
       const duration = endMinutes - startMinutes;
+      console.info(BOOKING_TIMING_LOG, 'line-time-check', {
+        lineIndex: idx,
+        bookingDate,
+        startTime,
+        endTime,
+        duration,
+      });
       if (duration < 30 || startMinutes % 30 !== 0 || endMinutes % 30 !== 0) {
+        console.warn(BOOKING_TIMING_LOG, 'line-time-invalid-interval', {
+          lineIndex: idx,
+          startTime,
+          endTime,
+          duration,
+        });
         setError('Each booking line must use 30-minute intervals (minimum 30 mins).');
         return;
       }
       const startAt = toLocalDateTime(bookingDate, startTime);
       const minStart = new Date(Date.now() + 30 * 60 * 1000);
       if (startAt.getTime() < minStart.getTime()) {
+        console.warn(BOOKING_TIMING_LOG, 'line-time-too-soon', {
+          lineIndex: idx,
+          bookingDate,
+          startTime,
+          minStartIso: minStart.toISOString(),
+        });
         setError('Bookings must be at least 30 minutes in the future.');
+        return;
+      }
+      const slotSource = lineSlotSource[idx];
+      if (slotSource?.source === 'api' && !slotSource.starts.includes(startTime)) {
+        console.warn(BOOKING_TIMING_LOG, 'line-start-not-in-free-slots', {
+          lineIndex: idx,
+          startTime,
+          freeSlotsSample: slotSource.starts.slice(0, 8),
+        });
+        setError('Selected start time is no longer available. Please pick another slot.');
         return;
       }
     }

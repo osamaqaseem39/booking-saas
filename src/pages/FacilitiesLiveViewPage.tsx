@@ -77,6 +77,8 @@ function endTimeFrom(startTime: string, durationMins: number): string {
   return minutesToTime(end);
 }
 
+const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
+
 function digitsOnly(v: string): string {
   return v.replace(/\D/g, '');
 }
@@ -334,6 +336,33 @@ export default function FacilitiesLiveViewPage() {
     }
     const startTime = quickBooking.startTime;
     const endTime = endTimeFrom(startTime, quickBooking.durationMins);
+    const startM = timeToMinutes(startTime);
+    const endM = timeToMinutes(endTime);
+    const duration = endM - startM;
+    console.info(BOOKING_TIMING_LOG, 'time-check', {
+      date: quickBooking.date,
+      startTime,
+      endTime,
+      durationMins: quickBooking.durationMins,
+      computedDuration: duration,
+    });
+    if (duration < 30 || startM % 30 !== 0 || endM % 30 !== 0) {
+      setQuickBookingError(
+        'Quick booking must use 30-minute intervals (minimum 30 minutes).',
+      );
+      return;
+    }
+    const startAt = new Date(`${quickBooking.date}T${startTime}:00`);
+    const minStart = new Date(Date.now() + 30 * 60 * 1000);
+    if (startAt.getTime() < minStart.getTime()) {
+      console.warn(BOOKING_TIMING_LOG, 'time-too-soon', {
+        date: quickBooking.date,
+        startTime,
+        minStartIso: minStart.toISOString(),
+      });
+      setQuickBookingError('Bookings must be at least 30 minutes in the future.');
+      return;
+    }
     if (quickPrice == null) {
       setQuickBookingError('Price is unavailable for this slot. Try another time.');
       return;
@@ -358,17 +387,28 @@ export default function FacilitiesLiveViewPage() {
         useWorkingHours: true,
         availableOnly: false,
       });
+      console.info(BOOKING_TIMING_LOG, 'slot-grid-loaded', {
+        date: quickBooking.date,
+        courtKind,
+        courtId: quickBooking.facility.id,
+        locationClosed: slotGrid.locationClosed,
+        segmentCount: slotGrid.segments.length,
+      });
       if (slotGrid.locationClosed) {
         setQuickBookingError('This location is closed for the selected date/time.');
         return;
       }
-      const startM = timeToMinutes(startTime);
-      const endM = timeToMinutes(endTime);
       for (let m = startM; m < endM; m += 30) {
         const seg = slotGrid.segments.find(
           (s) => timeToMinutes(s.startTime) === m,
         );
         if (!seg || seg.state !== 'free') {
+          console.warn(BOOKING_TIMING_LOG, 'slot-unavailable', {
+            date: quickBooking.date,
+            slot: minutesToTime(m),
+            found: Boolean(seg),
+            state: seg?.state ?? null,
+          });
           setQuickBookingError(
             'Selected slot is not available or outside working hours. Please choose another time.',
           );
