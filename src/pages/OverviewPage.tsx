@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   listBookingsForTenant,
   listBusinesses,
   listBusinessLocations,
   listInvoicesForTenant,
 } from '../api/saasClient';
+import OwnerLiveViewSection from '../components/OwnerLiveViewSection';
 import { useSession } from '../context/SessionContext';
 import type { BookingRecord, BookingStatus } from '../types/booking';
 import type { BusinessLocationRow, BusinessRow, InvoiceRow } from '../types/domain';
 
 export default function OverviewPage() {
   const { session, tenantId } = useSession();
+  const location = useLocation();
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
   const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
+  const showOwnerLive =
+    roles.includes('platform-owner') || roles.includes('business-admin');
 
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
@@ -113,6 +118,14 @@ export default function OverviewPage() {
       }
     })();
   }, [isBusinessUser, tenantId]);
+
+  useEffect(() => {
+    if (location.hash !== '#owner-live-dashboard') return;
+    const el = document.getElementById('owner-live-dashboard');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash, showOwnerLive]);
 
   const invoiceStatusOptions = useMemo(() => {
     const statuses = new Set<string>();
@@ -349,6 +362,7 @@ export default function OverviewPage() {
           )}
         </div>
       )}
+      {showOwnerLive && <OwnerLiveViewSection />}
       {!isPlatformOwner && !isBusinessUser && (
         <p className="muted" style={{ marginTop: '0.5rem' }}>
           Use the sidebar to view bookings, invoices, and tenant tools available for your role.

@@ -24,6 +24,7 @@ import HealthPage from './pages/HealthPage';
 import LoginPage from './pages/LoginPage';
 import OnboardPage from './pages/OnboardPage';
 import OwnerSignupPage from './pages/OwnerSignupPage';
+import BusinessOwnerLiveViewPage from './pages/BusinessOwnerLiveViewPage';
 import FacilitiesLiveViewPage from './pages/FacilitiesLiveViewPage';
 import OverviewPage from './pages/OverviewPage';
 import UserCreatePage from './pages/UserCreatePage';
@@ -244,7 +245,7 @@ export default function App() {
               path="owner-live"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
-                  <Navigate to="/app" replace />
+                  <BusinessOwnerLiveViewPage />
                 </RequireRoles>
               }
             />
