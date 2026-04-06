@@ -99,6 +99,12 @@ type BookingLine = {
   durationMins: number;
   price: string;
   status: BookingItemStatus;
+  slotPage: number;
+};
+
+type ButtonOption = {
+  value: string;
+  label: string;
 };
 
 function defaultLine(): BookingLine {
@@ -110,6 +116,7 @@ function defaultLine(): BookingLine {
     durationMins: 60,
     price: '5000',
     status: 'reserved',
+    slotPage: 0,
   };
 }
 
@@ -260,7 +267,42 @@ function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }>
   return out;
 }
 
+function ButtonOptionGroup({
+  value,
+  options,
+  onChange,
+  emptyText = 'No options available',
+}: {
+  value: string;
+  options: ButtonOption[];
+  onChange: (value: string) => void;
+  emptyText?: string;
+}) {
+  if (options.length === 0) {
+    return <span className="muted">{emptyText}</span>;
+  }
+  return (
+    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            className={active ? 'btn-primary' : 'btn-ghost'}
+            style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', fontSize: '0.86rem' }}
+            onClick={() => onChange(opt.value)}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function BookingCreatePage() {
+  const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
   const { tenantId } = useSession();
   const [error, setError] = useState<string | null>(null);
@@ -694,13 +736,14 @@ export default function BookingCreatePage() {
             <>
               <div>
                 <label>Customer mode</label>
-                <select
+                <ButtonOptionGroup
                   value={customerMode}
-                  onChange={(e) => setCustomerMode(e.target.value as CustomerMode)}
-                >
-                  <option value="walk-in">Walk-in</option>
-                  <option value="existing">Existing (Enter User ID)</option>
-                </select>
+                  onChange={(next) => setCustomerMode(next as CustomerMode)}
+                  options={[
+                    { value: 'walk-in', label: 'Walk-in' },
+                    { value: 'existing', label: 'Existing (Enter User ID)' },
+                  ]}
+                />
               </div>
               {customerMode === 'walk-in' ? (
                 <div className="form-row-2">
@@ -736,20 +779,17 @@ export default function BookingCreatePage() {
           <div className="form-row-2">
             <div>
               <label>Location</label>
-              <select
+              <ButtonOptionGroup
                 value={facilityLocationId}
-                onChange={(e) => setFacilityLocationId(e.target.value)}
-                aria-describedby="facility-location-hint"
-                size={Math.min(Math.max(locations.length + 1, 3), 6)}
-              >
-                <option value="">All locations</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                    {loc.city ? ` · ${loc.city}` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={setFacilityLocationId}
+                options={[
+                  { value: '', label: 'All locations' },
+                  ...locations.map((loc) => ({
+                    value: loc.id,
+                    label: `${loc.name}${loc.city ? ` · ${loc.city}` : ''}`,
+                  })),
+                ]}
+              />
               <p id="facility-location-hint" className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
                 {facilityLocationId.trim()
                   ? 'All facility types at this location are listed below. Lines must still match the selected sport for booking validation.'
@@ -758,28 +798,52 @@ export default function BookingCreatePage() {
             </div>
             <div>
               <label>Sport</label>
-              <select
+              <ButtonOptionGroup
                 value={sport}
-                onChange={(e) => setSport(e.target.value as BookingSportType)}
-                size={3}
-              >
-                <option value="futsal">Futsal</option>
-                <option value="cricket">Cricket</option>
-                <option value="padel">Padel</option>
-              </select>
+                onChange={(next) => setSport(next as BookingSportType)}
+                options={[
+                  { value: 'futsal', label: 'Futsal' },
+                  { value: 'cricket', label: 'Cricket' },
+                  { value: 'padel', label: 'Padel' },
+                ]}
+              />
             </div>
             <div>
               <label>Date</label>
-              <select
-                value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '0.45rem',
+                  flexWrap: 'wrap',
+                  marginTop: '0.35rem',
+                }}
               >
-                {bookingDateChoices.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.day} {d.dateNum} ({d.value})
-                  </option>
-                ))}
-              </select>
+                {bookingDateChoices.map((d) => {
+                  const active = d.value === bookingDate;
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      className={active ? 'btn-primary' : 'btn-ghost'}
+                      style={{
+                        minWidth: '58px',
+                        padding: '0.45rem 0.6rem',
+                        borderRadius: '12px',
+                        fontSize: '0.84rem',
+                        lineHeight: 1.1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.1rem',
+                      }}
+                      onClick={() => setBookingDate(d.value)}
+                    >
+                      <span>{d.day}</span>
+                      <strong>{d.dateNum}</strong>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <div>
@@ -822,6 +886,19 @@ export default function BookingCreatePage() {
               const baseStarts =
                 src?.source === 'api' ? src.starts : fallbackSlots;
               const startSlots = applyMinLeadTimeToStarts(baseStarts, bookingDate);
+              const totalSlides = Math.max(
+                1,
+                Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),
+              );
+              const currentSlide = Math.min(
+                Math.max(ln.slotPage, 0),
+                totalSlides - 1,
+              );
+              const slideStart = currentSlide * INTERVALS_PER_SLIDE;
+              const visibleSlots = startSlots.slice(
+                slideStart,
+                slideStart + INTERVALS_PER_SLIDE,
+              );
               return (
                 <div key={idx} className="item-editor">
                   <div className="item-editor-head">
@@ -840,18 +917,18 @@ export default function BookingCreatePage() {
                   <div className="form-grid">
                     <div>
                       <label>Facility</label>
-                      <select
+                      <ButtonOptionGroup
                         value={ln.facilityKey}
-                        onChange={(e) => applyFacility(idx, e.target.value)}
-                        size={Math.min(Math.max(courtOpts.length + 1, 3), 8)}
-                      >
-                        <option value="">Select…</option>
-                        {courtOpts.map((o) => (
-                          <option key={`${o.kind}:${o.id}`} value={`${o.kind}:${o.id}`}>
-                            {courtOnlyLabel(o.label)}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(next) => applyFacility(idx, next)}
+                        options={[
+                          { value: '', label: 'Select…' },
+                          ...courtOpts.map((o) => ({
+                            value: `${o.kind}:${o.id}`,
+                            label: courtOnlyLabel(o.label),
+                          })),
+                        ]}
+                        emptyText="No facilities available for current filters."
+                      />
                       {location && (
                         <div className="muted" style={{ marginTop: '0.3rem' }}>
                           Working hours:{' '}
@@ -864,43 +941,132 @@ export default function BookingCreatePage() {
                     <div className="form-row-2">
                       <div>
                         <label>Start time ({formatTime12h(startTime)})</label>
-                        {startSlots.length > 0 ? (
-                          <select
-                            value={startTime}
-                            onChange={(e) => {
-                              const next = [...lines];
-                              next[idx] = { ...ln, startMinutes: timeToMinutes(e.target.value) };
-                              setLines(next);
+                        {startSlots.length > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginTop: '0.35rem',
                             }}
                           >
-                            {startSlots.map((slot) => (
-                              <option key={slot} value={slot}>
-                                {formatTime12h(slot)}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <div className="muted" style={{ marginTop: '0.35rem', fontSize: '0.78rem' }}>
-                            No slots available in working hours for this day.
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                              disabled={currentSlide === 0}
+                              onClick={() => {
+                                const next = [...lines];
+                                next[idx] = {
+                                  ...ln,
+                                  slotPage: Math.max(0, currentSlide - 1),
+                                };
+                                setLines(next);
+                              }}
+                            >
+                              Prev
+                            </button>
+                            <span className="muted" style={{ fontSize: '0.78rem' }}>
+                              Slide {currentSlide + 1} / {totalSlides}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                              disabled={currentSlide >= totalSlides - 1}
+                              onClick={() => {
+                                const next = [...lines];
+                                next[idx] = {
+                                  ...ln,
+                                  slotPage: Math.min(totalSlides - 1, currentSlide + 1),
+                                };
+                                setLines(next);
+                              }}
+                            >
+                              Next
+                            </button>
                           </div>
                         )}
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.4rem',
+                            flexWrap: 'nowrap',
+                            overflowX: 'hidden',
+                            paddingBottom: '0.25rem',
+                            marginTop: '0.35rem',
+                          }}
+                        >
+                          {visibleSlots.map((slot) => {
+                            const active = slot === startTime;
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                className={active ? 'btn-primary' : 'btn-ghost'}
+                                style={{
+                                  padding: '0.35rem 0.7rem',
+                                  borderRadius: '999px',
+                                  fontSize: '0.88rem',
+                                  flex: '0 0 auto',
+                                }}
+                                onClick={() => {
+                                  const next = [...lines];
+                                  next[idx] = { ...ln, startMinutes: timeToMinutes(slot) };
+                                  setLines(next);
+                                }}
+                              >
+                                {formatTime12h(slot)}
+                              </button>
+                            );
+                          })}
+                          {startSlots.length === 0 && (
+                            <span className="muted" style={{ fontSize: '0.78rem' }}>
+                              No slots available in working hours for this day.
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <label>Duration</label>
-                        <select
-                          value={String(Math.max(60, ln.durationMins))}
-                          onChange={(e) => {
-                            const next = [...lines];
-                            next[idx] = updateDurationWithPrice(ln, Number(e.target.value));
-                            setLines(next);
-                          }}
-                        >
-                          {[60, 90, 120, 150, 180, 210, 240].map((mins) => (
-                            <option key={mins} value={String(mins)}>
-                              {mins} min
-                            </option>
-                          ))}
-                        </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.45rem 0.8rem', fontSize: '0.92rem' }}
+                            onClick={() => {
+                              const next = [...lines];
+                              next[idx] = updateDurationWithPrice(ln, ln.durationMins);
+                              setLines(next);
+                            }}
+                          >
+                            {Math.max(60, ln.durationMins)} min
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
+                            onClick={() => {
+                              const next = [...lines];
+                              next[idx] = updateDurationWithPrice(ln, ln.durationMins + 30);
+                              setLines(next);
+                            }}
+                          >
+                            +30
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
+                            onClick={() => {
+                              const next = [...lines];
+                              next[idx] = updateDurationWithPrice(ln, ln.durationMins - 30);
+                              setLines(next);
+                            }}
+                          >
+                            -30
+                          </button>
+                        </div>
                         <div className="muted" style={{ marginTop: '0.35rem' }}>
                           End time: {formatTime12h(endTime)}
                         </div>
@@ -920,22 +1086,22 @@ export default function BookingCreatePage() {
                       </div>
                       <div>
                         <label>Status</label>
-                        <select
+                        <ButtonOptionGroup
                           value={ln.status}
-                          onChange={(e) => {
+                          onChange={(nextStatus) => {
                             const next = [...lines];
                             next[idx] = {
                               ...ln,
-                              status: e.target.value as BookingItemStatus,
+                              status: nextStatus as BookingItemStatus,
                             };
                             setLines(next);
                           }}
-                          size={3}
-                        >
-                          <option value="reserved">Reserved</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
+                          options={[
+                            { value: 'reserved', label: 'Reserved' },
+                            { value: 'confirmed', label: 'Confirmed' },
+                            { value: 'cancelled', label: 'Cancelled' },
+                          ]}
+                        />
                       </div>
                     </div>
                   </div>
