@@ -4,6 +4,7 @@ import {
   createBooking,
   createIamUser,
   getBookingAvailability,
+  getCourtSlotGrid,
   getBusinessDashboardView,
   listIamUsers,
   listBookingsForTenant,
@@ -340,6 +341,33 @@ export default function FacilitiesLiveViewPage() {
     setQuickBookingError(null);
     setQuickBookingSubmitting(true);
     try {
+      const slotGrid = await getCourtSlotGrid({
+        courtKind,
+        courtId: quickBooking.facility.id,
+        date: quickBooking.date,
+        startTime,
+        endTime,
+        useWorkingHours: true,
+        availableOnly: false,
+      });
+      if (slotGrid.locationClosed) {
+        setQuickBookingError('This location is closed for the selected date/time.');
+        return;
+      }
+      const startM = timeToMinutes(startTime);
+      const endM = timeToMinutes(endTime);
+      for (let m = startM; m < endM; m += 30) {
+        const seg = slotGrid.segments.find(
+          (s) => timeToMinutes(s.startTime) === m,
+        );
+        if (!seg || seg.state !== 'free') {
+          setQuickBookingError(
+            'Selected slot is not available or outside working hours. Please choose another time.',
+          );
+          return;
+        }
+      }
+
       const users = await listIamUsers();
       const existing =
         users.find((u) => {
