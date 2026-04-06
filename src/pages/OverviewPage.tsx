@@ -377,7 +377,16 @@ export default function OverviewPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="overview-page">
-      <h1 className="page-title">Overview</h1>
+      <div className="page-head-row" style={{ marginBottom: '0.9rem' }}>
+        <h1 className="page-title">Overview</h1>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => navigate('/app/bookings#availability-explorer')}
+        >
+          Check availability
+        </button>
+      </div>
 
       {/* ── Business-user dashboard ── */}
       {isBusinessUser && (

@@ -156,6 +156,16 @@ export default function BookingsPage() {
   }, [refresh]);
 
   useEffect(() => {
+    if (window.location.hash !== '#availability-explorer') return;
+    window.setTimeout(() => {
+      document.getElementById('availability-explorer')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 30);
+  }, []);
+
+  useEffect(() => {
     void (async () => {
       try {
         const users: IamUserRow[] = await listIamUsers();
@@ -240,6 +250,13 @@ export default function BookingsPage() {
     }
   }
 
+  function scrollToAvailability() {
+    document.getElementById('availability-explorer')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }
+
   return (
     <div>
       <h1 className="page-title">Bookings</h1>
@@ -258,6 +275,13 @@ export default function BookingsPage() {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="button" className="btn-ghost" onClick={() => void refresh()} disabled={loading}>
             Refresh
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={scrollToAvailability}
+          >
+            Check availability
           </button>
           <button
             type="button"
@@ -371,7 +395,7 @@ export default function BookingsPage() {
           </article>
         </div>
       </section>
-      <div className="main-area" style={{ marginBottom: '0.75rem' }}>
+      <div id="availability-explorer" className="main-area" style={{ marginBottom: '0.75rem' }}>
         <section className="detail-card" style={{ gridColumn: '1 / -1' }}>
           <h3 style={{ marginBottom: '0.8rem' }}>Court availability explorer</h3>
           <div className="form-grid">

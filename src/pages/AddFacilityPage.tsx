@@ -328,7 +328,12 @@ export default function AddFacilityPage() {
 
   return (
     <div>
-      <h1 className="page-title">Facilities</h1>
+      <div className="page-head-row" style={{ marginBottom: '0.5rem' }}>
+        <h1 className="page-title">Facilities</h1>
+        <Link to="/app/time-slots" className="btn-ghost btn-compact">
+          Time slots
+        </Link>
+      </div>
       {topbarLocationLocked && location ? (
         <p className="muted" style={{ marginTop: '-0.35rem' }}>
           Top bar location filter is active: <strong>{location.name}</strong>
