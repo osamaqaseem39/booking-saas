@@ -1,34 +1,61 @@
-import { useEffect, useState } from 'react';
-import { issueInvoice, listInvoices } from '../api/saasClient';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  issueInvoice,
+  listBusinesses,
+  listInvoices,
+  listInvoicesForTenant,
+} from '../api/saasClient';
+import { useSession } from '../context/SessionContext';
 import type { InvoiceRow } from '../types/domain';
 
 export default function BillingPage() {
+  const { tenantId, session } = useSession();
+  const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState('');
   const [amount, setAmount] = useState('1000');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     void (async () => {
       setErr(null);
       try {
-        setRows(await listInvoices());
+        if (isPlatformOwner) {
+          const biz = await listBusinesses();
+          const chunks = await Promise.all(
+            biz.map((b) =>
+              listInvoicesForTenant(b.tenantId).catch(() => [] as InvoiceRow[]),
+            ),
+          );
+          const merged = chunks.flat();
+          merged.sort((a, b) => a.id.localeCompare(b.id));
+          setRows(merged);
+        } else {
+          if (!tenantId.trim()) {
+            setRows([]);
+            return;
+          }
+          setRows(await listInvoices());
+        }
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load invoices');
       }
     })();
-  };
+  }, [isPlatformOwner, tenantId]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <div>
       <h1 className="page-title">Billing</h1>
       <p className="muted">
-        In-memory invoices per API process. Scoped by active tenant.
+        In-memory invoices per API process.{' '}
+        {isPlatformOwner
+          ? 'As platform owner, the table merges invoices from all businesses.'
+          : 'Scoped by active tenant.'}
       </p>
       {err && <div className="err-banner">{err}</div>}
       <div className="toolbar" style={{ marginBottom: '0.75rem' }}>
@@ -70,7 +97,11 @@ export default function BillingPage() {
       </button>
       <div className="table-wrap">
         {rows.length === 0 ? (
-          <div className="empty-state">No invoices for this tenant.</div>
+          <div className="empty-state">
+            {isPlatformOwner
+              ? 'No invoices across businesses.'
+              : 'No invoices for this tenant.'}
+          </div>
         ) : (
           <table className="data">
             <thead>

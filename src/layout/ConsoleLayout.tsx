@@ -31,6 +31,8 @@ export default function ConsoleLayout() {
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
   const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
+  /** Business + location context in the top bar (hierarchy for ops & stats). */
+  const showBusinessContext = isPlatformOwner || isBusinessUser;
   const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
   const canListBiz = roles.some((r) => r === 'platform-owner' || r === 'business-admin');
 
@@ -60,9 +62,9 @@ export default function ConsoleLayout() {
     }
   }, [businesses, tenantId, setTenantId]);
 
-  // Load locations for business-user topbar filter
+  // Locations for top bar: scoped to active business (tenant)
   useEffect(() => {
-    if (!isBusinessUser || !tenantId.trim()) {
+    if (!showBusinessContext || !tenantId.trim()) {
       setDashboardLocations([]);
       setSelectedLocationId('all');
       return;
@@ -70,12 +72,16 @@ export default function ConsoleLayout() {
     void (async () => {
       try {
         const locs = await listBusinessLocations();
-        setDashboardLocations(locs);
+        const tid = tenantId.trim();
+        const filtered = locs.filter(
+          (l) => (l.business?.tenantId ?? '').trim() === tid,
+        );
+        setDashboardLocations(filtered);
       } catch {
         setDashboardLocations([]);
       }
     })();
-  }, [isBusinessUser, tenantId]);
+  }, [showBusinessContext, tenantId]);
 
   // Reset selection when tenant changes
   useEffect(() => {
@@ -255,10 +261,10 @@ export default function ConsoleLayout() {
       <div className="console-main">
         <header className="console-topbar">
           <div className="console-topbar-left">
-            {!isPlatformOwner && (
+            {showBusinessContext && (
               <div className="tenant-select">
                 <span className="muted" style={{ fontSize: '0.75rem' }}>
-                  Active tenant
+                  Active business
                 </span>
                 {businesses.length > 0 ? (
                   <select
@@ -282,8 +288,8 @@ export default function ConsoleLayout() {
               </div>
             )}
 
-            {/* Location filter — business users only */}
-            {isBusinessUser && dashboardLocations.length > 0 && (
+            {/* Location filter — same tenant as active business */}
+            {showBusinessContext && dashboardLocations.length > 0 && (
               <div className="topbar-loc-bar">
                 <button
                   type="button"

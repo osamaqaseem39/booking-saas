@@ -4,6 +4,8 @@ import {
   getBookingAvailability,
   getCourtBookedSlots,
   listBookings,
+  listBookingsForTenant,
+  listBusinesses,
   listCourtOptions,
   listIamUsers,
   updateBooking,
@@ -56,7 +58,8 @@ function sportBadgeClass(sport: string | null | undefined): string {
 
 export default function BookingsPage() {
   const navigate = useNavigate();
-  const { tenantId } = useSession();
+  const { tenantId, session } = useSession();
+  const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -149,25 +152,44 @@ export default function BookingsPage() {
   }, [filteredBookings]);
 
   const refresh = useCallback(async () => {
-    if (!tenantId.trim()) {
-      setBookings([]);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      const data = await listBookings();
-      setBookings(data);
-      setSelectedId((cur) =>
-        cur && !data.some((b) => b.bookingId === cur) ? null : cur,
-      );
+      if (isPlatformOwner) {
+        const biz = await listBusinesses();
+        const chunks = await Promise.all(
+          biz.map((b) =>
+            listBookingsForTenant(b.tenantId).catch(() => [] as BookingRecord[]),
+          ),
+        );
+        const merged = chunks.flat();
+        merged.sort(
+          (a, b) =>
+            (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
+        );
+        setBookings(merged);
+        setSelectedId((cur) =>
+          cur && !merged.some((b) => b.bookingId === cur) ? null : cur,
+        );
+      } else {
+        if (!tenantId.trim()) {
+          setBookings([]);
+          setSelectedId(null);
+          return;
+        }
+        const data = await listBookings();
+        setBookings(data);
+        setSelectedId((cur) =>
+          cur && !data.some((b) => b.bookingId === cur) ? null : cur,
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load bookings');
       setBookings([]);
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, isPlatformOwner]);
 
   useEffect(() => {
     void refresh();
@@ -282,12 +304,18 @@ export default function BookingsPage() {
   return (
     <div>
       <h1 className="page-title">Bookings</h1>
+      {isPlatformOwner && (
+        <p className="muted" style={{ marginTop: '-0.35rem', marginBottom: '0.65rem' }}>
+          Showing merged bookings for <strong>all businesses</strong>. Use the top bar location
+          filter to narrow to one site.
+        </p>
+      )}
       {selectedLocationId !== 'all' && (
         <p className="muted" style={{ marginTop: '-0.25rem', marginBottom: '0.75rem' }}>
           Top bar location filter is active. Showing bookings for the selected location only.
         </p>
       )}
-      {!tenantId.trim() && (
+      {!tenantId.trim() && !isPlatformOwner && (
         <div className="err-banner">Pick an active tenant in the top bar.</div>
       )}
       <div className="toolbar">

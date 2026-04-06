@@ -12,7 +12,12 @@ import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 import { useSession } from '../context/SessionContext';
 import type { BookingRecord, BookingStatus, PaymentStatus } from '../types/booking';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
-import type { BusinessLocationRow, BusinessRow, IamUserRow, InvoiceRow } from '../types/domain';
+import type {
+  BusinessLocationRow,
+  BusinessRow,
+  IamUserRow,
+  InvoiceRow,
+} from '../types/domain';
 
 function badgeClass(status: string): string {
   const s = status.toLowerCase();
@@ -112,8 +117,10 @@ export default function OverviewPage() {
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
   const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
+  /** Single-tenant KPI dashboard (not platform owners — they see platform-wide overview below). */
+  const showTenantDashboard = isBusinessUser && !isPlatformOwner;
 
-  // ── Platform-owner state ──────────────────────────────────────────────────
+  // ── Platform-wide overview (platform owners only) ────────────────────────
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [ownerLocations, setOwnerLocations] = useState<BusinessLocationRow[]>([]);
   const [bookingsByTenant, setBookingsByTenant] = useState<Record<string, BookingRecord[]>>({});
@@ -128,7 +135,7 @@ export default function OverviewPage() {
   const [sortBy, setSortBy] = useState<'bookings' | 'invoices' | 'locations' | 'name'>('bookings');
   const [ownerSortDir, setOwnerSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // ── Business-user state ───────────────────────────────────────────────────
+  // ── Tenant-scoped dashboard (business staff / admin only) ───────────────
   const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
   const [tenantBookings, setTenantBookings] = useState<BookingRecord[]>([]);
   const [tenantInvoices, setTenantInvoices] = useState<InvoiceRow[]>([]);
@@ -141,7 +148,35 @@ export default function OverviewPage() {
     'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'status'
   >('date_desc');
 
-  // ── Platform-owner load ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showTenantDashboard || !tenantId.trim()) return;
+    void (async () => {
+      setTenantLoading(true);
+      setTenantError(null);
+      try {
+        const [biz, bookings, invoices, iamUsers] = await Promise.all([
+          listBusinesses(),
+          listBookingsForTenant(tenantId),
+          listInvoicesForTenant(tenantId).catch(() => [] as InvoiceRow[]),
+          listIamUsers().catch(() => [] as IamUserRow[]),
+        ]);
+        const match = biz.find((b) => b.tenantId === tenantId);
+        setTenantBusinessName(
+          match?.businessName ?? biz[0]?.businessName ?? 'Your business',
+        );
+        setTenantBookings(bookings);
+        setTenantInvoices(invoices);
+        setTenantIamUsers(iamUsers);
+      } catch (e) {
+        setTenantError(e instanceof Error ? e.message : 'Failed to load business overview');
+        setTenantInvoices([]);
+        setTenantIamUsers([]);
+      } finally {
+        setTenantLoading(false);
+      }
+    })();
+  }, [showTenantDashboard, tenantId]);
+
   useEffect(() => {
     if (!isPlatformOwner) return;
     void (async () => {
@@ -188,37 +223,11 @@ export default function OverviewPage() {
     })();
   }, [isPlatformOwner]);
 
-  // ── Business-user load ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isBusinessUser || !tenantId.trim()) return;
-    void (async () => {
-      setTenantLoading(true);
-      setTenantError(null);
-      try {
-        const [biz, bookings, invoices, iamUsers] = await Promise.all([
-          listBusinesses(),
-          listBookingsForTenant(tenantId),
-          listInvoicesForTenant(tenantId).catch(() => [] as InvoiceRow[]),
-          listIamUsers().catch(() => [] as IamUserRow[]),
-        ]);
-        setTenantBusinessName(biz[0]?.businessName || 'Your business');
-        setTenantBookings(bookings);
-        setTenantInvoices(invoices);
-        setTenantIamUsers(iamUsers);
-      } catch (e) {
-        setTenantError(e instanceof Error ? e.message : 'Failed to load business overview');
-        setTenantInvoices([]);
-        setTenantIamUsers([]);
-      } finally {
-        setTenantLoading(false);
-      }
-    })();
-  }, [isBusinessUser, tenantId]);
-
-  // ── Platform-owner computed ───────────────────────────────────────────────
   const invoiceStatusOptions = useMemo(() => {
     const statuses = new Set<string>();
-    Object.values(invoicesByTenant).forEach((rows) => rows.forEach((i) => statuses.add(i.status)));
+    Object.values(invoicesByTenant).forEach((rows) =>
+      rows.forEach((i) => statuses.add(i.status)),
+    );
     return Array.from(statuses).sort();
   }, [invoicesByTenant]);
 
@@ -318,7 +327,7 @@ export default function OverviewPage() {
     invoiceStatus,
   ]);
 
-  // ── Business-user computed ────────────────────────────────────────────────
+  // ── Computed (tenant-scoped charts) ───────────────────────────────────────
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const yesterdayStr = useMemo(() => {
     const d = new Date();
@@ -617,8 +626,227 @@ export default function OverviewPage() {
         </button>
       </div>
 
-      {/* ── Business-user dashboard ── */}
-      {isBusinessUser && (
+      {isPlatformOwner && (
+        <p className="muted" style={{ marginTop: '-0.35rem', marginBottom: '1rem', maxWidth: '52rem' }}>
+          <strong>Overview</strong> below is <strong>platform-wide</strong> (all businesses). Use the
+          top bar <strong>Active business</strong> and <strong>location</strong> only when you work
+          through <Link to="/app/Facilites">Facilities</Link> or{' '}
+          <Link to="/app/bookings/new">Add booking</Link>. <Link to="/app/bookings">Bookings</Link> lists
+          all tenants. Open <Link to="/app/businesses">Businesses</Link> to switch tenant context or{' '}
+          <strong>Scope to overview</strong> from that list.
+        </p>
+      )}
+
+      {/* ── Platform-wide dashboard (platform owners) ── */}
+      {isPlatformOwner && (
+        <div className="overview-content">
+          <h2 className="overview-subtitle">All-tenant activity</h2>
+          {ownerError && <div className="err-banner">{ownerError}</div>}
+          {ownerLoading ? (
+            <p className="muted">Loading all tenants and activity…</p>
+          ) : (
+            <>
+              <div className="overview-filter-card connection-panel overview-panel">
+                <div className="overview-filter-card-head">
+                  <h3 className="overview-filter-card-title">Tenant table filters</h3>
+                  <p className="overview-filter-card-desc muted">
+                    Controls which bookings and invoices count toward each tenant card.
+                  </p>
+                </div>
+                <div className="overview-filter-form overview-filter-form--row">
+                  <div className="overview-filter-field overview-filter-field--inline">
+                    <label htmlFor="ov-owner-date-range">Date window</label>
+                    <select
+                      id="ov-owner-date-range"
+                      className="overview-select"
+                      value={dateRange}
+                      onChange={(e) => setDateRange(e.target.value as typeof dateRange)}
+                    >
+                      <option value="7">Last 7 days</option>
+                      <option value="30">Last 30 days</option>
+                      <option value="90">Last 90 days</option>
+                      <option value="all">All time</option>
+                    </select>
+                  </div>
+                  <div className="overview-filter-field overview-filter-field--inline">
+                    <label htmlFor="ov-owner-booking-status">Booking status</label>
+                    <select
+                      id="ov-owner-booking-status"
+                      className="overview-select"
+                      value={ownerBookingStatus}
+                      onChange={(e) =>
+                        setOwnerBookingStatus(e.target.value as typeof ownerBookingStatus)
+                      }
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="completed">Completed</option>
+                      <option value="no_show">No show</option>
+                    </select>
+                  </div>
+                  <div className="overview-filter-field overview-filter-field--inline">
+                    <label htmlFor="ov-owner-invoice-status">Invoice status</label>
+                    <select
+                      id="ov-owner-invoice-status"
+                      className="overview-select"
+                      value={invoiceStatus}
+                      onChange={(e) => setInvoiceStatus(e.target.value)}
+                    >
+                      <option value="all">All invoice statuses</option>
+                      {invoiceStatusOptions.map((s) => (
+                        <option key={s} value={s}>
+                          {titleCase(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="overview-filter-field overview-filter-field--inline overview-filter-field--sort">
+                    <span className="overview-filter-field-label" id="ov-owner-sort-label">
+                      Sort
+                    </span>
+                    <div className="overview-sort-inline">
+                      <select
+                        id="ov-owner-sort-by"
+                        className="overview-select"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                        aria-labelledby="ov-owner-sort-label"
+                      >
+                        <option value="bookings">By bookings</option>
+                        <option value="invoices">By invoices</option>
+                        <option value="locations">By locations</option>
+                        <option value="name">By business name</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="overview-sort-dir-btn"
+                        title={ownerSortDir === 'desc' ? 'Descending (high → low)' : 'Ascending (low → high)'}
+                        aria-label={
+                          ownerSortDir === 'desc' ? 'Switch to ascending order' : 'Switch to descending order'
+                        }
+                        onClick={() => setOwnerSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                      >
+                        {ownerSortDir === 'desc' ? '↓' : '↑'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overview-filter-field overview-filter-field--inline overview-filter-field--search">
+                    <label htmlFor="ov-owner-tenant-search">Search</label>
+                    <input
+                      id="ov-owner-tenant-search"
+                      placeholder="Name or tenant ID…"
+                      value={tenantQuery}
+                      onChange={(e) => setTenantQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="overview-totals-grid overview-platform-rollup">
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Total customers</span>
+                  <strong className="overview-metric-value">
+                    {ownerCustomerCount === null ? '—' : ownerCustomerCount}
+                  </strong>
+                  <span className="overview-metric-hint muted">Platform-wide · customer role</span>
+                </div>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Booking revenue</span>
+                  <strong className="overview-metric-value">
+                    {fmtCurrency(ownerMoneyTotals.bookingRevenue, 'PKR')}
+                  </strong>
+                  <span className="overview-metric-hint muted">Sum of booking totals · matches filters</span>
+                </div>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Invoiced amount</span>
+                  <strong className="overview-metric-value">
+                    {fmtCurrency(ownerMoneyTotals.invoiceRevenue, 'PKR')}
+                  </strong>
+                  <span className="overview-metric-hint muted">Sum of invoices · matches status filter</span>
+                </div>
+              </div>
+
+              <div className="overview-totals-grid">
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Tenants in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.tenants}</strong>
+                </div>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Locations in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.locations}</strong>
+                </div>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Bookings in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.bookings}</strong>
+                </div>
+                <div className="overview-metric-card">
+                  <span className="overview-metric-label">Invoices in view</span>
+                  <strong className="overview-metric-value">{ownerTotals.invoices}</strong>
+                </div>
+              </div>
+
+              <div className="connection-panel overview-panel overview-tenant-list-panel">
+                <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
+                  Businesses
+                </h3>
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Business</th>
+                        <th>Tenant ID</th>
+                        <th>Locations</th>
+                        <th>Bookings</th>
+                        <th>Invoices</th>
+                        <th style={{ width: '100px' }}> </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tenantStats.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '1.5rem' }}>
+                            No tenants match the selected filters.
+                          </td>
+                        </tr>
+                      ) : (
+                        tenantStats.map((row) => (
+                          <tr
+                            key={row.id}
+                            onClick={() => {
+                              setTenantId(row.tenantId);
+                              navigate(`/app/businesses/${row.id}`);
+                            }}
+                          >
+                            <td>
+                              <strong>{row.businessName}</strong>
+                            </td>
+                            <td>
+                              <code style={{ fontSize: '0.75rem' }}>{row.tenantId}</code>
+                            </td>
+                            <td>{row.locations}</td>
+                            <td>{row.bookings}</td>
+                            <td>{row.invoices}</td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <Link to={`/app/businesses/${row.id}`} className="action-link">
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Tenant-scoped dashboard (business admin / staff, not platform owner) ── */}
+      {showTenantDashboard && (
         <div className="overview-content">
           <h2 className="overview-subtitle">{activeLocationName}</h2>
 
@@ -1145,215 +1373,7 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* ── Platform-owner dashboard ── */}
-      {isPlatformOwner && !isBusinessUser && (
-        <div className="overview-content">
-          <h2 className="overview-subtitle">All-tenant activity view</h2>
-          {ownerError && <div className="err-banner">{ownerError}</div>}
-          {ownerLoading ? (
-            <p className="muted">Loading all tenants and activity…</p>
-          ) : (
-            <>
-              <div className="overview-filter-card connection-panel overview-panel">
-                <div className="overview-filter-card-head">
-                  <h3 className="overview-filter-card-title">Tenant table filters</h3>
-                  <p className="overview-filter-card-desc muted">
-                    Controls which bookings and invoices count toward each tenant card.
-                  </p>
-                </div>
-                <div className="overview-filter-form overview-filter-form--row">
-                  <div className="overview-filter-field overview-filter-field--inline">
-                    <label htmlFor="ov-owner-date-range">Date window</label>
-                    <select
-                      id="ov-owner-date-range"
-                      className="overview-select"
-                      value={dateRange}
-                      onChange={(e) => setDateRange(e.target.value as typeof dateRange)}
-                    >
-                      <option value="7">Last 7 days</option>
-                      <option value="30">Last 30 days</option>
-                      <option value="90">Last 90 days</option>
-                      <option value="all">All time</option>
-                    </select>
-                  </div>
-                  <div className="overview-filter-field overview-filter-field--inline">
-                    <label htmlFor="ov-owner-booking-status">Booking status</label>
-                    <select
-                      id="ov-owner-booking-status"
-                      className="overview-select"
-                      value={ownerBookingStatus}
-                      onChange={(e) =>
-                        setOwnerBookingStatus(e.target.value as typeof ownerBookingStatus)
-                      }
-                    >
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="completed">Completed</option>
-                      <option value="no_show">No show</option>
-                    </select>
-                  </div>
-                  <div className="overview-filter-field overview-filter-field--inline">
-                    <label htmlFor="ov-owner-invoice-status">Invoice status</label>
-                    <select
-                      id="ov-owner-invoice-status"
-                      className="overview-select"
-                      value={invoiceStatus}
-                      onChange={(e) => setInvoiceStatus(e.target.value)}
-                    >
-                      <option value="all">All invoice statuses</option>
-                      {invoiceStatusOptions.map((s) => (
-                        <option key={s} value={s}>
-                          {titleCase(s)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="overview-filter-field overview-filter-field--inline overview-filter-field--sort">
-                    <span className="overview-filter-field-label" id="ov-owner-sort-label">
-                      Sort
-                    </span>
-                    <div className="overview-sort-inline">
-                      <select
-                        id="ov-owner-sort-by"
-                        className="overview-select"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                        aria-labelledby="ov-owner-sort-label"
-                      >
-                        <option value="bookings">By bookings</option>
-                        <option value="invoices">By invoices</option>
-                        <option value="locations">By locations</option>
-                        <option value="name">By business name</option>
-                      </select>
-                      <button
-                        type="button"
-                        className="overview-sort-dir-btn"
-                        title={ownerSortDir === 'desc' ? 'Descending (high → low)' : 'Ascending (low → high)'}
-                        aria-label={
-                          ownerSortDir === 'desc' ? 'Switch to ascending order' : 'Switch to descending order'
-                        }
-                        onClick={() => setOwnerSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-                      >
-                        {ownerSortDir === 'desc' ? '↓' : '↑'}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="overview-filter-field overview-filter-field--inline overview-filter-field--search">
-                    <label htmlFor="ov-owner-tenant-search">Search</label>
-                    <input
-                      id="ov-owner-tenant-search"
-                      placeholder="Name or tenant ID…"
-                      value={tenantQuery}
-                      onChange={(e) => setTenantQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="overview-totals-grid overview-platform-rollup">
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Total customers</span>
-                  <strong className="overview-metric-value">
-                    {ownerCustomerCount === null ? '—' : ownerCustomerCount}
-                  </strong>
-                  <span className="overview-metric-hint muted">Platform-wide · customer role</span>
-                </div>
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Booking revenue</span>
-                  <strong className="overview-metric-value">
-                    {fmtCurrency(ownerMoneyTotals.bookingRevenue, 'PKR')}
-                  </strong>
-                  <span className="overview-metric-hint muted">Sum of booking totals · matches filters</span>
-                </div>
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Invoiced amount</span>
-                  <strong className="overview-metric-value">
-                    {fmtCurrency(ownerMoneyTotals.invoiceRevenue, 'PKR')}
-                  </strong>
-                  <span className="overview-metric-hint muted">Sum of invoices · matches status filter</span>
-                </div>
-              </div>
-
-              <div className="overview-totals-grid">
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Tenants in view</span>
-                  <strong className="overview-metric-value">{ownerTotals.tenants}</strong>
-                </div>
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Locations in view</span>
-                  <strong className="overview-metric-value">{ownerTotals.locations}</strong>
-                </div>
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Bookings in view</span>
-                  <strong className="overview-metric-value">{ownerTotals.bookings}</strong>
-                </div>
-                <div className="overview-metric-card">
-                  <span className="overview-metric-label">Invoices in view</span>
-                  <strong className="overview-metric-value">{ownerTotals.invoices}</strong>
-                </div>
-              </div>
-
-              <div className="connection-panel overview-panel overview-tenant-list-panel">
-                <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
-                  Businesses
-                </h3>
-                <div className="table-wrap">
-                  <table className="data">
-                    <thead>
-                      <tr>
-                        <th>Business</th>
-                        <th>Tenant ID</th>
-                        <th>Locations</th>
-                        <th>Bookings</th>
-                        <th>Invoices</th>
-                        <th style={{ width: '100px' }}> </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tenantStats.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '1.5rem' }}>
-                            No tenants match the selected filters.
-                          </td>
-                        </tr>
-                      ) : (
-                        tenantStats.map((row) => (
-                          <tr
-                            key={row.id}
-                            onClick={() => {
-                              setTenantId(row.tenantId);
-                              navigate(`/app/businesses/${row.id}`);
-                            }}
-                          >
-                            <td>
-                              <strong>{row.businessName}</strong>
-                            </td>
-                            <td>
-                              <code style={{ fontSize: '0.75rem' }}>{row.tenantId}</code>
-                            </td>
-                            <td>{row.locations}</td>
-                            <td>{row.bookings}</td>
-                            <td>{row.invoices}</td>
-                            <td onClick={(e) => e.stopPropagation()}>
-                              <Link to={`/app/businesses/${row.id}`} className="action-link">
-                                View
-                              </Link>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {!isPlatformOwner && !isBusinessUser && (
+      {!showTenantDashboard && !isPlatformOwner && (
         <p className="muted" style={{ marginTop: '0.5rem' }}>
           Use the sidebar to view bookings, invoices, and tenant tools available for your role.
         </p>

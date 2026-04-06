@@ -16,7 +16,9 @@ export default function BusinessesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const { session, setTenantId } = useSession();
   const navigate = useNavigate();
-  const canCreateBusiness = (session?.roles ?? []).includes('platform-owner');
+  const roles = session?.roles ?? [];
+  const canCreateBusiness = roles.includes('platform-owner');
+  const canScopeConsoleToTenant = roles.includes('platform-owner');
 
   async function reloadBusinesses() {
     setLoading(true);
@@ -108,7 +110,9 @@ export default function BusinessesPage() {
       <p className="muted">
         Each business has a <strong>tenantId</strong> used as{' '}
         <code>X-Tenant-Id</code>. Platform owners see all businesses;
-        business admins only see businesses they belong to.
+        business admins only see businesses they belong to. Use{' '}
+        <strong>Scope to overview</strong> to set the active business in the top
+        bar and load tenant-scoped stats on the home dashboard.
       </p>
       {!loading && rows.length > 0 && (
         <div className="connection-grid" style={{ marginTop: '1rem' }}>
@@ -237,6 +241,25 @@ export default function BusinessesPage() {
                       >
                         View
                       </Link>
+                      {canScopeConsoleToTenant ? (
+                        <button
+                          type="button"
+                          className="action-link"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            font: 'inherit',
+                          }}
+                          onClick={() => {
+                            setTenantId(b.tenantId);
+                            navigate('/app');
+                          }}
+                        >
+                          Scope to overview
+                        </button>
+                      ) : null}
                       <Link
                         to={`/app/businesses/${b.id}/edit`}
                         className="action-link"
