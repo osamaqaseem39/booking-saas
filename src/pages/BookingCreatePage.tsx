@@ -99,7 +99,6 @@ type BookingLine = {
   durationMins: number;
   price: string;
   status: BookingItemStatus;
-  slotPage: number;
 };
 
 function defaultLine(): BookingLine {
@@ -111,7 +110,6 @@ function defaultLine(): BookingLine {
     durationMins: 60,
     price: '5000',
     status: 'reserved',
-    slotPage: 0,
   };
 }
 
@@ -263,7 +261,6 @@ function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }>
 }
 
 export default function BookingCreatePage() {
-  const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
   const { tenantId } = useSession();
   const [error, setError] = useState<string | null>(null);
@@ -771,40 +768,16 @@ export default function BookingCreatePage() {
             </div>
             <div>
               <label>Date</label>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '0.45rem',
-                  flexWrap: 'wrap',
-                  marginTop: '0.35rem',
-                }}
+              <select
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
               >
-                {bookingDateChoices.map((d) => {
-                  const active = d.value === bookingDate;
-                  return (
-                    <button
-                      key={d.value}
-                      type="button"
-                      className={active ? 'btn-primary' : 'btn-ghost'}
-                      style={{
-                        minWidth: '58px',
-                        padding: '0.45rem 0.6rem',
-                        borderRadius: '12px',
-                        fontSize: '0.84rem',
-                        lineHeight: 1.1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.1rem',
-                      }}
-                      onClick={() => setBookingDate(d.value)}
-                    >
-                      <span>{d.day}</span>
-                      <strong>{d.dateNum}</strong>
-                    </button>
-                  );
-                })}
-              </div>
+                {bookingDateChoices.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.day} {d.dateNum} ({d.value})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div>
@@ -847,19 +820,6 @@ export default function BookingCreatePage() {
               const baseStarts =
                 src?.source === 'api' ? src.starts : fallbackSlots;
               const startSlots = applyMinLeadTimeToStarts(baseStarts, bookingDate);
-              const totalSlides = Math.max(
-                1,
-                Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),
-              );
-              const currentSlide = Math.min(
-                Math.max(ln.slotPage, 0),
-                totalSlides - 1,
-              );
-              const slideStart = currentSlide * INTERVALS_PER_SLIDE;
-              const visibleSlots = startSlots.slice(
-                slideStart,
-                slideStart + INTERVALS_PER_SLIDE,
-              );
               return (
                 <div key={idx} className="item-editor">
                   <div className="item-editor-head">
@@ -901,132 +861,43 @@ export default function BookingCreatePage() {
                     <div className="form-row-2">
                       <div>
                         <label>Start time ({formatTime12h(startTime)})</label>
-                        {startSlots.length > 0 && (
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              marginTop: '0.35rem',
+                        {startSlots.length > 0 ? (
+                          <select
+                            value={startTime}
+                            onChange={(e) => {
+                              const next = [...lines];
+                              next[idx] = { ...ln, startMinutes: timeToMinutes(e.target.value) };
+                              setLines(next);
                             }}
                           >
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
-                              disabled={currentSlide === 0}
-                              onClick={() => {
-                                const next = [...lines];
-                                next[idx] = {
-                                  ...ln,
-                                  slotPage: Math.max(0, currentSlide - 1),
-                                };
-                                setLines(next);
-                              }}
-                            >
-                              Prev
-                            </button>
-                            <span className="muted" style={{ fontSize: '0.78rem' }}>
-                              Slide {currentSlide + 1} / {totalSlides}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
-                              disabled={currentSlide >= totalSlides - 1}
-                              onClick={() => {
-                                const next = [...lines];
-                                next[idx] = {
-                                  ...ln,
-                                  slotPage: Math.min(totalSlides - 1, currentSlide + 1),
-                                };
-                                setLines(next);
-                              }}
-                            >
-                              Next
-                            </button>
+                            {startSlots.map((slot) => (
+                              <option key={slot} value={slot}>
+                                {formatTime12h(slot)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="muted" style={{ marginTop: '0.35rem', fontSize: '0.78rem' }}>
+                            No slots available in working hours for this day.
                           </div>
                         )}
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: '0.4rem',
-                            flexWrap: 'nowrap',
-                            overflowX: 'hidden',
-                            paddingBottom: '0.25rem',
-                            marginTop: '0.35rem',
-                          }}
-                        >
-                          {visibleSlots.map((slot) => {
-                            const active = slot === startTime;
-                            return (
-                              <button
-                                key={slot}
-                                type="button"
-                                className={active ? 'btn-primary' : 'btn-ghost'}
-                                style={{
-                                  padding: '0.35rem 0.7rem',
-                                  borderRadius: '999px',
-                                  fontSize: '0.88rem',
-                                  flex: '0 0 auto',
-                                }}
-                                onClick={() => {
-                                  const next = [...lines];
-                                  next[idx] = { ...ln, startMinutes: timeToMinutes(slot) };
-                                  setLines(next);
-                                }}
-                              >
-                                {formatTime12h(slot)}
-                              </button>
-                            );
-                          })}
-                          {startSlots.length === 0 && (
-                            <span className="muted" style={{ fontSize: '0.78rem' }}>
-                              No slots available in working hours for this day.
-                            </span>
-                          )}
-                        </div>
                       </div>
                       <div>
                         <label>Duration</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            style={{ padding: '0.45rem 0.8rem', fontSize: '0.92rem' }}
-                            onClick={() => {
-                              const next = [...lines];
-                              next[idx] = updateDurationWithPrice(ln, ln.durationMins);
-                              setLines(next);
-                            }}
-                          >
-                            {Math.max(60, ln.durationMins)} min
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
-                            onClick={() => {
-                              const next = [...lines];
-                              next[idx] = updateDurationWithPrice(ln, ln.durationMins + 30);
-                              setLines(next);
-                            }}
-                          >
-                            +30
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
-                            onClick={() => {
-                              const next = [...lines];
-                              next[idx] = updateDurationWithPrice(ln, ln.durationMins - 30);
-                              setLines(next);
-                            }}
-                          >
-                            -30
-                          </button>
-                        </div>
+                        <select
+                          value={String(Math.max(60, ln.durationMins))}
+                          onChange={(e) => {
+                            const next = [...lines];
+                            next[idx] = updateDurationWithPrice(ln, Number(e.target.value));
+                            setLines(next);
+                          }}
+                        >
+                          {[60, 90, 120, 150, 180, 210, 240].map((mins) => (
+                            <option key={mins} value={String(mins)}>
+                              {mins} min
+                            </option>
+                          ))}
+                        </select>
                         <div className="muted" style={{ marginTop: '0.35rem' }}>
                           End time: {formatTime12h(endTime)}
                         </div>

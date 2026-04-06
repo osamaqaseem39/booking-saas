@@ -1052,6 +1052,74 @@ table.data tbody tr:last-child td {
   margin-top: 1rem;
 }
 
+/* ── Business-owner dashboard ─────────────────────────────────────────── */
+
+/* Location selector pill bar */
+.biz-location-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.biz-loc-tab {
+  background: var(--surface2);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.28rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background 0.13s, color 0.13s, border-color 0.13s;
+  white-space: nowrap;
+}
+
+.biz-loc-tab:hover:not(:disabled) {
+  background: #243040;
+  color: var(--text);
+}
+
+.biz-loc-tab--active {
+  background: rgba(45, 212, 191, 0.15);
+  color: var(--accent);
+  border-color: rgba(45, 212, 191, 0.4);
+}
+
+/* KPI cards */
+.biz-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 0.85rem;
+}
+
+.biz-kpi-card {
+  padding: 1.1rem 1.25rem;
+}
+
+.biz-kpi-card--revenue {
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+.biz-kpi-card--revenue .overview-metric-label {
+  color: rgba(251, 191, 36, 0.75);
+}
+
+.biz-kpi-card--revenue .biz-kpi-value {
+  color: var(--warn);
+}
+
+.biz-kpi-value {
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+/* Filter bar below KPIs */
+.biz-filter-panel {
+  margin-top: 0.85rem;
+}
+
 .overview-subtitle {
   margin: 0 0 0.5rem;
   font-size: 1rem;

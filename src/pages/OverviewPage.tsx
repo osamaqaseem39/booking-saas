@@ -1,62 +1,75 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   listBookingsForTenant,
   listBusinesses,
   listBusinessLocations,
   listInvoicesForTenant,
 } from '../api/saasClient';
-import OwnerLiveViewSection from '../components/OwnerLiveViewSection';
 import { useSession } from '../context/SessionContext';
-import type { BookingRecord, BookingStatus } from '../types/booking';
+import type { BookingRecord, BookingStatus, PaymentStatus } from '../types/booking';
 import type { BusinessLocationRow, BusinessRow, InvoiceRow } from '../types/domain';
 
+function badgeClass(status: string): string {
+  const s = status.toLowerCase();
+  if (s === 'pending') return 'badge badge-pending';
+  if (s === 'confirmed') return 'badge badge-confirmed';
+  if (s === 'cancelled' || s === 'failed') return 'badge badge-cancelled';
+  if (s === 'paid') return 'badge badge-paid';
+  if (s === 'completed') return 'badge badge-completed';
+  if (s === 'no_show') return 'badge badge-neutral';
+  return 'badge badge-neutral';
+}
+
+function titleCase(v: string): string {
+  return v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function fmtCurrency(amount: number, currency = 'PKR'): string {
+  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 export default function OverviewPage() {
+  const navigate = useNavigate();
   const { session, tenantId } = useSession();
-  const location = useLocation();
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
   const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
-  const showOwnerLive =
-    roles.includes('platform-owner') || roles.includes('business-admin');
 
+  // ── Platform-owner state ──────────────────────────────────────────────────
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
-  const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [bookingsByTenant, setBookingsByTenant] = useState<Record<string, BookingRecord[]>>(
-    {},
-  );
+  const [ownerLocations, setOwnerLocations] = useState<BusinessLocationRow[]>([]);
+  const [bookingsByTenant, setBookingsByTenant] = useState<Record<string, BookingRecord[]>>({});
   const [invoicesByTenant, setInvoicesByTenant] = useState<Record<string, InvoiceRow[]>>({});
   const [ownerLoading, setOwnerLoading] = useState(false);
   const [ownerError, setOwnerError] = useState<string | null>(null);
-  const [tenantLoading, setTenantLoading] = useState(false);
-  const [tenantError, setTenantError] = useState<string | null>(null);
-  const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
-  const [tenantSummary, setTenantSummary] = useState({
-    businesses: 0,
-    locations: 0,
-    bookings: 0,
-    invoices: 0,
-  });
   const [dateRange, setDateRange] = useState<'7' | '30' | '90' | 'all'>('30');
-  const [bookingStatus, setBookingStatus] = useState<'all' | BookingStatus>('all');
+  const [ownerBookingStatus, setOwnerBookingStatus] = useState<'all' | BookingStatus>('all');
   const [invoiceStatus, setInvoiceStatus] = useState<'all' | string>('all');
   const [tenantQuery, setTenantQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'bookings' | 'invoices' | 'locations' | 'name'>(
-    'bookings',
-  );
+  const [sortBy, setSortBy] = useState<'bookings' | 'invoices' | 'locations' | 'name'>('bookings');
 
+  // ── Business-user state ───────────────────────────────────────────────────
+  const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
+  const [tenantBookings, setTenantBookings] = useState<BookingRecord[]>([]);
+  const [tenantLocations, setTenantLocations] = useState<BusinessLocationRow[]>([]);
+  const [tenantLoading, setTenantLoading] = useState(false);
+  const [tenantError, setTenantError] = useState<string | null>(null);
+  /** 'all' | location.id */
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
+  const [bizBookingStatus, setBizBookingStatus] = useState<'all' | BookingStatus>('all');
+  const [bizPayStatus, setBizPayStatus] = useState<'all' | PaymentStatus>('all');
+
+  // ── Platform-owner load ───────────────────────────────────────────────────
   useEffect(() => {
     if (!isPlatformOwner) return;
     void (async () => {
       setOwnerLoading(true);
       setOwnerError(null);
       try {
-        const biz = await listBusinesses();
+        const [biz, loc] = await Promise.all([listBusinesses(), listBusinessLocations()]);
         setBusinesses(biz);
-
-        const loc = await listBusinessLocations();
-        setLocations(loc);
-
+        setOwnerLocations(loc);
         const results = await Promise.all(
           biz.map(async (b) => {
             try {
@@ -70,7 +83,6 @@ export default function OverviewPage() {
             }
           }),
         );
-
         const nextBookings: Record<string, BookingRecord[]> = {};
         const nextInvoices: Record<string, InvoiceRow[]> = {};
         for (const row of results) {
@@ -87,30 +99,22 @@ export default function OverviewPage() {
     })();
   }, [isPlatformOwner]);
 
+  // ── Business-user load ────────────────────────────────────────────────────
   useEffect(() => {
     if (!isBusinessUser) return;
-    if (!tenantId.trim()) {
-      setTenantSummary({ businesses: 0, locations: 0, bookings: 0, invoices: 0 });
-      setTenantBusinessName('Your business');
-      return;
-    }
+    if (!tenantId.trim()) return;
     void (async () => {
       setTenantLoading(true);
       setTenantError(null);
       try {
-        const [biz, loc, bookings, invoices] = await Promise.all([
+        const [biz, loc, bookings] = await Promise.all([
           listBusinesses(),
           listBusinessLocations(),
           listBookingsForTenant(tenantId),
-          listInvoicesForTenant(tenantId),
         ]);
         setTenantBusinessName(biz[0]?.businessName || 'Your business');
-        setTenantSummary({
-          businesses: biz.length,
-          locations: loc.length,
-          bookings: bookings.length,
-          invoices: invoices.length,
-        });
+        setTenantLocations(loc);
+        setTenantBookings(bookings);
       } catch (e) {
         setTenantError(e instanceof Error ? e.message : 'Failed to load business overview');
       } finally {
@@ -119,53 +123,37 @@ export default function OverviewPage() {
     })();
   }, [isBusinessUser, tenantId]);
 
-  useEffect(() => {
-    if (location.hash !== '#owner-live-dashboard') return;
-    const el = document.getElementById('owner-live-dashboard');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [location.hash, showOwnerLive]);
-
+  // ── Platform-owner computed ───────────────────────────────────────────────
   const invoiceStatusOptions = useMemo(() => {
     const statuses = new Set<string>();
-    Object.values(invoicesByTenant).forEach((rows) => {
-      rows.forEach((invoice) => statuses.add(invoice.status));
-    });
+    Object.values(invoicesByTenant).forEach((rows) => rows.forEach((i) => statuses.add(i.status)));
     return Array.from(statuses).sort();
   }, [invoicesByTenant]);
 
   const tenantStats = useMemo(() => {
     const now = Date.now();
     const maxAgeMs =
-      dateRange === 'all' ? Number.POSITIVE_INFINITY : Number(dateRange) * 24 * 60 * 60 * 1000;
+      dateRange === 'all' ? Number.POSITIVE_INFINITY : Number(dateRange) * 86400000;
     const query = tenantQuery.trim().toLowerCase();
-
     const rows = businesses
       .map((b) => {
-        const tenantBookings = bookingsByTenant[b.tenantId] ?? [];
-        const tenantInvoices = invoicesByTenant[b.tenantId] ?? [];
-        const tenantLocations = locations.filter((l) => l.business?.tenantId === b.tenantId);
-
-        const filteredBookings = tenantBookings.filter((booking) => {
-          if (bookingStatus !== 'all' && booking.bookingStatus !== bookingStatus) return false;
+        const tBookings = bookingsByTenant[b.tenantId] ?? [];
+        const tInvoices = invoicesByTenant[b.tenantId] ?? [];
+        const tLocations = ownerLocations.filter((l) => l.business?.tenantId === b.tenantId);
+        const filteredBookings = tBookings.filter((bk) => {
+          if (ownerBookingStatus !== 'all' && bk.bookingStatus !== ownerBookingStatus) return false;
           if (dateRange === 'all') return true;
-          const dateValue = booking.bookingDate || booking.createdAt;
-          const parsed = Date.parse(dateValue);
-          if (Number.isNaN(parsed)) return false;
-          return now - parsed <= maxAgeMs;
+          const parsed = Date.parse(bk.bookingDate || bk.createdAt);
+          return !Number.isNaN(parsed) && now - parsed <= maxAgeMs;
         });
-
-        const filteredInvoices = tenantInvoices.filter((invoice) => {
-          if (invoiceStatus === 'all') return true;
-          return invoice.status === invoiceStatus;
-        });
-
+        const filteredInvoices = tInvoices.filter((inv) =>
+          invoiceStatus === 'all' ? true : inv.status === invoiceStatus,
+        );
         return {
           id: b.id,
           businessName: b.businessName,
           tenantId: b.tenantId,
-          locations: tenantLocations.length,
+          locations: tLocations.length,
           bookings: filteredBookings.length,
           invoices: filteredInvoices.length,
         };
@@ -173,24 +161,22 @@ export default function OverviewPage() {
       .filter((row) => {
         if (!query) return true;
         return (
-          row.businessName.toLowerCase().includes(query) || row.tenantId.toLowerCase().includes(query)
+          row.businessName.toLowerCase().includes(query) ||
+          row.tenantId.toLowerCase().includes(query)
         );
       });
-
-    rows.sort((a, b) => {
-      if (sortBy === 'name') return a.businessName.localeCompare(b.businessName);
-      return b[sortBy] - a[sortBy];
-    });
-
+    rows.sort((a, b) =>
+      sortBy === 'name' ? a.businessName.localeCompare(b.businessName) : b[sortBy] - a[sortBy],
+    );
     return rows;
   }, [
-    bookingStatus,
+    ownerBookingStatus,
     bookingsByTenant,
     businesses,
     dateRange,
     invoiceStatus,
     invoicesByTenant,
-    locations,
+    ownerLocations,
     sortBy,
     tenantQuery,
   ]);
@@ -198,44 +184,213 @@ export default function OverviewPage() {
   const ownerTotals = useMemo(
     () => ({
       tenants: tenantStats.length,
-      locations: tenantStats.reduce((sum, row) => sum + row.locations, 0),
-      bookings: tenantStats.reduce((sum, row) => sum + row.bookings, 0),
-      invoices: tenantStats.reduce((sum, row) => sum + row.invoices, 0),
+      locations: tenantStats.reduce((s, r) => s + r.locations, 0),
+      bookings: tenantStats.reduce((s, r) => s + r.bookings, 0),
+      invoices: tenantStats.reduce((s, r) => s + r.invoices, 0),
     }),
     [tenantStats],
   );
 
+  // ── Business-user computed ────────────────────────────────────────────────
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const thisMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
+
+  const locationFilteredBookings = useMemo(() => {
+    if (selectedLocationId === 'all') return tenantBookings;
+    return tenantBookings.filter((b) => b.arenaId === selectedLocationId);
+  }, [tenantBookings, selectedLocationId]);
+
+  const filteredBookings = useMemo(() => {
+    return locationFilteredBookings.filter((b) => {
+      if (bizBookingStatus !== 'all' && b.bookingStatus !== bizBookingStatus) return false;
+      if (bizPayStatus !== 'all' && b.payment.paymentStatus !== bizPayStatus) return false;
+      return true;
+    });
+  }, [locationFilteredBookings, bizBookingStatus, bizPayStatus]);
+
+  const kpis = useMemo(() => {
+    const locBase = locationFilteredBookings;
+    const todayBookings = locBase.filter((b) => b.bookingDate?.slice(0, 10) === todayStr);
+    const monthBookings = locBase.filter((b) => b.bookingDate?.slice(0, 7) === thisMonthStr);
+    const currency =
+      locBase.find((b) => b.items?.[0]?.currency)?.items?.[0]?.currency ?? 'PKR';
+    return {
+      todayCount: todayBookings.length,
+      monthCount: monthBookings.length,
+      todayRevenue: todayBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0),
+      monthRevenue: monthBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0),
+      currency,
+    };
+  }, [locationFilteredBookings, todayStr, thisMonthStr]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="overview-page">
       <h1 className="page-title">Overview</h1>
+
+      {/* ── Business-user dashboard ── */}
       {isBusinessUser && (
         <div className="overview-content">
-          <h2 className="overview-subtitle">{tenantBusinessName}</h2>
+
+          {/* Location selector bar */}
+          <div className="biz-location-bar">
+            <button
+              type="button"
+              className={selectedLocationId === 'all' ? 'biz-loc-tab biz-loc-tab--active' : 'biz-loc-tab'}
+              onClick={() => setSelectedLocationId('all')}
+            >
+              All locations
+            </button>
+            {tenantLocations.map((loc) => (
+              <button
+                key={loc.id}
+                type="button"
+                className={selectedLocationId === loc.id ? 'biz-loc-tab biz-loc-tab--active' : 'biz-loc-tab'}
+                onClick={() => setSelectedLocationId(loc.id)}
+              >
+                {loc.name}
+              </button>
+            ))}
+          </div>
+
+          <h2 className="overview-subtitle" style={{ marginTop: '1.1rem' }}>
+            {selectedLocationId === 'all'
+              ? tenantBusinessName
+              : (tenantLocations.find((l) => l.id === selectedLocationId)?.name ?? tenantBusinessName)}
+          </h2>
+
           {tenantError && <div className="err-banner">{tenantError}</div>}
+
           {tenantLoading ? (
-            <p className="muted">Loading your business activity…</p>
+            <p className="muted">Loading dashboard…</p>
           ) : (
-            <div className="overview-totals-grid">
-              <div className="overview-metric-card">
-                <span className="overview-metric-label">Businesses</span>
-                <strong className="overview-metric-value">{tenantSummary.businesses}</strong>
+            <>
+              {/* KPI cards */}
+              <div className="overview-totals-grid biz-kpi-grid">
+                <div className="overview-metric-card biz-kpi-card">
+                  <span className="overview-metric-label">Today's bookings</span>
+                  <strong className="overview-metric-value biz-kpi-value">{kpis.todayCount}</strong>
+                </div>
+                <div className="overview-metric-card biz-kpi-card">
+                  <span className="overview-metric-label">Monthly bookings</span>
+                  <strong className="overview-metric-value biz-kpi-value">{kpis.monthCount}</strong>
+                </div>
+                <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
+                  <span className="overview-metric-label">Today's revenue</span>
+                  <strong className="overview-metric-value biz-kpi-value">
+                    {fmtCurrency(kpis.todayRevenue, kpis.currency)}
+                  </strong>
+                </div>
+                <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
+                  <span className="overview-metric-label">Monthly revenue</span>
+                  <strong className="overview-metric-value biz-kpi-value">
+                    {fmtCurrency(kpis.monthRevenue, kpis.currency)}
+                  </strong>
+                </div>
               </div>
-              <div className="overview-metric-card">
-                <span className="overview-metric-label">Locations</span>
-                <strong className="overview-metric-value">{tenantSummary.locations}</strong>
+
+              {/* Filters */}
+              <div className="connection-panel overview-panel biz-filter-panel">
+                <div className="overview-filter-grid">
+                  <label>
+                    <span className="muted">Booking status</span>
+                    <select
+                      className="input"
+                      value={bizBookingStatus}
+                      onChange={(e) => setBizBookingStatus(e.target.value as 'all' | BookingStatus)}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="no_show">No show</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span className="muted">Payment status</span>
+                    <select
+                      className="input"
+                      value={bizPayStatus}
+                      onChange={(e) => setBizPayStatus(e.target.value as 'all' | PaymentStatus)}
+                    >
+                      <option value="all">All payments</option>
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="failed">Failed</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                  </label>
+                </div>
+                <p className="muted biz-filter-count" style={{ marginTop: '0.5rem', fontSize: '0.82rem' }}>
+                  Showing {filteredBookings.length} of {locationFilteredBookings.length} bookings
+                </p>
               </div>
-              <div className="overview-metric-card">
-                <span className="overview-metric-label">Bookings</span>
-                <strong className="overview-metric-value">{tenantSummary.bookings}</strong>
+
+              {/* Booking list */}
+              <div className="table-wrap" style={{ marginTop: '1rem' }}>
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Sport</th>
+                      <th>Location</th>
+                      <th>Amount</th>
+                      <th>Booking</th>
+                      <th>Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBookings.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '2rem' }}>
+                          No bookings match the selected filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredBookings.map((bk) => {
+                        const loc = tenantLocations.find((l) => l.id === bk.arenaId);
+                        return (
+                          <tr
+                            key={bk.bookingId}
+                            onClick={() => navigate(`/app/bookings/${bk.bookingId}/edit`)}
+                          >
+                            <td>{bk.bookingDate?.slice(0, 10) ?? '—'}</td>
+                            <td>{titleCase(bk.sportType ?? '')}</td>
+                            <td className="muted" style={{ fontSize: '0.82rem' }}>
+                              {loc?.name ?? bk.arenaId?.slice(0, 8) ?? '—'}
+                            </td>
+                            <td>
+                              <strong>
+                                {fmtCurrency(
+                                  bk.pricing?.totalAmount ?? 0,
+                                  bk.items?.[0]?.currency,
+                                )}
+                              </strong>
+                            </td>
+                            <td>
+                              <span className={badgeClass(bk.bookingStatus)}>
+                                {titleCase(bk.bookingStatus)}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={badgeClass(bk.payment?.paymentStatus ?? '')}>
+                                {titleCase(bk.payment?.paymentStatus ?? 'unknown')}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <div className="overview-metric-card">
-                <span className="overview-metric-label">Invoices</span>
-                <strong className="overview-metric-value">{tenantSummary.invoices}</strong>
-              </div>
-            </div>
+            </>
           )}
         </div>
       )}
+
+      {/* ── Platform-owner dashboard ── */}
       {isPlatformOwner && !isBusinessUser && (
         <div className="overview-content">
           <h2 className="overview-subtitle">All-tenant activity view</h2>
@@ -263,8 +418,8 @@ export default function OverviewPage() {
                     <span className="muted">Booking status</span>
                     <select
                       className="input"
-                      value={bookingStatus}
-                      onChange={(e) => setBookingStatus(e.target.value as 'all' | BookingStatus)}
+                      value={ownerBookingStatus}
+                      onChange={(e) => setOwnerBookingStatus(e.target.value as 'all' | BookingStatus)}
                     >
                       <option value="all">All statuses</option>
                       <option value="pending">Pending</option>
@@ -282,10 +437,8 @@ export default function OverviewPage() {
                       onChange={(e) => setInvoiceStatus(e.target.value)}
                     >
                       <option value="all">All statuses</option>
-                      {invoiceStatusOptions.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
+                      {invoiceStatusOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
                   </label>
@@ -341,7 +494,7 @@ export default function OverviewPage() {
                     <article key={row.id} className="overview-tenant-card">
                       <div className="overview-tenant-head">
                         <strong>{row.businessName}</strong>
-                        <span className="badge badge-neutral">{row.tenantId.slice(0, 8)}...</span>
+                        <span className="badge badge-neutral">{row.tenantId.slice(0, 8)}…</span>
                       </div>
                       <p className="overview-tenant-subtitle">{row.tenantId}</p>
                       <div className="overview-tenant-stats">
@@ -352,9 +505,7 @@ export default function OverviewPage() {
                     </article>
                   ))}
                   {tenantStats.length === 0 && (
-                    <div className="muted">
-                      No tenants match the selected filters.
-                    </div>
+                    <div className="muted">No tenants match the selected filters.</div>
                   )}
                 </div>
               </div>
@@ -362,7 +513,7 @@ export default function OverviewPage() {
           )}
         </div>
       )}
-      {showOwnerLive && <OwnerLiveViewSection />}
+
       {!isPlatformOwner && !isBusinessUser && (
         <p className="muted" style={{ marginTop: '0.5rem' }}>
           Use the sidebar to view bookings, invoices, and tenant tools available for your role.
