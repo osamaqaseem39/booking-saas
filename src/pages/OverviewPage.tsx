@@ -30,6 +30,19 @@ function fmtCurrency(amount: number, currency = 'PKR'): string {
   return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function trendMeta(current: number, previous: number): {
+  delta: number;
+  pct: number;
+  tone: 'up' | 'down' | 'flat';
+  sign: string;
+} {
+  const delta = current - previous;
+  const pct = previous === 0 ? (current === 0 ? 0 : 100) : (delta / previous) * 100;
+  if (delta > 0) return { delta, pct, tone: 'up', sign: '+' };
+  if (delta < 0) return { delta, pct, tone: 'down', sign: '-' };
+  return { delta: 0, pct: 0, tone: 'flat', sign: '' };
+}
+
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { session, tenantId } = useSession();
@@ -191,7 +204,17 @@ export default function OverviewPage() {
 
   // ── Business-user computed ────────────────────────────────────────────────
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const yesterdayStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, []);
   const thisMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
+  const prevMonthStr = useMemo(() => {
+    const d = new Date(`${todayStr}T00:00:00`);
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+  }, [todayStr]);
 
   const locationFilteredBookings = useMemo(() => {
     if (selectedLocationId === 'all') return tenantBookings;
@@ -209,17 +232,48 @@ export default function OverviewPage() {
   const kpis = useMemo(() => {
     const locBase = locationFilteredBookings;
     const todayBookings = locBase.filter((b) => b.bookingDate?.slice(0, 10) === todayStr);
+    const yesterdayBookings = locBase.filter((b) => b.bookingDate?.slice(0, 10) === yesterdayStr);
     const monthBookings = locBase.filter((b) => b.bookingDate?.slice(0, 7) === thisMonthStr);
+    const prevMonthBookings = locBase.filter((b) => b.bookingDate?.slice(0, 7) === prevMonthStr);
     const currency =
       locBase.find((b) => b.items?.[0]?.currency)?.items?.[0]?.currency ?? 'PKR';
+    const todayRevenue = todayBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0);
+    const yesterdayRevenue = yesterdayBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0);
+    const monthRevenue = monthBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0);
+    const prevMonthRevenue = prevMonthBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0);
     return {
       todayCount: todayBookings.length,
+      yesterdayCount: yesterdayBookings.length,
       monthCount: monthBookings.length,
-      todayRevenue: todayBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0),
-      monthRevenue: monthBookings.reduce((s, b) => s + (b.pricing?.totalAmount ?? 0), 0),
+      prevMonthCount: prevMonthBookings.length,
+      todayRevenue,
+      yesterdayRevenue,
+      monthRevenue,
+      prevMonthRevenue,
       currency,
     };
-  }, [locationFilteredBookings, todayStr, thisMonthStr]);
+  }, [locationFilteredBookings, prevMonthStr, thisMonthStr, todayStr, yesterdayStr]);
+
+  const sourceStats = useMemo(() => {
+    const sourceOrder = ['futsal', 'cricket', 'padel'];
+    const sourceMap = new Map<string, { current: number; previous: number }>();
+    for (const src of sourceOrder) {
+      sourceMap.set(src, { current: 0, previous: 0 });
+    }
+    for (const b of locationFilteredBookings) {
+      const source = b.sportType ?? 'unknown';
+      if (!sourceMap.has(source)) sourceMap.set(source, { current: 0, previous: 0 });
+      const stat = sourceMap.get(source)!;
+      const monthTag = b.bookingDate?.slice(0, 7);
+      if (monthTag === thisMonthStr) stat.current += 1;
+      if (monthTag === prevMonthStr) stat.previous += 1;
+    }
+    return [...sourceMap.entries()].map(([source, counts]) => ({
+      source,
+      ...counts,
+      trend: trendMeta(counts.current, counts.previous),
+    }));
+  }, [locationFilteredBookings, prevMonthStr, thisMonthStr]);
 
   const activeLocationName = useMemo(() => {
     if (selectedLocationId === 'all') return tenantBusinessName;
@@ -247,22 +301,80 @@ export default function OverviewPage() {
                 <div className="overview-metric-card biz-kpi-card">
                   <span className="overview-metric-label">Today's bookings</span>
                   <strong className="overview-metric-value biz-kpi-value">{kpis.todayCount}</strong>
+                  {(() => {
+                    const trend = trendMeta(kpis.todayCount, kpis.yesterdayCount);
+                    return (
+                      <span className={`biz-kpi-trend biz-kpi-trend--${trend.tone}`}>
+                        {trend.sign}
+                        {Math.abs(trend.delta)} ({Math.abs(trend.pct).toFixed(0)}%) vs yesterday
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="overview-metric-card biz-kpi-card">
                   <span className="overview-metric-label">Monthly bookings</span>
                   <strong className="overview-metric-value biz-kpi-value">{kpis.monthCount}</strong>
+                  {(() => {
+                    const trend = trendMeta(kpis.monthCount, kpis.prevMonthCount);
+                    return (
+                      <span className={`biz-kpi-trend biz-kpi-trend--${trend.tone}`}>
+                        {trend.sign}
+                        {Math.abs(trend.delta)} ({Math.abs(trend.pct).toFixed(0)}%) vs last month
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
                   <span className="overview-metric-label">Today's revenue</span>
                   <strong className="overview-metric-value biz-kpi-value">
                     {fmtCurrency(kpis.todayRevenue, kpis.currency)}
                   </strong>
+                  {(() => {
+                    const trend = trendMeta(kpis.todayRevenue, kpis.yesterdayRevenue);
+                    return (
+                      <span className={`biz-kpi-trend biz-kpi-trend--${trend.tone}`}>
+                        {trend.sign}
+                        {fmtCurrency(Math.abs(trend.delta), kpis.currency)} ({Math.abs(trend.pct).toFixed(0)}%)
+                        {' '}vs yesterday
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
                   <span className="overview-metric-label">Monthly revenue</span>
                   <strong className="overview-metric-value biz-kpi-value">
                     {fmtCurrency(kpis.monthRevenue, kpis.currency)}
                   </strong>
+                  {(() => {
+                    const trend = trendMeta(kpis.monthRevenue, kpis.prevMonthRevenue);
+                    return (
+                      <span className={`biz-kpi-trend biz-kpi-trend--${trend.tone}`}>
+                        {trend.sign}
+                        {fmtCurrency(Math.abs(trend.delta), kpis.currency)} ({Math.abs(trend.pct).toFixed(0)}%)
+                        {' '}vs last month
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div className="connection-panel overview-panel biz-source-panel">
+                <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
+                  Bookings by source (this month vs last month)
+                </h3>
+                <div className="biz-source-grid">
+                  {sourceStats.map((row) => (
+                    <div key={row.source} className="biz-source-card">
+                      <strong>{titleCase(row.source)}</strong>
+                      <span className="muted">
+                        {row.current} this month · {row.previous} last month
+                      </span>
+                      <span className={`biz-kpi-trend biz-kpi-trend--${row.trend.tone}`}>
+                        {row.trend.sign}
+                        {Math.abs(row.trend.delta)} ({Math.abs(row.trend.pct).toFixed(0)}%)
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 

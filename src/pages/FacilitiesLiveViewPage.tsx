@@ -99,6 +99,12 @@ function tenantForLocation(
   return tid || null;
 }
 
+function sportClassFromFacilityType(type: FacilityCardRow['type']): string {
+  if (type === 'futsalCourt') return 'facilities-live-box--sport-futsal';
+  if (type === 'cricketCourt') return 'facilities-live-box--sport-cricket';
+  return 'facilities-live-box--sport-padel';
+}
+
 export default function FacilitiesLiveViewPage() {
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
@@ -450,11 +456,12 @@ export default function FacilitiesLiveViewPage() {
                   : v === 'inactive'
                     ? 'facilities-live-box facilities-live-box--inactive'
                     : 'facilities-live-box facilities-live-box--idle';
+            const sportClass = sportClassFromFacilityType(facility.type);
 
             return (
               <article
                 key={cardId}
-                className={boxClass}
+                className={`${boxClass} ${sportClass}`}
                 role="button"
                 tabIndex={0}
                 style={{ cursor: 'pointer' }}

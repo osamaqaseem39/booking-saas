@@ -1053,6 +1053,24 @@ table.data tbody tr:last-child td {
   padding: 0.13rem 0.45rem;
 }
 
+.facility-chip--sport-futsal {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(6, 78, 59, 0.35);
+}
+
+.facility-chip--sport-cricket {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(120, 53, 15, 0.3);
+}
+
+.facility-chip--sport-padel {
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.45);
+  background: rgba(67, 56, 202, 0.24);
+}
+
 .location-actions {
   display: flex;
   gap: 0.4rem;
@@ -1155,9 +1173,47 @@ table.data tbody tr:last-child td {
   line-height: 1.15;
 }
 
+.biz-kpi-trend {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.biz-kpi-trend--up {
+  color: var(--ok);
+}
+
+.biz-kpi-trend--down {
+  color: var(--danger);
+}
+
+.biz-kpi-trend--flat {
+  color: var(--muted);
+}
+
 /* Filter bar below KPIs */
 .biz-filter-panel {
   margin-top: 0.85rem;
+}
+
+.biz-source-panel {
+  margin-top: 0.85rem;
+}
+
+.biz-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.biz-source-card {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .overview-subtitle {
@@ -1464,6 +1520,18 @@ table.data tbody tr:last-child td {
   opacity: 0.72;
   border-color: rgba(100, 116, 139, 0.35);
   background: linear-gradient(165deg, rgba(40, 44, 52, 0.75), rgba(18, 23, 29, 0.95));
+}
+
+.facilities-live-box--sport-futsal {
+  border-left: 4px solid rgba(52, 211, 153, 0.7);
+}
+
+.facilities-live-box--sport-cricket {
+  border-left: 4px solid rgba(251, 191, 36, 0.75);
+}
+
+.facilities-live-box--sport-padel {
+  border-left: 4px solid rgba(167, 139, 250, 0.8);
 }
 
 .facilities-live-box__top {

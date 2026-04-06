@@ -18,6 +18,20 @@ function statusBadgeClass(status: string | undefined): string {
   return 'badge badge-neutral';
 }
 
+function facilitySportClass(code: string): string {
+  const normalized = code.trim().toLowerCase();
+  if (normalized.includes('futsal') || normalized.includes('turf-court-futsal')) {
+    return 'facility-chip--sport-futsal';
+  }
+  if (normalized.includes('cricket') || normalized.includes('turf-court-cricket')) {
+    return 'facility-chip--sport-cricket';
+  }
+  if (normalized.includes('padel')) {
+    return 'facility-chip--sport-padel';
+  }
+  return '';
+}
+
 /** Owner / admin live dashboard (30s refresh); embedded on Overview. */
 export default function OwnerLiveViewSection() {
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
@@ -194,7 +208,10 @@ export default function OwnerLiveViewSection() {
                         </p>
                         <div className="facility-chip-list">
                           {(loc.facilityTypes?.length ? loc.facilityTypes : ['general']).map((f) => (
-                            <span key={f} className="facility-chip">
+                            <span
+                              key={f}
+                              className={`facility-chip ${facilitySportClass(f)}`.trim()}
+                            >
                               {f}
                             </span>
                           ))}
