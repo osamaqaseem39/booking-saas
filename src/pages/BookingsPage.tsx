@@ -65,12 +65,10 @@ export default function BookingsPage() {
   const [usersMap, setUsersMap] = useState<Record<string, UserSummary>>({});
   const [courtsMap, setCourtsMap] = useState<Record<string, string>>({});
   const [availabilitySport, setAvailabilitySport] =
-    useState<BookingSportType>('futsal');
-  const [availabilityDate, setAvailabilityDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
-  const [availabilityStartTime, setAvailabilityStartTime] = useState('18:00');
-  const [availabilityEndTime, setAvailabilityEndTime] = useState('19:00');
+    useState<BookingSportType | ''>('');
+  const [availabilityDate, setAvailabilityDate] = useState('');
+  const [availabilityStartTime, setAvailabilityStartTime] = useState('');
+  const [availabilityEndTime, setAvailabilityEndTime] = useState('');
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availability, setAvailability] = useState<
     Awaited<ReturnType<typeof getBookingAvailability>> | null
@@ -213,6 +211,10 @@ export default function BookingsPage() {
   }
 
   async function checkAvailability() {
+    if (!availabilitySport || !availabilityDate || !availabilityStartTime || !availabilityEndTime) {
+      setError('Select sport, date, start time, and end time to check availability.');
+      return;
+    }
     setError(null);
     setAvailabilityLoading(true);
     setCourtSlots(null);
@@ -405,9 +407,10 @@ export default function BookingsPage() {
                 <select
                   value={availabilitySport}
                   onChange={(e) =>
-                    setAvailabilitySport(e.target.value as BookingSportType)
+                    setAvailabilitySport(e.target.value as BookingSportType | '')
                   }
                 >
+                  <option value="">Select sport</option>
                   <option value="futsal">futsal</option>
                   <option value="cricket">cricket</option>
                   <option value="padel">padel</option>
