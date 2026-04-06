@@ -337,7 +337,7 @@ export default function BookingsPage() {
             type="button"
             className="btn-primary"
             onClick={() => navigate('/app/bookings/new')}
-            disabled={!tenantId.trim()}
+            disabled={!isPlatformOwner && !tenantId.trim()}
           >
             Add booking
           </button>

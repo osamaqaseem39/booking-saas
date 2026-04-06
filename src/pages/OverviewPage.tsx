@@ -129,7 +129,7 @@ const OWNER_TENANT_TABLE_SORT_HEADERS: { col: OwnerTenantSortColumn; label: stri
 
 export default function OverviewPage() {
   const navigate = useNavigate();
-  const { session, tenantId, setTenantId } = useSession();
+  const { session, tenantId } = useSession();
   const { selectedLocationId, dashboardLocations } =
     useOutletContext<DashboardOutletContext>();
 
@@ -659,12 +659,12 @@ export default function OverviewPage() {
 
       {isPlatformOwner && (
         <p className="muted" style={{ marginTop: '-0.35rem', marginBottom: '1rem', maxWidth: '52rem' }}>
-          <strong>Overview</strong> below is <strong>platform-wide</strong> (all businesses). Use the
-          top bar <strong>Active business</strong> and <strong>location</strong> only when you work
-          through <Link to="/app/Facilites">Facilities</Link> or{' '}
-          <Link to="/app/bookings/new">Add booking</Link>. <Link to="/app/bookings">Bookings</Link> lists
-          all tenants. Open <Link to="/app/businesses">Businesses</Link> to switch tenant context or{' '}
-          <strong>Scope to overview</strong> from that list.
+          <strong>Overview</strong> below is <strong>platform-wide</strong> (all businesses). Optionally
+          narrow the top bar to one business and location for <Link to="/app/Facilites">Facilities</Link>;
+          leave it on <strong>All businesses</strong> for a global view.{' '}
+          <Link to="/app/bookings/new">Add booking</Link> picks the tenant on the form.{' '}
+          <Link to="/app/bookings">Bookings</Link> lists all tenants. Open{' '}
+          <Link to="/app/businesses">Businesses</Link> for detail pages without changing your global scope.
         </p>
       )}
 
@@ -844,7 +844,6 @@ export default function OverviewPage() {
                           <tr
                             key={row.id}
                             onClick={() => {
-                              setTenantId(row.tenantId);
                               navigate(`/app/businesses/${row.id}`);
                             }}
                           >

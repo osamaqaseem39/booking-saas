@@ -52,6 +52,7 @@ export default function ConsoleLayout() {
   }, [canListBiz, userId, session?.id]);
 
   useEffect(() => {
+    if (isPlatformOwner) return;
     if (!businesses.length) return;
     const nextTenant = businesses[0]?.tenantId;
     if (!nextTenant) return;
@@ -60,11 +61,11 @@ export default function ConsoleLayout() {
     if (!tenantIdSafe || !valid) {
       setTenantId(nextTenant);
     }
-  }, [businesses, tenantId, setTenantId]);
+  }, [businesses, tenantId, setTenantId, isPlatformOwner]);
 
   // Locations for top bar: scoped to active business (tenant)
   useEffect(() => {
-    if (!showBusinessContext || !tenantId.trim()) {
+    if (!showBusinessContext) {
       setDashboardLocations([]);
       setSelectedLocationId('all');
       return;
@@ -73,6 +74,15 @@ export default function ConsoleLayout() {
       try {
         const locs = await listBusinessLocations();
         const tid = tenantId.trim();
+        if (!tid) {
+          if (isPlatformOwner) {
+            setDashboardLocations(locs);
+          } else {
+            setDashboardLocations([]);
+            setSelectedLocationId('all');
+          }
+          return;
+        }
         const filtered = locs.filter(
           (l) => (l.business?.tenantId ?? '').trim() === tid,
         );
@@ -81,7 +91,7 @@ export default function ConsoleLayout() {
         setDashboardLocations([]);
       }
     })();
-  }, [showBusinessContext, tenantId]);
+  }, [showBusinessContext, tenantId, isPlatformOwner]);
 
   // Reset selection when tenant changes
   useEffect(() => {
@@ -271,6 +281,9 @@ export default function ConsoleLayout() {
                     value={tenantId}
                     onChange={(e) => setTenantId(e.target.value)}
                   >
+                    {isPlatformOwner ? (
+                      <option value="">All businesses (no tenant scope)</option>
+                    ) : null}
                     {businesses.map((b) => (
                       <option key={b.id} value={b.tenantId}>
                         {b.businessName} · {b.tenantId.slice(0, 8)}…

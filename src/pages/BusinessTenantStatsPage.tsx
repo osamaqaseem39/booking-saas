@@ -7,7 +7,6 @@ import {
   listBookingsForTenant,
   listInvoicesForTenant,
 } from '../api/saasClient';
-import { useSession } from '../context/SessionContext';
 import type { BookingRecord } from '../types/booking';
 import type {
   BusinessDashboardBusinessRow,
@@ -111,7 +110,6 @@ function toProperCase(value?: string | null): string {
 
 export default function BusinessTenantStatsPage() {
   const { businessId = '' } = useParams();
-  const { setTenantId } = useSession();
   const [business, setBusiness] = useState<BusinessRow | null>(null);
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
@@ -149,9 +147,6 @@ export default function BusinessTenantStatsPage() {
         const businesses = await listBusinesses();
         const selected = businesses.find((b) => b.id === businessId) ?? null;
         setBusiness(selected);
-        if (selected) {
-          setTenantId(selected.tenantId);
-        }
         if (!selected) {
           setBookings([]);
           setInvoices([]);

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   createBooking,
+  createBookingForTenant,
   createIamUser,
   getCourtSlotGrid,
   listBookings,
@@ -309,8 +310,11 @@ function ButtonOptionGroup({
 export default function BookingCreatePage() {
   const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
-  const { tenantId, setTenantId, session } = useSession();
+  const { tenantId, session } = useSession();
   const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
+  /** Platform owners do not use global tenant scope; pick per booking here. */
+  const [ownerBookingTenantId, setOwnerBookingTenantId] = useState('');
+  const bookingTenant = (isPlatformOwner ? ownerBookingTenantId : tenantId).trim();
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -349,14 +353,14 @@ export default function BookingCreatePage() {
 
   const slotGridFetchKey = useMemo(
     () =>
-      `${tenantId.trim()}|${bookingDate}|${lines
+      `${bookingTenant}|${bookingDate}|${lines
         .map((l) => `${l.courtKind}:${l.courtId}`)
         .join(';')}`,
-    [tenantId, bookingDate, lines],
+    [bookingTenant, bookingDate, lines],
   );
 
   useEffect(() => {
-    if (!tenantId.trim()) {
+    if (!bookingTenant) {
       setLineSlotSource({});
       return;
     }
@@ -375,6 +379,7 @@ export default function BookingCreatePage() {
             date: bookingDate,
             useWorkingHours: true,
             availableOnly: true,
+            tenantId: isPlatformOwner ? bookingTenant : undefined,
           });
           if (cancelled) return;
           if (grid.locationClosed) {
@@ -408,7 +413,7 @@ export default function BookingCreatePage() {
     return () => {
       cancelled = true;
     };
-  }, [slotGridFetchKey]);
+  }, [slotGridFetchKey, isPlatformOwner]);
 
   useEffect(() => {
     if (bookingDateChoices.length === 0) return;
@@ -430,38 +435,43 @@ export default function BookingCreatePage() {
   }, [isPlatformOwner]);
 
   useEffect(() => {
-    if (!isPlatformOwner || businesses.length === 0) return;
-    const valid = businesses.some((b) => b.tenantId === tenantId);
-    if (!tenantId.trim() || !valid) {
-      setTenantId(businesses[0].tenantId);
-    }
-  }, [isPlatformOwner, businesses, tenantId, setTenantId]);
-
-  useEffect(() => {
     void (async () => {
       try {
-        const rows: IamUserRow[] = await listIamUsers();
+        if (isPlatformOwner && !bookingTenant) {
+          setUsers([]);
+          return;
+        }
+        const rows: IamUserRow[] = await listIamUsers(
+          undefined,
+          isPlatformOwner ? bookingTenant : undefined,
+        );
         setUsers(rows);
       } catch {
         setUsers([]);
       }
     })();
-  }, [tenantId]);
+  }, [bookingTenant, isPlatformOwner]);
 
   useEffect(() => {
-    if (!tenantId.trim()) {
-      setLocations([]);
-      return;
-    }
     void (async () => {
       try {
         const rows = await listBusinessLocations();
-        setLocations(rows);
+        if (isPlatformOwner && !bookingTenant) {
+          setLocations(rows);
+          return;
+        }
+        if (!bookingTenant) {
+          setLocations([]);
+          return;
+        }
+        setLocations(
+          rows.filter((r) => (r.business?.tenantId ?? '').trim() === bookingTenant),
+        );
       } catch {
         setLocations([]);
       }
     })();
-  }, [tenantId]);
+  }, [bookingTenant, isPlatformOwner]);
 
   useEffect(() => {
     if (topbarLocationLocked) {
@@ -472,19 +482,25 @@ export default function BookingCreatePage() {
   useEffect(() => {
     if (topbarLocationLocked) return;
     setFacilityLocationId('');
-  }, [tenantId, topbarLocationLocked]);
+  }, [bookingTenant, topbarLocationLocked]);
 
   useEffect(() => {
     void (async () => {
       const loc = effectiveLocationId.trim();
+      const tenantOpt = isPlatformOwner ? bookingTenant : undefined;
+      if (isPlatformOwner && !bookingTenant) {
+        setCourtOpts([]);
+        setLines([defaultLine()]);
+        return;
+      }
       setCourtOpts(
         loc
-          ? await listCourtOptions(undefined, loc)
-          : await listCourtOptions(sport),
+          ? await listCourtOptions(undefined, loc, tenantOpt)
+          : await listCourtOptions(sport, undefined, tenantOpt),
       );
       setLines([defaultLine()]);
     })();
-  }, [sport, effectiveLocationId]);
+  }, [sport, effectiveLocationId, isPlatformOwner, bookingTenant]);
 
   useEffect(() => {
     try {
@@ -502,15 +518,20 @@ export default function BookingCreatePage() {
   useEffect(() => {
     void (async () => {
       try {
-        const rows = tenantId.trim()
-          ? await listBookingsForTenant(tenantId.trim())
-          : await listBookings();
-        setAllBookings(rows);
+        if (!bookingTenant) {
+          setAllBookings([]);
+          return;
+        }
+        if (isPlatformOwner) {
+          setAllBookings(await listBookingsForTenant(bookingTenant));
+        } else {
+          setAllBookings(await listBookings());
+        }
       } catch {
         setAllBookings([]);
       }
     })();
-  }, [tenantId]);
+  }, [bookingTenant, isPlatformOwner]);
 
   const existingByPhone = useMemo(() => {
     const wanted = digitsOnly(phone);
@@ -614,7 +635,7 @@ export default function BookingCreatePage() {
   }
 
   async function submitCreate() {
-    if (!tenantId.trim()) {
+    if (!bookingTenant) {
       setError(
         isPlatformOwner
           ? 'Select a business before creating a booking.'
@@ -711,12 +732,15 @@ export default function BookingCreatePage() {
       }
       const normalizedPhone = digitsOnly(walkInPhone);
       const generatedEmail = `walkin-${normalizedPhone}-${Date.now()}@bukit.local`;
-      const created = await createIamUser({
-        fullName: walkInName.trim(),
-        email: generatedEmail,
-        phone: normalizePhoneForStorage(walkInPhone),
-        password: makePassword(),
-      });
+      const created = await createIamUser(
+        {
+          fullName: walkInName.trim(),
+          email: generatedEmail,
+          phone: normalizePhoneForStorage(walkInPhone),
+          password: makePassword(),
+        },
+        isPlatformOwner ? bookingTenant : undefined,
+      );
       resolvedCustomerId = created.id;
       customerNameToSave = created.fullName;
       customerPhoneToSave = normalizePhoneForStorage(created.phone ?? walkInPhone);
@@ -727,7 +751,7 @@ export default function BookingCreatePage() {
     }
     setSubmitting(true);
     try {
-      const created = await createBooking({
+      const payload = {
         userId: resolvedCustomerId,
         sportType: sport,
         bookingDate,
@@ -747,15 +771,18 @@ export default function BookingCreatePage() {
           totalAmount: Math.max(0, total),
         },
         payment: {
-          paymentStatus: 'pending',
-          paymentMethod: 'cash',
+          paymentStatus: 'pending' as const,
+          paymentMethod: 'cash' as const,
         },
-        bookingStatus: 'pending',
+        bookingStatus: 'pending' as const,
         notes:
           [`source:${bookingSource}`, notes.trim()]
             .filter(Boolean)
             .join(' | ') || undefined,
-      });
+      };
+      const created = isPlatformOwner
+        ? await createBookingForTenant(bookingTenant, payload)
+        : await createBooking(payload);
       const normalizedSavePhone = digitsOnly(customerPhoneToSave);
       if (normalizedSavePhone && customerNameToSave.trim()) {
         setSavedCustomersByPhone((cur) => {
@@ -794,7 +821,7 @@ export default function BookingCreatePage() {
         </Link>
       </p>
       <h1 className="page-title">Add booking</h1>
-      {!tenantId.trim() && (
+      {!bookingTenant && (
         <div className="err-banner">
           {isPlatformOwner
             ? 'Select a business below to load locations and facilities.'
@@ -814,10 +841,11 @@ export default function BookingCreatePage() {
                 <label htmlFor="booking-business-tenant">Business</label>
                 <select
                   id="booking-business-tenant"
-                  value={tenantId}
-                  onChange={(e) => setTenantId(e.target.value)}
+                  value={ownerBookingTenantId}
+                  onChange={(e) => setOwnerBookingTenantId(e.target.value)}
                   disabled={businesses.length === 0}
                 >
+                  <option value="">Select business…</option>
                   {businesses.map((b) => (
                     <option key={b.id} value={b.tenantId}>
                       {b.businessName}
@@ -826,8 +854,8 @@ export default function BookingCreatePage() {
                   ))}
                 </select>
                 <p className="muted" style={{ marginTop: '0.35rem', marginBottom: 0 }}>
-                  The booking is created for this tenant. Change business to pick a different
-                  location and facilities.
+                  Only this booking uses the selected tenant — the top bar can stay on “all
+                  businesses”.
                 </p>
               </div>
             </>
@@ -1348,7 +1376,7 @@ export default function BookingCreatePage() {
             type="button"
             className="btn-primary"
             onClick={() => void submitCreate()}
-            disabled={submitting || !tenantId.trim()}
+            disabled={submitting || !bookingTenant}
           >
             {submitting ? 'Creating…' : 'Create booking'}
           </button>

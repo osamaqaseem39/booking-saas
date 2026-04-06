@@ -111,8 +111,8 @@ export default function BusinessesPage() {
         Each business has a <strong>tenantId</strong> used as{' '}
         <code>X-Tenant-Id</code>. Platform owners see all businesses;
         business admins only see businesses they belong to. Use{' '}
-        <strong>Scope to overview</strong> to set the active business in the top
-        bar and load tenant-scoped stats on the home dashboard.
+        <strong>Clear tenant scope</strong> resets the top bar to all businesses (platform
+        owners). Detail pages do not change your global tenant selection.
       </p>
       {!loading && rows.length > 0 && (
         <div className="connection-grid" style={{ marginTop: '1rem' }}>
@@ -218,7 +218,6 @@ export default function BusinessesPage() {
                 <tr
                   key={b.id}
                   onClick={() => {
-                    setTenantId(b.tenantId);
                     navigate(`/app/businesses/${b.id}`);
                   }}
                 >
@@ -234,11 +233,7 @@ export default function BusinessesPage() {
                       style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Link
-                        to={`/app/businesses/${b.id}`}
-                        className="action-link"
-                        onClick={() => setTenantId(b.tenantId)}
-                      >
+                      <Link to={`/app/businesses/${b.id}`} className="action-link">
                         View
                       </Link>
                       {canScopeConsoleToTenant ? (
@@ -253,11 +248,11 @@ export default function BusinessesPage() {
                             font: 'inherit',
                           }}
                           onClick={() => {
-                            setTenantId(b.tenantId);
+                            setTenantId('');
                             navigate('/app');
                           }}
                         >
-                          Scope to overview
+                          Clear tenant scope
                         </button>
                       ) : null}
                       <Link

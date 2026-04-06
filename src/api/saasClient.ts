@@ -653,11 +653,15 @@ export async function deleteBusiness(
   });
 }
 
-export async function listIamUsers(params?: {
-  search?: string;
-  sortBy?: 'fullName' | 'email' | 'createdAt';
-  sortOrder?: 'ASC' | 'DESC';
-}): Promise<IamUserRow[]> {
+export async function listIamUsers(
+  params?: {
+    search?: string;
+    sortBy?: 'fullName' | 'email' | 'createdAt';
+    sortOrder?: 'ASC' | 'DESC';
+  },
+  /** When set, uses this tenant for `X-Tenant-Id` instead of the stored active tenant. */
+  tenantIdOverride?: string,
+): Promise<IamUserRow[]> {
   const q = new URLSearchParams();
   const search = params?.search?.trim();
   if (search) q.set('search', search);
@@ -665,7 +669,9 @@ export async function listIamUsers(params?: {
   if (params?.sortOrder) q.set('sortOrder', params.sortOrder);
   const query = q.toString();
   const path = query ? `/iam/users?${query}` : '/iam/users';
-  return request<IamUserRow[]>(path, { method: 'GET' });
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (!tid) return [];
+  return requestForTenant<IamUserRow[]>(tid, path, { method: 'GET' });
 }
 
 /** Platform owner only — users with customer-end-user role. */
@@ -673,13 +679,21 @@ export async function listEndUsers(): Promise<IamUserRow[]> {
   return request<IamUserRow[]>('/iam/end-users', { method: 'GET' });
 }
 
-export async function createIamUser(body: {
-  fullName: string;
-  email: string;
-  phone?: string;
-  password: string;
-}): Promise<IamUserRow> {
-  return request<IamUserRow>('/iam/users', {
+export async function createIamUser(
+  body: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    password: string;
+  },
+  /** When set, uses this tenant for `X-Tenant-Id` instead of the stored active tenant. */
+  tenantIdOverride?: string,
+): Promise<IamUserRow> {
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (!tid) {
+    throw new Error('Tenant is required to create a user.');
+  }
+  return requestForTenant<IamUserRow>(tid, '/iam/users', {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -743,6 +757,16 @@ export async function createBooking(
   });
 }
 
+export async function createBookingForTenant(
+  tenantId: string,
+  body: CreateBookingPayload,
+): Promise<BookingRecord> {
+  return requestForTenant<BookingRecord>(tenantId, '/bookings', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function updateBooking(
   bookingId: string,
   body: UpdateBookingPayload,
@@ -793,17 +817,31 @@ export async function getCourtSlotGrid(params: {
   useWorkingHours?: boolean;
   /** Only free segments — use for booking pickers so booked times are omitted. */
   availableOnly?: boolean;
+  /** When set, uses this tenant for `X-Tenant-Id` instead of the stored active tenant. */
+  tenantId?: string;
 }): Promise<CourtSlotGridRecord> {
+  const {
+    courtKind,
+    courtId,
+    date,
+    startTime,
+    endTime,
+    useWorkingHours,
+    availableOnly,
+    tenantId: tenantOverride,
+  } = params;
   const q = new URLSearchParams();
-  q.set('date', params.date);
-  if (params.startTime) q.set('startTime', params.startTime);
-  if (params.endTime) q.set('endTime', params.endTime);
-  if (params.useWorkingHours) q.set('useWorkingHours', 'true');
-  if (params.availableOnly) q.set('availableOnly', 'true');
-  return request<CourtSlotGridRecord>(
-    `/bookings/courts/${params.courtKind}/${params.courtId}/slot-grid?${q.toString()}`,
-    { method: 'GET' },
-  );
+  q.set('date', date);
+  if (startTime) q.set('startTime', startTime);
+  if (endTime) q.set('endTime', endTime);
+  if (useWorkingHours) q.set('useWorkingHours', 'true');
+  if (availableOnly) q.set('availableOnly', 'true');
+  const path = `/bookings/courts/${courtKind}/${courtId}/slot-grid?${q.toString()}`;
+  const tid = (tenantOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<CourtSlotGridRecord>(tid, path, { method: 'GET' });
+  }
+  return request<CourtSlotGridRecord>(path, { method: 'GET' });
 }
 
 /** Turn booking on/off for one 30-minute segment (`blocked: true` = no new bookings). */
@@ -1171,21 +1209,31 @@ export async function deletePadelCourt(
 /**
  * Bookable courts for the active tenant. When `businessLocationId` is set, only courts at that location.
  * When `sport` is omitted, returns padel, futsal, and cricket options together.
+ * Pass `tenantIdOverride` when the UI has no global active tenant (e.g. platform owner on “all businesses”).
  */
 export async function listCourtOptions(
   sport?: BookingSportType,
   businessLocationId?: string,
+  tenantIdOverride?: string,
 ): Promise<CourtOption[]> {
-  if (!getToken() || !getTenantId()) return [];
+  if (!getToken()) return [];
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (!tid) return [];
   const loc = businessLocationId?.trim() || undefined;
+  const padelPath =
+    loc != null
+      ? `/arena/padel-court?businessLocationId=${encodeURIComponent(loc)}`
+      : '/arena/padel-court';
+  const futsalPath = appendBusinessLocationQuery('/arena/futsal-courts', loc);
+  const cricketPath = appendBusinessLocationQuery('/arena/cricket-courts', loc);
   try {
     const out: CourtOption[] = [];
 
     if (sport === undefined) {
       const [padelRows, futsalCourts, cricketCourts] = await Promise.all([
-        listPadelCourts(loc),
-        listFutsalCourts(loc),
-        listCricketCourts(loc),
+        requestForTenant<NamedCourt[]>(tid, padelPath, { method: 'GET' }),
+        requestForTenant<NamedCourt[]>(tid, futsalPath, { method: 'GET' }),
+        requestForTenant<NamedCourt[]>(tid, cricketPath, { method: 'GET' }),
       ]);
       for (const r of padelRows) {
         out.push({
@@ -1215,7 +1263,7 @@ export async function listCourtOptions(
     }
 
     if (sport === 'padel') {
-      const rows = await listPadelCourts(loc);
+      const rows = await requestForTenant<NamedCourt[]>(tid, padelPath, { method: 'GET' });
       for (const r of rows) {
         out.push({
           kind: 'padel_court',
@@ -1225,7 +1273,7 @@ export async function listCourtOptions(
         });
       }
     } else if (sport === 'futsal') {
-      const courts = await listFutsalCourts(loc);
+      const courts = await requestForTenant<NamedCourt[]>(tid, futsalPath, { method: 'GET' });
       for (const r of courts) {
         out.push({
           kind: 'futsal_court',
@@ -1235,7 +1283,7 @@ export async function listCourtOptions(
         });
       }
     } else {
-      const courts = await listCricketCourts(loc);
+      const courts = await requestForTenant<NamedCourt[]>(tid, cricketPath, { method: 'GET' });
       for (const r of courts) {
         out.push({
           kind: 'cricket_court',
