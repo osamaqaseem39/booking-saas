@@ -108,6 +108,25 @@ function sortArrow(active: boolean, asc: boolean): string {
   return asc ? ' ↑' : ' ↓';
 }
 
+type OwnerTenantSortColumn =
+  | 'businessName'
+  | 'tenantId'
+  | 'locations'
+  | 'bookings'
+  | 'invoices';
+
+function ownerTenantDefaultSortDir(col: OwnerTenantSortColumn): 'asc' | 'desc' {
+  return col === 'businessName' || col === 'tenantId' ? 'asc' : 'desc';
+}
+
+const OWNER_TENANT_TABLE_SORT_HEADERS: { col: OwnerTenantSortColumn; label: string }[] = [
+  { col: 'businessName', label: 'Business' },
+  { col: 'tenantId', label: 'Tenant ID' },
+  { col: 'locations', label: 'Locations' },
+  { col: 'bookings', label: 'Bookings' },
+  { col: 'invoices', label: 'Invoices' },
+];
+
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { session, tenantId, setTenantId } = useSession();
@@ -132,8 +151,9 @@ export default function OverviewPage() {
   const [ownerBookingStatus, setOwnerBookingStatus] = useState<'all' | BookingStatus>('all');
   const [invoiceStatus, setInvoiceStatus] = useState<'all' | string>('all');
   const [tenantQuery, setTenantQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'bookings' | 'invoices' | 'locations' | 'name'>('bookings');
-  const [ownerSortDir, setOwnerSortDir] = useState<'asc' | 'desc'>('desc');
+  const [ownerTenantSortColumn, setOwnerTenantSortColumn] =
+    useState<OwnerTenantSortColumn>('bookings');
+  const [ownerTenantSortDir, setOwnerTenantSortDir] = useState<'asc' | 'desc'>('desc');
 
   // ── Tenant-scoped dashboard (business staff / admin only) ───────────────
   const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
@@ -267,9 +287,11 @@ export default function OverviewPage() {
         );
       });
     rows.sort((a, b) => {
-      const dir = ownerSortDir === 'asc' ? 1 : -1;
-      if (sortBy === 'name') return a.businessName.localeCompare(b.businessName) * dir;
-      return (a[sortBy] - b[sortBy]) * dir;
+      const dir = ownerTenantSortDir === 'asc' ? 1 : -1;
+      const col = ownerTenantSortColumn;
+      if (col === 'businessName') return a.businessName.localeCompare(b.businessName) * dir;
+      if (col === 'tenantId') return a.tenantId.localeCompare(b.tenantId) * dir;
+      return (a[col] - b[col]) * dir;
     });
     return rows;
   }, [
@@ -280,8 +302,8 @@ export default function OverviewPage() {
     invoiceStatus,
     invoicesByTenant,
     ownerLocations,
-    ownerSortDir,
-    sortBy,
+    ownerTenantSortColumn,
+    ownerTenantSortDir,
     tenantQuery,
   ]);
 
@@ -600,6 +622,15 @@ export default function OverviewPage() {
     return dashboardLocations.find((l) => l.id === selectedLocationId)?.name ?? tenantBusinessName;
   }, [selectedLocationId, dashboardLocations, tenantBusinessName]);
 
+  function handleOwnerTenantColumnSort(col: OwnerTenantSortColumn) {
+    if (ownerTenantSortColumn === col) {
+      setOwnerTenantSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setOwnerTenantSortColumn(col);
+      setOwnerTenantSortDir(ownerTenantDefaultSortDir(col));
+    }
+  }
+
   const sortedFilteredBookings = useMemo(() => {
     const rows = [...filteredBookings];
     rows.sort((a, b) => {
@@ -650,11 +681,12 @@ export default function OverviewPage() {
                 <div className="overview-filter-card-head">
                   <h3 className="overview-filter-card-title">Tenant table filters</h3>
                   <p className="overview-filter-card-desc muted">
-                    Controls which bookings and invoices count toward each tenant card.
+                    Controls which bookings and invoices count toward each tenant row. Sort the
+                    Businesses table by clicking a column header.
                   </p>
                 </div>
-                <div className="overview-filter-form overview-filter-form--row">
-                  <div className="overview-filter-field overview-filter-field--inline">
+                <div className="overview-filter-form overview-filter-form--tenant-bar">
+                  <div className="overview-filter-field">
                     <label htmlFor="ov-owner-date-range">Date window</label>
                     <select
                       id="ov-owner-date-range"
@@ -668,7 +700,7 @@ export default function OverviewPage() {
                       <option value="all">All time</option>
                     </select>
                   </div>
-                  <div className="overview-filter-field overview-filter-field--inline">
+                  <div className="overview-filter-field">
                     <label htmlFor="ov-owner-booking-status">Booking status</label>
                     <select
                       id="ov-owner-booking-status"
@@ -686,7 +718,7 @@ export default function OverviewPage() {
                       <option value="no_show">No show</option>
                     </select>
                   </div>
-                  <div className="overview-filter-field overview-filter-field--inline">
+                  <div className="overview-filter-field">
                     <label htmlFor="ov-owner-invoice-status">Invoice status</label>
                     <select
                       id="ov-owner-invoice-status"
@@ -702,37 +734,7 @@ export default function OverviewPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="overview-filter-field overview-filter-field--inline overview-filter-field--sort">
-                    <span className="overview-filter-field-label" id="ov-owner-sort-label">
-                      Sort
-                    </span>
-                    <div className="overview-sort-inline">
-                      <select
-                        id="ov-owner-sort-by"
-                        className="overview-select"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                        aria-labelledby="ov-owner-sort-label"
-                      >
-                        <option value="bookings">By bookings</option>
-                        <option value="invoices">By invoices</option>
-                        <option value="locations">By locations</option>
-                        <option value="name">By business name</option>
-                      </select>
-                      <button
-                        type="button"
-                        className="overview-sort-dir-btn"
-                        title={ownerSortDir === 'desc' ? 'Descending (high → low)' : 'Ascending (low → high)'}
-                        aria-label={
-                          ownerSortDir === 'desc' ? 'Switch to ascending order' : 'Switch to descending order'
-                        }
-                        onClick={() => setOwnerSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-                      >
-                        {ownerSortDir === 'desc' ? '↓' : '↑'}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="overview-filter-field overview-filter-field--inline overview-filter-field--search">
+                  <div className="overview-filter-field overview-filter-field--tenant-search">
                     <label htmlFor="ov-owner-tenant-search">Search</label>
                     <input
                       id="ov-owner-tenant-search"
@@ -795,12 +797,39 @@ export default function OverviewPage() {
                   <table className="data">
                     <thead>
                       <tr>
-                        <th>Business</th>
-                        <th>Tenant ID</th>
-                        <th>Locations</th>
-                        <th>Bookings</th>
-                        <th>Invoices</th>
-                        <th style={{ width: '100px' }}> </th>
+                        {OWNER_TENANT_TABLE_SORT_HEADERS.map(({ col, label }) => {
+                          const active = ownerTenantSortColumn === col;
+                          return (
+                            <th
+                              key={col}
+                              scope="col"
+                              className="data-th-sortable"
+                              aria-sort={
+                                active
+                                  ? ownerTenantSortDir === 'asc'
+                                    ? 'ascending'
+                                    : 'descending'
+                                  : 'none'
+                              }
+                            >
+                              <button
+                                type="button"
+                                className={`data-sort-btn${active ? ' data-sort-btn--active' : ''}`}
+                                onClick={() => handleOwnerTenantColumnSort(col)}
+                              >
+                                {label}
+                                {active ? (
+                                  <span className="data-sort-btn__arrow" aria-hidden>
+                                    {ownerTenantSortDir === 'asc' ? '↑' : '↓'}
+                                  </span>
+                                ) : null}
+                              </button>
+                            </th>
+                          );
+                        })}
+                        <th scope="col" style={{ width: '100px' }}>
+                          <span className="data-th-static"> </span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
