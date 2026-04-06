@@ -23,6 +23,7 @@ import { normalizePhoneForStorage } from '../utils/phone';
 import { formatTime12h } from '../utils/timeDisplay';
 
 type CustomerMode = 'existing' | 'walk-in';
+type BookingSource = 'walkin' | 'app' | 'call';
 type SavedCustomer = { name: string; phone: string; updatedAt: string };
 
 const SAVED_CUSTOMERS_KEY = 'bookings-dashboard.saved-customers';
@@ -323,6 +324,7 @@ export default function BookingCreatePage() {
   const [phone, setPhone] = useState('+92');
   const [customerMode, setCustomerMode] = useState<CustomerMode>('existing');
   const [customerId, setCustomerId] = useState('');
+  const [bookingSource, setBookingSource] = useState<BookingSource>('walkin');
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('+92');
   const [lines, setLines] = useState<BookingLine[]>([defaultLine()]);
@@ -666,7 +668,10 @@ export default function BookingCreatePage() {
           paymentMethod: 'cash',
         },
         bookingStatus: 'pending',
-        notes: notes.trim() || undefined,
+        notes:
+          [`source:${bookingSource}`, notes.trim()]
+            .filter(Boolean)
+            .join(' | ') || undefined,
       });
       const normalizedSavePhone = digitsOnly(customerPhoneToSave);
       if (normalizedSavePhone && customerNameToSave.trim()) {
@@ -745,6 +750,18 @@ export default function BookingCreatePage() {
           )}
           {!existingByPhone && digitsOnly(phone) && (
             <>
+              <div>
+                <label>Booking source</label>
+                <ButtonOptionGroup
+                  value={bookingSource}
+                  onChange={(next) => setBookingSource(next as BookingSource)}
+                  options={[
+                    { value: 'walkin', label: 'Walk-in' },
+                    { value: 'app', label: 'App' },
+                    { value: 'call', label: 'Call' },
+                  ]}
+                />
+              </div>
               <div>
                 <label>Customer mode</label>
                 <ButtonOptionGroup

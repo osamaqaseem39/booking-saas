@@ -324,6 +324,14 @@ export default function FacilitiesLiveViewPage() {
       setQuickBookingError('Phone number is required.');
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(quickBooking.date)) {
+      setQuickBookingError('Please select a valid booking date.');
+      return;
+    }
+    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(quickBooking.startTime)) {
+      setQuickBookingError('Please select a valid start time.');
+      return;
+    }
     const startTime = quickBooking.startTime;
     const endTime = endTimeFrom(startTime, quickBooking.durationMins);
     if (quickPrice == null) {
@@ -411,6 +419,7 @@ export default function FacilitiesLiveViewPage() {
           paymentMethod: 'cash',
         },
         bookingStatus: 'pending',
+        notes: 'source:walkin',
       });
 
       setQuickBooking(null);
@@ -646,31 +655,28 @@ export default function FacilitiesLiveViewPage() {
                 <div>
                   <label>Date</label>
                   <input
+                    type="date"
                     value={quickBooking.date}
-                    readOnly
+                    min={localDateYmd()}
+                    onChange={(e) =>
+                      setQuickBooking((cur) =>
+                        cur ? { ...cur, date: e.target.value } : cur,
+                      )
+                    }
+                    disabled={quickBookingSubmitting}
                   />
                 </div>
                 <div>
                   <label>Start time</label>
-                  <select
+                  <input
+                    type="time"
+                    step={1800}
                     value={quickBooking.startTime}
                     onChange={(e) =>
                       setQuickBooking((cur) => (cur ? { ...cur, startTime: e.target.value } : cur))
                     }
                     disabled={quickBookingSubmitting}
-                  >
-                    {Array.from({ length: 48 }).map((_, i) => {
-                      const mins = i * 30;
-                      const maxStart = 23 * 60 + 30 - quickBooking.durationMins;
-                      if (mins > maxStart) return null;
-                      const value = minutesToTime(mins);
-                      return (
-                        <option key={value} value={value}>
-                          {formatTime12h(value)}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  />
                 </div>
               </div>
               <div className="form-row-2">

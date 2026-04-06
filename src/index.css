@@ -1491,16 +1491,16 @@ table.data tbody tr:last-child td {
   border-radius: 999px;
 }
 
-.overview-source-fill--futsal {
+.overview-source-fill--walkin {
   background: linear-gradient(90deg, #22c55e, #34d399);
 }
 
-.overview-source-fill--cricket {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+.overview-source-fill--app {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
 }
 
-.overview-source-fill--padel {
-  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+.overview-source-fill--call {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 .overview-source-fill--unknown {

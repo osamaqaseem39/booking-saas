@@ -62,6 +62,20 @@ function lastNDates(days: number): string[] {
   return out;
 }
 
+type BookingSource = 'walkin' | 'app' | 'call';
+
+function bookingSourceFromRecord(booking: BookingRecord): BookingSource {
+  const notes = (booking.notes ?? '').toLowerCase();
+  const tagged = notes.match(/source\s*:\s*(walkin|walk-in|app|call)\b/);
+  if (tagged?.[1]) {
+    return tagged[1] === 'walk-in' ? 'walkin' : (tagged[1] as BookingSource);
+  }
+  if (notes.includes('walk-in') || notes.includes('walkin')) return 'walkin';
+  if (notes.includes('call')) return 'call';
+  if (notes.includes('app')) return 'app';
+  return 'walkin';
+}
+
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { session, tenantId } = useSession();
@@ -281,13 +295,13 @@ export default function OverviewPage() {
   }, [locationFilteredBookings, prevMonthStr, thisMonthStr, todayStr, yesterdayStr]);
 
   const sourceStats = useMemo(() => {
-    const sourceOrder = ['futsal', 'cricket', 'padel'];
+    const sourceOrder: BookingSource[] = ['walkin', 'app', 'call'];
     const sourceMap = new Map<string, { current: number; previous: number }>();
     for (const src of sourceOrder) {
       sourceMap.set(src, { current: 0, previous: 0 });
     }
     for (const b of locationFilteredBookings) {
-      const source = b.sportType ?? 'unknown';
+      const source = bookingSourceFromRecord(b);
       if (!sourceMap.has(source)) sourceMap.set(source, { current: 0, previous: 0 });
       const stat = sourceMap.get(source)!;
       const monthTag = b.bookingDate?.slice(0, 7);
@@ -302,11 +316,11 @@ export default function OverviewPage() {
   }, [locationFilteredBookings, prevMonthStr, thisMonthStr]);
 
   const sourceChartStats = useMemo(() => {
-    const sourceOrder = ['futsal', 'cricket', 'padel'];
+    const sourceOrder: BookingSource[] = ['walkin', 'app', 'call'];
     const counts = new Map<string, number>();
     for (const key of sourceOrder) counts.set(key, 0);
     for (const b of filteredBookings) {
-      const source = (b.sportType || 'unknown').toLowerCase();
+      const source = bookingSourceFromRecord(b);
       counts.set(source, (counts.get(source) ?? 0) + 1);
     }
     const rows = [...counts.entries()].map(([source, count]) => ({ source, count }));
@@ -494,26 +508,6 @@ export default function OverviewPage() {
                   </div>
                 </div>
                 <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
-                  <span className="muted">List sort</span>
-                  <div className="filter-chip-row">
-                    {[
-                      ['date_desc', 'Date ↓'],
-                      ['date_asc', 'Date ↑'],
-                      ['amount_desc', 'Amount ↓'],
-                      ['amount_asc', 'Amount ↑'],
-                      ['status', 'Status'],
-                    ].map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={bizListSort === value ? 'filter-chip filter-chip--active' : 'filter-chip'}
-                        onClick={() => setBizListSort(value as typeof bizListSort)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.82rem' }}>
                   Showing {sortedFilteredBookings.length} of {locationFilteredBookings.length} bookings
                   {selectedLocationId !== 'all' && (
@@ -523,6 +517,38 @@ export default function OverviewPage() {
               </div>
 
               {/* Booking list */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  marginTop: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <h3 className="overview-subtitle" style={{ margin: 0 }}>
+                  Booking list
+                </h3>
+                <div className="filter-chip-row">
+                  {[
+                    ['date_desc', 'Date ↓'],
+                    ['date_asc', 'Date ↑'],
+                    ['amount_desc', 'Amount ↓'],
+                    ['amount_asc', 'Amount ↑'],
+                    ['status', 'Status'],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={bizListSort === value ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                      onClick={() => setBizListSort(value as typeof bizListSort)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="table-wrap" style={{ marginTop: '1rem' }}>
                 <table className="data">
                   <thead>
