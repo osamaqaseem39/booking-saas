@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import {
   createBooking,
   createIamUser,
@@ -20,6 +20,7 @@ import {
   facilityTypeToCourtKind,
   type FacilityLiveType,
 } from '../utils/facilityLiveStats';
+import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 
 type FacilityCardRow = {
   id: string;
@@ -106,6 +107,7 @@ function sportClassFromFacilityType(type: FacilityCardRow['type']): string {
 }
 
 export default function FacilitiesLiveViewPage() {
+  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityCardRow[]>([]);
@@ -221,8 +223,9 @@ export default function FacilitiesLiveViewPage() {
   const filteredFacilities = useMemo(() => {
     const q = query.trim().toLowerCase();
     const locationById = new Map(locations.map((loc) => [loc.id, loc]));
-    if (!q) return facilities;
     return facilities.filter((facility) => {
+      if (selectedLocationId !== 'all' && facility.locationId !== selectedLocationId) return false;
+      if (!q) return true;
       const loc = facility.locationId ? locationById.get(facility.locationId) : undefined;
       const biz = loc ? businessById.get(loc.businessId) : undefined;
       return (
@@ -234,7 +237,7 @@ export default function FacilitiesLiveViewPage() {
         (biz?.businessName ?? '').toLowerCase().includes(q)
       );
     });
-  }, [businessById, facilities, locations, query]);
+  }, [businessById, facilities, locations, query, selectedLocationId]);
 
   const facilitySnapshots = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computeFacilityLiveSnapshot>>();

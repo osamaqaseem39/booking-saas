@@ -804,11 +804,18 @@ table.data tbody tr:last-child td {
 .console-root {
   display: flex;
   min-height: 100vh;
+  --console-nav-width: 240px;
+  --console-nav-width-collapsed: 72px;
+}
+
+.console-root--collapsed {
+  --console-nav-width: var(--console-nav-width-collapsed);
 }
 
 .console-nav {
-  width: 240px;
-  flex-shrink: 0;
+  width: var(--console-nav-width);
+  position: fixed;
+  inset: 0 auto 0 0;
   height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -817,6 +824,12 @@ table.data tbody tr:last-child td {
   flex-direction: column;
   box-sizing: border-box;
   overflow-y: auto;
+  z-index: 20;
+  transition: width 0.16s ease;
+}
+
+.console-nav--collapsed {
+  width: var(--console-nav-width-collapsed);
 }
 
 .console-nav-main {
@@ -841,6 +854,26 @@ table.data tbody tr:last-child td {
   padding: 0 1rem 1rem;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.console-nav-brand-text {
+  min-width: 0;
+}
+
+.console-nav-collapse-btn {
+  padding: 0.25rem 0.5rem;
+  min-width: 1.8rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.console-nav-collapse-btn:hover {
+  color: var(--text);
 }
 
 .console-nav-brand strong {
@@ -856,7 +889,9 @@ table.data tbody tr:last-child td {
 }
 
 .console-nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   padding: 0.58rem 1rem;
   color: var(--muted);
   text-decoration: none;
@@ -866,6 +901,19 @@ table.data tbody tr:last-child td {
   letter-spacing: 0.01em;
   border-left: 3px solid transparent;
   transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.console-nav-link-icon {
+  display: inline-flex;
+  width: 1.2rem;
+  justify-content: center;
+  font-size: 0.96rem;
+  flex-shrink: 0;
+}
+
+.console-nav--collapsed a {
+  justify-content: center;
+  padding: 0.65rem 0.45rem;
 }
 
 .console-nav a:hover {
@@ -884,6 +932,9 @@ table.data tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  margin-left: var(--console-nav-width);
+  width: calc(100% - var(--console-nav-width));
+  transition: margin-left 0.16s ease, width 0.16s ease;
 }
 
 .console-topbar {
@@ -1197,6 +1248,38 @@ table.data tbody tr:last-child td {
   margin-top: 0.85rem;
 }
 
+.filter-chip-group {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.filter-chip-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.filter-chip:hover:not(:disabled) {
+  background: #243040;
+  color: var(--text);
+}
+
+.filter-chip--active {
+  background: rgba(45, 212, 191, 0.15);
+  color: var(--accent);
+  border-color: rgba(45, 212, 191, 0.4);
+}
+
 .biz-source-panel {
   margin-top: 0.85rem;
 }
@@ -1310,6 +1393,109 @@ table.data tbody tr:last-child td {
   background: rgba(45, 212, 191, 0.1);
   border-radius: 999px;
   padding: 0.16rem 0.45rem;
+}
+
+.overview-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.overview-chart-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  padding: 0.75rem;
+}
+
+.overview-chart-card h4 {
+  margin: 0 0 0.55rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.overview-source-bars {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.overview-source-row {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.overview-source-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.overview-source-track {
+  height: 0.58rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+}
+
+.overview-source-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.overview-source-fill--futsal {
+  background: linear-gradient(90deg, #22c55e, #34d399);
+}
+
+.overview-source-fill--cricket {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.overview-source-fill--padel {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.overview-source-fill--unknown {
+  background: linear-gradient(90deg, #64748b, #94a3b8);
+}
+
+.overview-source-value {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.overview-mini-columns {
+  height: 130px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+  align-items: end;
+}
+
+.overview-mini-col {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  align-items: end;
+}
+
+.overview-mini-col-bar {
+  width: 100%;
+  min-height: 8%;
+  border-radius: 8px 8px 4px 4px;
+}
+
+.overview-mini-col-bar--bookings {
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.95), rgba(20, 184, 166, 0.65));
+}
+
+.overview-mini-col-bar--revenue {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.65));
+}
+
+.overview-mini-col-label {
+  font-size: 0.7rem;
+  color: var(--muted);
 }
 
 .owner-live-view {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import {
   deleteFacilityByCode,
   type FacilityRowCode,
@@ -30,6 +30,7 @@ import {
   futsalSharedBodyFromCricketDetail,
   padelDetailToCreateBody,
 } from '../utils/facilityDuplicate';
+import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 
 function setupPath(locationId: string, facilityCode: string) {
   return `/app/locations/${locationId}/facilities/setup/${facilityCode}`;
@@ -69,7 +70,9 @@ function hasSetupForm(code: string): boolean {
 }
 
 export default function AddFacilityPage() {
+  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
+  const topbarLocationLocked = selectedLocationId !== 'all';
   const [locationId, setLocationId] = useState('');
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -134,13 +137,19 @@ export default function AddFacilityPage() {
       try {
         const locs = await listBusinessLocations();
         setLocations(locs);
-        setLocationId((id) => id || locs[0]?.id || '');
+        setLocationId((id) =>
+          topbarLocationLocked ? selectedLocationId : id || locs[0]?.id || '',
+        );
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load locations');
         setLocations([]);
       }
     })();
-  }, []);
+  }, [selectedLocationId, topbarLocationLocked]);
+
+  useEffect(() => {
+    if (topbarLocationLocked) setLocationId(selectedLocationId);
+  }, [selectedLocationId, topbarLocationLocked]);
 
   const location = useMemo(
     () => locations.find((l) => l.id === locationId),
@@ -153,7 +162,7 @@ export default function AddFacilityPage() {
     })();
   }, [locationId, locations]);
 
-  const showLocationPicker = locations.length > 1;
+  const showLocationPicker = locations.length > 1 && !topbarLocationLocked;
   const visibleSetupOptions = useMemo(() => {
     if (!location) return [];
     const options =
@@ -320,6 +329,12 @@ export default function AddFacilityPage() {
   return (
     <div>
       <h1 className="page-title">Facilities</h1>
+      {topbarLocationLocked && location ? (
+        <p className="muted" style={{ marginTop: '-0.35rem' }}>
+          Top bar location filter is active: <strong>{location.name}</strong>
+          {location.city ? ` · ${location.city}` : ''}.
+        </p>
+      ) : null}
       {err && <div className="err-banner">{err}</div>}
 
       {locations.length === 0 && !err ? (

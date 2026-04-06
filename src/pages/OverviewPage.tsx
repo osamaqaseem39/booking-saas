@@ -43,6 +43,25 @@ function trendMeta(current: number, previous: number): {
   return { delta: 0, pct: 0, tone: 'flat', sign: '' };
 }
 
+function localDateYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function lastNDates(days: number): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    out.push(localDateYmd(d));
+  }
+  return out;
+}
+
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { session, tenantId } = useSession();
@@ -65,6 +84,7 @@ export default function OverviewPage() {
   const [invoiceStatus, setInvoiceStatus] = useState<'all' | string>('all');
   const [tenantQuery, setTenantQuery] = useState('');
   const [sortBy, setSortBy] = useState<'bookings' | 'invoices' | 'locations' | 'name'>('bookings');
+  const [ownerSortDir, setOwnerSortDir] = useState<'asc' | 'desc'>('desc');
 
   // ── Business-user state ───────────────────────────────────────────────────
   const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
@@ -73,6 +93,9 @@ export default function OverviewPage() {
   const [tenantError, setTenantError] = useState<string | null>(null);
   const [bizBookingStatus, setBizBookingStatus] = useState<'all' | BookingStatus>('all');
   const [bizPayStatus, setBizPayStatus] = useState<'all' | PaymentStatus>('all');
+  const [bizListSort, setBizListSort] = useState<
+    'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'status'
+  >('date_desc');
 
   // ── Platform-owner load ───────────────────────────────────────────────────
   useEffect(() => {
@@ -176,9 +199,11 @@ export default function OverviewPage() {
           row.tenantId.toLowerCase().includes(query)
         );
       });
-    rows.sort((a, b) =>
-      sortBy === 'name' ? a.businessName.localeCompare(b.businessName) : b[sortBy] - a[sortBy],
-    );
+    rows.sort((a, b) => {
+      const dir = ownerSortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'name') return a.businessName.localeCompare(b.businessName) * dir;
+      return (a[sortBy] - b[sortBy]) * dir;
+    });
     return rows;
   }, [
     ownerBookingStatus,
@@ -188,6 +213,7 @@ export default function OverviewPage() {
     invoiceStatus,
     invoicesByTenant,
     ownerLocations,
+    ownerSortDir,
     sortBy,
     tenantQuery,
   ]);
@@ -275,10 +301,78 @@ export default function OverviewPage() {
     }));
   }, [locationFilteredBookings, prevMonthStr, thisMonthStr]);
 
+  const sourceChartStats = useMemo(() => {
+    const sourceOrder = ['futsal', 'cricket', 'padel'];
+    const counts = new Map<string, number>();
+    for (const key of sourceOrder) counts.set(key, 0);
+    for (const b of filteredBookings) {
+      const source = (b.sportType || 'unknown').toLowerCase();
+      counts.set(source, (counts.get(source) ?? 0) + 1);
+    }
+    const rows = [...counts.entries()].map(([source, count]) => ({ source, count }));
+    const total = rows.reduce((sum, row) => sum + row.count, 0);
+    const max = rows.reduce((m, row) => Math.max(m, row.count), 0);
+    return rows.map((row) => ({
+      ...row,
+      pct: total > 0 ? Math.round((row.count / total) * 100) : 0,
+      widthPct: max > 0 ? Math.max(8, Math.round((row.count / max) * 100)) : 0,
+    }));
+  }, [filteredBookings]);
+
+  const bookingTrend = useMemo(() => {
+    const days = lastNDates(7);
+    const countsByDay = new Map<string, number>();
+    const revenueByDay = new Map<string, number>();
+    for (const day of days) {
+      countsByDay.set(day, 0);
+      revenueByDay.set(day, 0);
+    }
+    for (const b of filteredBookings) {
+      const day = b.bookingDate?.slice(0, 10) ?? '';
+      if (!countsByDay.has(day)) continue;
+      countsByDay.set(day, (countsByDay.get(day) ?? 0) + 1);
+      revenueByDay.set(day, (revenueByDay.get(day) ?? 0) + (b.pricing?.totalAmount ?? 0));
+    }
+    const bookingSeries = days.map((day) => ({
+      day,
+      label: day.slice(5),
+      value: countsByDay.get(day) ?? 0,
+    }));
+    const revenueSeries = days.map((day) => ({
+      day,
+      label: day.slice(5),
+      value: Math.round(revenueByDay.get(day) ?? 0),
+    }));
+    const bookingMax = bookingSeries.reduce((m, x) => Math.max(m, x.value), 0);
+    const revenueMax = revenueSeries.reduce((m, x) => Math.max(m, x.value), 0);
+    return {
+      bookingSeries: bookingSeries.map((r) => ({
+        ...r,
+        heightPct: bookingMax > 0 ? Math.max(8, Math.round((r.value / bookingMax) * 100)) : 0,
+      })),
+      revenueSeries: revenueSeries.map((r) => ({
+        ...r,
+        heightPct: revenueMax > 0 ? Math.max(8, Math.round((r.value / revenueMax) * 100)) : 0,
+      })),
+    };
+  }, [filteredBookings]);
+
   const activeLocationName = useMemo(() => {
     if (selectedLocationId === 'all') return tenantBusinessName;
     return dashboardLocations.find((l) => l.id === selectedLocationId)?.name ?? tenantBusinessName;
   }, [selectedLocationId, dashboardLocations, tenantBusinessName]);
+
+  const sortedFilteredBookings = useMemo(() => {
+    const rows = [...filteredBookings];
+    rows.sort((a, b) => {
+      if (bizListSort === 'date_desc') return (Date.parse(b.bookingDate || b.createdAt) || 0) - (Date.parse(a.bookingDate || a.createdAt) || 0);
+      if (bizListSort === 'date_asc') return (Date.parse(a.bookingDate || a.createdAt) || 0) - (Date.parse(b.bookingDate || b.createdAt) || 0);
+      if (bizListSort === 'amount_desc') return (b.pricing?.totalAmount ?? 0) - (a.pricing?.totalAmount ?? 0);
+      if (bizListSort === 'amount_asc') return (a.pricing?.totalAmount ?? 0) - (b.pricing?.totalAmount ?? 0);
+      return a.bookingStatus.localeCompare(b.bookingStatus);
+    });
+    return rows;
+  }, [filteredBookings, bizListSort]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -358,61 +452,61 @@ export default function OverviewPage() {
                 </div>
               </div>
 
-              <div className="connection-panel overview-panel biz-source-panel">
-                <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
-                  Bookings by source (this month vs last month)
-                </h3>
-                <div className="biz-source-grid">
-                  {sourceStats.map((row) => (
-                    <div key={row.source} className="biz-source-card">
-                      <strong>{titleCase(row.source)}</strong>
-                      <span className="muted">
-                        {row.current} this month · {row.previous} last month
-                      </span>
-                      <span className={`biz-kpi-trend biz-kpi-trend--${row.trend.tone}`}>
-                        {row.trend.sign}
-                        {Math.abs(row.trend.delta)} ({Math.abs(row.trend.pct).toFixed(0)}%)
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Filters */}
               <div className="connection-panel overview-panel biz-filter-panel">
-                <div className="overview-filter-grid">
-                  <label>
-                    <span className="muted">Booking status</span>
-                    <select
-                      className="input"
-                      value={bizBookingStatus}
-                      onChange={(e) => setBizBookingStatus(e.target.value as 'all' | BookingStatus)}
-                    >
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="no_show">No show</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span className="muted">Payment status</span>
-                    <select
-                      className="input"
-                      value={bizPayStatus}
-                      onChange={(e) => setBizPayStatus(e.target.value as 'all' | PaymentStatus)}
-                    >
-                      <option value="all">All payments</option>
-                      <option value="pending">Pending</option>
-                      <option value="paid">Paid</option>
-                      <option value="failed">Failed</option>
-                      <option value="refunded">Refunded</option>
-                    </select>
-                  </label>
+                <div className="filter-chip-group">
+                  <span className="muted">Booking status</span>
+                  <div className="filter-chip-row">
+                    {(['all', 'pending', 'confirmed', 'completed', 'cancelled', 'no_show'] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={bizBookingStatus === s ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setBizBookingStatus(s)}
+                      >
+                        {s === 'all' ? 'All' : titleCase(s)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
+                  <span className="muted">Payment status</span>
+                  <div className="filter-chip-row">
+                    {(['all', 'pending', 'paid', 'failed', 'refunded'] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={bizPayStatus === s ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setBizPayStatus(s)}
+                      >
+                        {s === 'all' ? 'All' : titleCase(s)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
+                  <span className="muted">List sort</span>
+                  <div className="filter-chip-row">
+                    {[
+                      ['date_desc', 'Date ↓'],
+                      ['date_asc', 'Date ↑'],
+                      ['amount_desc', 'Amount ↓'],
+                      ['amount_asc', 'Amount ↑'],
+                      ['status', 'Status'],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={bizListSort === value ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setBizListSort(value as typeof bizListSort)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.82rem' }}>
-                  Showing {filteredBookings.length} of {locationFilteredBookings.length} bookings
+                  Showing {sortedFilteredBookings.length} of {locationFilteredBookings.length} bookings
                   {selectedLocationId !== 'all' && (
                     <span> · {dashboardLocations.find((l) => l.id === selectedLocationId)?.name}</span>
                   )}
@@ -433,14 +527,14 @@ export default function OverviewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBookings.length === 0 ? (
+                    {sortedFilteredBookings.length === 0 ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '2rem' }}>
                           No bookings match the selected filters.
                         </td>
                       </tr>
                     ) : (
-                      filteredBookings.map((bk) => {
+                      sortedFilteredBookings.map((bk) => {
                         const loc = dashboardLocations.find((l) => l.id === bk.arenaId);
                         return (
                           <tr
@@ -477,6 +571,88 @@ export default function OverviewPage() {
                   </tbody>
                 </table>
               </div>
+
+              <div className="connection-panel overview-panel" style={{ marginTop: '1rem' }}>
+                <h3 className="overview-subtitle" style={{ marginBottom: '0.4rem' }}>
+                  Booking insights charts
+                </h3>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Source distribution and last 7 days trends for current filters.
+                </p>
+                <div className="overview-chart-grid">
+                  <article className="overview-chart-card">
+                    <h4>Bookings by source</h4>
+                    <div className="overview-source-bars">
+                      {sourceChartStats.map((row) => (
+                        <div key={row.source} className="overview-source-row">
+                          <span className="overview-source-label">{titleCase(row.source)}</span>
+                          <div className="overview-source-track">
+                            <div
+                              className={`overview-source-fill overview-source-fill--${row.source}`}
+                              style={{ width: `${row.widthPct}%` }}
+                            />
+                          </div>
+                          <span className="overview-source-value">
+                            {row.count} ({row.pct}%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+
+                  <article className="overview-chart-card">
+                    <h4>Bookings trend (last 7 days)</h4>
+                    <div className="overview-mini-columns">
+                      {bookingTrend.bookingSeries.map((point) => (
+                        <div key={point.day} className="overview-mini-col">
+                          <div
+                            className="overview-mini-col-bar overview-mini-col-bar--bookings"
+                            style={{ height: `${point.heightPct}%` }}
+                            title={`${point.day}: ${point.value} bookings`}
+                          />
+                          <span className="overview-mini-col-label">{point.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+
+                  <article className="overview-chart-card">
+                    <h4>Revenue trend (last 7 days)</h4>
+                    <div className="overview-mini-columns">
+                      {bookingTrend.revenueSeries.map((point) => (
+                        <div key={point.day} className="overview-mini-col">
+                          <div
+                            className="overview-mini-col-bar overview-mini-col-bar--revenue"
+                            style={{ height: `${point.heightPct}%` }}
+                            title={`${point.day}: ${fmtCurrency(point.value, kpis.currency)}`}
+                          />
+                          <span className="overview-mini-col-label">{point.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div className="connection-panel overview-panel biz-source-panel">
+                <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
+                  Bookings by source (this month vs last month)
+                </h3>
+                <div className="biz-source-grid">
+                  {sourceStats.map((row) => (
+                    <div key={row.source} className="biz-source-card">
+                      <strong>{titleCase(row.source)}</strong>
+                      <span className="muted">
+                        {row.current} this month · {row.previous} last month
+                      </span>
+                      <span className={`biz-kpi-trend biz-kpi-trend--${row.trend.tone}`}>
+                        {row.trend.sign}
+                        {Math.abs(row.trend.delta)} ({Math.abs(row.trend.pct).toFixed(0)}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -492,63 +668,89 @@ export default function OverviewPage() {
           ) : (
             <>
               <div className="connection-panel overview-panel">
-                <div className="overview-filter-grid">
-                  <label>
-                    <span className="muted">Date range</span>
-                    <select
-                      className="input"
-                      value={dateRange}
-                      onChange={(e) => setDateRange(e.target.value as '7' | '30' | '90' | 'all')}
+                <div className="filter-chip-group">
+                  <span className="muted">Date range</span>
+                  <div className="filter-chip-row">
+                    {([
+                      ['7', '7d'],
+                      ['30', '30d'],
+                      ['90', '90d'],
+                      ['all', 'All'],
+                    ] as const).map(([v, label]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={dateRange === v ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setDateRange(v)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
+                  <span className="muted">Booking status</span>
+                  <div className="filter-chip-row">
+                    {(['all', 'pending', 'confirmed', 'cancelled', 'completed', 'no_show'] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={ownerBookingStatus === v ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setOwnerBookingStatus(v)}
+                      >
+                        {v === 'all' ? 'All' : titleCase(v)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
+                  <span className="muted">Invoice status</span>
+                  <div className="filter-chip-row">
+                    <button
+                      type="button"
+                      className={invoiceStatus === 'all' ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                      onClick={() => setInvoiceStatus('all')}
                     >
-                      <option value="7">Last 7 days</option>
-                      <option value="30">Last 30 days</option>
-                      <option value="90">Last 90 days</option>
-                      <option value="all">All time</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span className="muted">Booking status</span>
-                    <select
-                      className="input"
-                      value={ownerBookingStatus}
-                      onChange={(e) => setOwnerBookingStatus(e.target.value as 'all' | BookingStatus)}
+                      All
+                    </button>
+                    {invoiceStatusOptions.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={invoiceStatus === s ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setInvoiceStatus(s)}
+                      >
+                        {titleCase(s)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="filter-chip-group" style={{ marginTop: '0.45rem' }}>
+                  <span className="muted">Sort tenants</span>
+                  <div className="filter-chip-row">
+                    {([
+                      ['bookings', 'Bookings'],
+                      ['invoices', 'Invoices'],
+                      ['locations', 'Locations'],
+                      ['name', 'Name'],
+                    ] as const).map(([v, label]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={sortBy === v ? 'filter-chip filter-chip--active' : 'filter-chip'}
+                        onClick={() => setSortBy(v)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="filter-chip"
+                      onClick={() => setOwnerSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
                     >
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="completed">Completed</option>
-                      <option value="no_show">No show</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span className="muted">Invoice status</span>
-                    <select
-                      className="input"
-                      value={invoiceStatus}
-                      onChange={(e) => setInvoiceStatus(e.target.value)}
-                    >
-                      <option value="all">All statuses</option>
-                      {invoiceStatusOptions.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <span className="muted">Sort by</span>
-                    <select
-                      className="input"
-                      value={sortBy}
-                      onChange={(e) =>
-                        setSortBy(e.target.value as 'bookings' | 'invoices' | 'locations' | 'name')
-                      }
-                    >
-                      <option value="bookings">Bookings</option>
-                      <option value="invoices">Invoices</option>
-                      <option value="locations">Locations</option>
-                      <option value="name">Business name</option>
-                    </select>
-                  </label>
+                      {ownerSortDir === 'asc' ? 'Asc ↑' : 'Desc ↓'}
+                    </button>
+                  </div>
                 </div>
                 <label className="overview-search">
                   <span className="muted">Search tenant</span>

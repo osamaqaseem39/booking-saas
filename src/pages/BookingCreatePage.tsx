@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   createBooking,
   createIamUser,
@@ -11,6 +11,7 @@ import {
   listIamUsers,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
+import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 import type {
   BookingRecord,
   BookingItemStatus,
@@ -305,6 +306,7 @@ export default function BookingCreatePage() {
   const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
   const { tenantId } = useSession();
+  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [users, setUsers] = useState<IamUserRow[]>([]);
@@ -312,6 +314,9 @@ export default function BookingCreatePage() {
   const [sport, setSport] = useState<BookingSportType>('futsal');
   /** Empty = all locations (facility list follows Sport). When set, facility list shows every court/field at that location (sport still used for booking validation). */
   const [facilityLocationId, setFacilityLocationId] = useState('');
+  const topbarLocationLocked = selectedLocationId !== 'all';
+  const effectiveLocationId = topbarLocationLocked ? selectedLocationId : facilityLocationId;
+
   const [bookingDate, setBookingDate] = useState(() =>
     localDateYmd(),
   );
@@ -412,8 +417,14 @@ export default function BookingCreatePage() {
   }, []);
 
   useEffect(() => {
+    if (topbarLocationLocked) {
+      setFacilityLocationId(selectedLocationId);
+    }
+  }, [selectedLocationId, topbarLocationLocked]);
+
+  useEffect(() => {
     void (async () => {
-      const loc = facilityLocationId.trim();
+      const loc = effectiveLocationId.trim();
       setCourtOpts(
         loc
           ? await listCourtOptions(undefined, loc)
@@ -421,7 +432,7 @@ export default function BookingCreatePage() {
       );
       setLines([defaultLine()]);
     })();
-  }, [sport, facilityLocationId]);
+  }, [sport, effectiveLocationId]);
 
   useEffect(() => {
     try {
@@ -780,18 +791,29 @@ export default function BookingCreatePage() {
             <div>
               <label>Location</label>
               <ButtonOptionGroup
-                value={facilityLocationId}
+                value={effectiveLocationId}
                 onChange={setFacilityLocationId}
-                options={[
-                  { value: '', label: 'All locations' },
-                  ...locations.map((loc) => ({
-                    value: loc.id,
-                    label: `${loc.name}${loc.city ? ` · ${loc.city}` : ''}`,
-                  })),
-                ]}
+                options={
+                  topbarLocationLocked
+                    ? locations
+                        .filter((loc) => loc.id === selectedLocationId)
+                        .map((loc) => ({
+                          value: loc.id,
+                          label: `${loc.name}${loc.city ? ` · ${loc.city}` : ''}`,
+                        }))
+                    : [
+                        { value: '', label: 'All locations' },
+                        ...locations.map((loc) => ({
+                          value: loc.id,
+                          label: `${loc.name}${loc.city ? ` · ${loc.city}` : ''}`,
+                        })),
+                      ]
+                }
               />
               <p id="facility-location-hint" className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
-                {facilityLocationId.trim()
+                {topbarLocationLocked
+                  ? 'Location is locked by top bar filter. Quick booking shows facilities for this location only.'
+                  : facilityLocationId.trim()
                   ? 'All facility types at this location are listed below. Lines must still match the selected sport for booking validation.'
                   : 'Facilities are filtered by sport. Pick a location to list every court and field there.'}
               </p>

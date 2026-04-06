@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { getCourtSlotGrid, listCourtOptions, setCourtSlotBlock } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
+import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 import type { BookingSportType, CourtOption, CourtSlotGridSegment } from '../types/booking';
 import { formatTimeRange12h } from '../utils/timeDisplay';
 
@@ -11,6 +12,7 @@ function segmentBookingAllowed(seg: CourtSlotGridSegment): boolean {
 
 export default function ManageTimeSlotsPage() {
   const { tenantId } = useSession();
+  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [sport, setSport] = useState<BookingSportType>('futsal');
   const [courts, setCourts] = useState<CourtOption[]>([]);
   const [facilityKey, setFacilityKey] = useState('');
@@ -37,13 +39,16 @@ export default function ManageTimeSlotsPage() {
     }
     void (async () => {
       try {
-        const rows = await listCourtOptions(sport);
+        const rows = await listCourtOptions(
+          sport,
+          selectedLocationId === 'all' ? undefined : selectedLocationId,
+        );
         setCourts(rows);
       } catch {
         setCourts([]);
       }
     })();
-  }, [sport, tenantId]);
+  }, [sport, tenantId, selectedLocationId]);
 
   useEffect(() => {
     if (!courts.length) {
@@ -116,6 +121,11 @@ export default function ManageTimeSlotsPage() {
         Turn booking on or off per 30-minute window for a facility. Booked slots cannot be toggled
         here; change or cancel the booking instead.
       </p>
+      {selectedLocationId !== 'all' && (
+        <p className="muted" style={{ marginTop: '-0.75rem', marginBottom: '1rem' }}>
+          Top bar location filter is active. Showing facilities for the selected location only.
+        </p>
+      )}
 
       {!tenantId.trim() && (
         <div className="err-banner">Pick an active tenant in the top bar.</div>

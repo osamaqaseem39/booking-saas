@@ -25,6 +25,7 @@ export default function ConsoleLayout() {
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [dashboardLocations, setDashboardLocations] = useState<BusinessLocationRow[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -125,14 +126,43 @@ export default function ConsoleLayout() {
     dashboardLocations,
   };
 
+  const navIconForPath = (to: string): string => {
+    if (to === '/app') return '🏠';
+    if (to === '/app/businesses') return '🏢';
+    if (to === '/app/locations') return '📍';
+    if (to === '/app/Facilites') return '⚽';
+    if (to === '/app/end-users') return '👥';
+    if (to === '/app/users') return '🧑‍💼';
+    if (to === '/app/bookings') return '📅';
+    if (to === '/app/bookings/new') return '➕';
+    if (to === '/app/time-slots') return '🕒';
+    if (to === '/app/facilities-live') return '📡';
+    if (to === '/app/billing') return '💳';
+    if (to === '/app/health') return '🛡️';
+    return '•';
+  };
+
   return (
-    <div className="console-root">
-      <nav className="console-nav">
+    <div className={`console-root ${isNavCollapsed ? 'console-root--collapsed' : ''}`}>
+      <nav className={`console-nav ${isNavCollapsed ? 'console-nav--collapsed' : ''}`}>
         <div className="console-nav-brand">
-          <strong>Bukit SaaS</strong>
-          <span className="muted" style={{ fontSize: '0.75rem' }}>
-            Console
-          </span>
+          <div className="console-nav-brand-text">
+            <strong>{isNavCollapsed ? 'BS' : 'Bukit SaaS'}</strong>
+            {!isNavCollapsed && (
+              <span className="muted" style={{ fontSize: '0.75rem' }}>
+                Console
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="console-nav-collapse-btn"
+            title={isNavCollapsed ? 'Expand menu' : 'Collapse menu'}
+            aria-label={isNavCollapsed ? 'Expand side menu' : 'Collapse side menu'}
+            onClick={() => setIsNavCollapsed((prev) => !prev)}
+          >
+            {isNavCollapsed ? '→' : '←'}
+          </button>
         </div>
         <div className="console-nav-main">
           {navMain.map((item) => (
@@ -141,8 +171,12 @@ export default function ConsoleLayout() {
               to={item.to}
               end={item.to === '/app'}
               className={({ isActive }) => (isActive ? 'active' : '')}
+              title={isNavCollapsed ? item.label : undefined}
             >
-              {item.label}
+              <span className="console-nav-link-icon" aria-hidden="true">
+                {navIconForPath(item.to)}
+              </span>
+              {!isNavCollapsed ? <span>{item.label}</span> : null}
             </NavLink>
           ))}
         </div>
@@ -156,8 +190,12 @@ export default function ConsoleLayout() {
                   to={item.to}
                   end={item.to === '/app'}
                   className={({ isActive }) => (isActive ? 'active' : '')}
+                  title={isNavCollapsed ? item.label : undefined}
                 >
-                  {item.label}
+                  <span className="console-nav-link-icon" aria-hidden="true">
+                    {navIconForPath(item.to)}
+                  </span>
+                  {!isNavCollapsed ? <span>{item.label}</span> : null}
                 </NavLink>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import {
   getBookingAvailability,
   getCourtBookedSlots,
@@ -9,6 +9,7 @@ import {
   updateBooking,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
+import type { DashboardOutletContext } from '../layout/ConsoleLayout';
 import type {
   BookingRecord,
   BookingSportType,
@@ -48,6 +49,7 @@ function titleCaseWords(v: string): string {
 export default function BookingsPage() {
   const navigate = useNavigate();
   const { tenantId } = useSession();
+  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +89,7 @@ export default function BookingsPage() {
     const tomorrow = tomorrowDate.toISOString().slice(0, 10);
 
     return bookings.filter((b) => {
+      if (selectedLocationId !== 'all' && b.arenaId !== selectedLocationId) return false;
       if (dayFilter === 'today' && b.bookingDate !== today) return false;
       if (dayFilter === 'tomorrow' && b.bookingDate !== tomorrow) return false;
       if (gameFilter === 'completed' && b.bookingStatus !== 'completed') return false;
@@ -98,7 +101,7 @@ export default function BookingsPage() {
       }
       return true;
     });
-  }, [bookings, dayFilter, gameFilter]);
+  }, [bookings, dayFilter, gameFilter, selectedLocationId]);
   const bookingStats = useMemo(() => {
     const total = filteredBookings.length;
     const pending = filteredBookings.filter((b) => b.bookingStatus === 'pending').length;
@@ -152,7 +155,10 @@ export default function BookingsPage() {
     })();
     void (async () => {
       try {
-        const rows = await listCourtOptions(undefined);
+        const rows = await listCourtOptions(
+          undefined,
+          selectedLocationId === 'all' ? undefined : selectedLocationId,
+        );
         const map: Record<string, string> = {};
         for (const row of rows) {
           map[row.id] = row.label.split('—').slice(1).join('—').trim() || row.label;
@@ -162,7 +168,7 @@ export default function BookingsPage() {
         setCourtsMap({});
       }
     })();
-  }, []);
+  }, [selectedLocationId]);
 
 
   async function patchBooking(patch: Parameters<typeof updateBooking>[1]) {
@@ -219,6 +225,11 @@ export default function BookingsPage() {
   return (
     <div>
       <h1 className="page-title">Bookings</h1>
+      {selectedLocationId !== 'all' && (
+        <p className="muted" style={{ marginTop: '-0.25rem', marginBottom: '0.75rem' }}>
+          Top bar location filter is active. Showing bookings for the selected location only.
+        </p>
+      )}
       {!tenantId.trim() && (
         <div className="err-banner">Pick an active tenant in the top bar.</div>
       )}
