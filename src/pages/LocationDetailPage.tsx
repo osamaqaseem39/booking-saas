@@ -192,6 +192,12 @@ export default function LocationDetailPage() {
               Edit location
             </Link>
             <Link
+              to={`/app/bookings/new?locationId=${encodeURIComponent(location.id)}`}
+              className="btn-primary"
+            >
+              Add booking
+            </Link>
+            <Link
               to="/app/Facilites"
               className="btn-ghost"
             >

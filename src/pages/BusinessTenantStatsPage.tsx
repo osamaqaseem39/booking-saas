@@ -10,6 +10,7 @@ import {
 import type { BookingRecord } from '../types/booking';
 import type {
   BusinessDashboardBusinessRow,
+  BusinessLocationRow,
   BusinessRow,
   InvoiceRow,
 } from '../types/domain';
@@ -113,6 +114,7 @@ export default function BusinessTenantStatsPage() {
   const [business, setBusiness] = useState<BusinessRow | null>(null);
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
+  const [businessLocations, setBusinessLocations] = useState<BusinessLocationRow[]>([]);
   const [dashboardRow, setDashboardRow] = useState<BusinessDashboardBusinessRow | null>(
     null,
   );
@@ -150,6 +152,7 @@ export default function BusinessTenantStatsPage() {
         if (!selected) {
           setBookings([]);
           setInvoices([]);
+          setBusinessLocations([]);
           setDashboardRow(null);
           setCounts({ locations: 0, users: 0, bookings: 0, invoices: 0 });
           return;
@@ -163,6 +166,7 @@ export default function BusinessTenantStatsPage() {
         ]);
         setBookings(bookingRows);
         setInvoices(invoiceRows);
+        setBusinessLocations(locations.filter((row) => row.businessId === selected.id));
         const dashBiz =
           dashboardView?.businesses?.find((b) => b.businessId === selected.id) ?? null;
         setDashboardRow(dashBiz);
@@ -199,91 +203,102 @@ export default function BusinessTenantStatsPage() {
         <div className="empty-state">Loading business…</div>
       ) : (
         <>
-          <div className="connection-panel" style={{ margin: 0 }}>
-            <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem' }}>Business profile</h2>
-            <div className="detail-row">
-              <span>Legal name</span>
-              <span>{business?.legalName?.trim() || '—'}</span>
+          <section className="connection-panel business-profile-card" style={{ margin: 0 }}>
+            <div className="business-profile-card__head">
+              <h2>Business profile</h2>
+              <p className="muted">Core identity, ownership, and billing setup.</p>
             </div>
-            <div className="detail-row">
-              <span>Type</span>
-              <span>{toProperCase(business?.businessType)}</span>
+            <div className="business-profile-grid">
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Legal name</span>
+                <strong className="business-profile-item__value">
+                  {business?.legalName?.trim() || '—'}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Type</span>
+                <strong className="business-profile-item__value">
+                  {toProperCase(business?.businessType)}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Status</span>
+                <strong className="business-profile-item__value">
+                  {toProperCase(business?.status ?? 'active')}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Tenant ID</span>
+                <strong className="business-profile-item__value business-profile-item__value--code">
+                  <code>{business?.tenantId ?? '—'}</code>
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Created</span>
+                <strong className="business-profile-item__value">
+                  {business?.createdAt
+                    ? new Date(business.createdAt).toLocaleString()
+                    : '—'}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Sports offered</span>
+                <strong className="business-profile-item__value">
+                  {business?.sportsOffered?.length
+                    ? business.sportsOffered.map(toProperCase).join(', ')
+                    : '—'}
+                </strong>
+              </div>
+              <div className="business-profile-item business-profile-item--wide">
+                <span className="business-profile-item__label">Owner</span>
+                <strong className="business-profile-item__value">
+                  {business?.owner?.name || business?.owner?.email || business?.owner?.phone
+                    ? [
+                        business.owner?.name,
+                        business.owner?.email,
+                        business.owner?.phone,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : '—'}
+                </strong>
+              </div>
+              <div className="business-profile-item business-profile-item--wide">
+                <span className="business-profile-item__label">Subscription</span>
+                <strong className="business-profile-item__value">
+                  {business?.subscription
+                    ? [
+                        business.subscription.plan,
+                        business.subscription.status,
+                        business.subscription.billingCycle,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || '—'
+                    : '—'}
+                </strong>
+              </div>
+              <div className="business-profile-item business-profile-item--wide">
+                <span className="business-profile-item__label">Settings</span>
+                <strong className="business-profile-item__value">
+                  {business?.settings
+                    ? [
+                        business.settings.timezone
+                          ? `TZ ${business.settings.timezone}`
+                          : null,
+                        business.settings.currency
+                          ? business.settings.currency
+                          : null,
+                        business.settings.allowOnlinePayments != null
+                          ? `Online payments ${business.settings.allowOnlinePayments ? 'on' : 'off'}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || '—'
+                    : '—'}
+                </strong>
+              </div>
             </div>
-            <div className="detail-row">
-              <span>Status</span>
-              <span>{toProperCase(business?.status ?? 'active')}</span>
-            </div>
-            <div className="detail-row">
-              <span>Tenant ID</span>
-              <span>
-                <code style={{ fontSize: '0.75rem' }}>{business?.tenantId ?? '—'}</code>
-              </span>
-            </div>
-            <div className="detail-row">
-              <span>Created</span>
-              <span>
-                {business?.createdAt
-                  ? new Date(business.createdAt).toLocaleString()
-                  : '—'}
-              </span>
-            </div>
-            <div className="detail-row">
-              <span>Sports offered</span>
-              <span>
-                {business?.sportsOffered?.length
-                  ? business.sportsOffered.map(toProperCase).join(', ')
-                  : '—'}
-              </span>
-            </div>
-            <div className="detail-row">
-              <span>Owner</span>
-              <span>
-                {business?.owner?.name || business?.owner?.email || business?.owner?.phone
-                  ? [
-                      business.owner?.name,
-                      business.owner?.email,
-                      business.owner?.phone,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')
-                  : '—'}
-              </span>
-            </div>
-            <div className="detail-row">
-              <span>Subscription</span>
-              <span>
-                {business?.subscription
-                  ? [
-                      business.subscription.plan,
-                      business.subscription.status,
-                      business.subscription.billingCycle,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ') || '—'
-                  : '—'}
-              </span>
-            </div>
-            <div className="detail-row">
-              <span>Settings</span>
-              <span>
-                {business?.settings
-                  ? [
-                      business.settings.timezone
-                        ? `TZ ${business.settings.timezone}`
-                        : null,
-                      business.settings.currency
-                        ? business.settings.currency
-                        : null,
-                      business.settings.allowOnlinePayments != null
-                        ? `Online payments ${business.settings.allowOnlinePayments ? 'on' : 'off'}`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ') || '—'
-                  : '—'}
-              </span>
-            </div>
-          </div>
+          </section>
 
           <h2 className="page-title" style={{ marginTop: '1.25rem', fontSize: '1.1rem' }}>
             Revenue & bookings
@@ -539,6 +554,56 @@ export default function BusinessTenantStatsPage() {
               <h2>Bookings (list)</h2>
               <strong style={{ fontSize: '1.25rem' }}>{counts.bookings}</strong>
             </div>
+          </div>
+
+          <div
+            className="connection-panel"
+            style={{ marginTop: '1rem', padding: '0.9rem 1rem' }}
+          >
+            <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Business locations</h3>
+            {businessLocations.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>
+                No locations found for this business.
+              </p>
+            ) : (
+              <table className="data data--noninteractive" style={{ margin: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>City</th>
+                    <th>Type</th>
+                    <th>Facilities</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {businessLocations.map((loc) => (
+                    <tr key={loc.id}>
+                      <td>{loc.name}</td>
+                      <td>{loc.city ?? '—'}</td>
+                      <td>{toProperCase(loc.locationType)}</td>
+                      <td>{loc.facilityCourts?.length ?? 0}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <Link to={`/app/locations/${loc.id}`} className="action-link">
+                            View
+                          </Link>
+                          <Link to="/app/Facilites" className="action-link">
+                            Facilities
+                          </Link>
+                          <Link
+                            to={`/app/bookings/new?locationId=${encodeURIComponent(loc.id)}`}
+                            className="action-link"
+                          >
+                            Add booking
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           <div className="page-actions-row" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
