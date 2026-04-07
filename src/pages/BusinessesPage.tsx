@@ -1,8 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { deleteBusiness, listBusinesses } from '../api/saasClient';
+import { deleteBusiness, listBusinesses, listBusinessLocations, listBookingsForTenant } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
-import type { BusinessRow } from '../types/domain';
+import type { BusinessLocationRow, BusinessRow } from '../types/domain';
+
+type LocationTypeCard = 'arena' | 'gaming-zone';
+
+type TypeDrilldown = {
+  facilityTypeCounts: {
+    futsal: number;
+    cricket: number;
+    padel: number;
+  };
+  topFacilities: Array<{
+    key: string;
+    facilityName: string;
+    locationName: string;
+    businessName: string;
+    bookings: number;
+  }>;
+};
 
 export default function BusinessesPage() {
   const [rows, setRows] = useState<BusinessRow[]>([]);
@@ -14,17 +31,32 @@ export default function BusinessesPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'tenantId' | 'members'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [allLocations, setAllLocations] = useState<BusinessLocationRow[]>([]);
+  const [activeTypeCard, setActiveTypeCard] = useState<LocationTypeCard | null>(null);
+  const [typeDrilldown, setTypeDrilldown] = useState<TypeDrilldown | null>(null);
+  const [drilldownLoading, setDrilldownLoading] = useState(false);
+  const [drilldownErr, setDrilldownErr] = useState<string | null>(null);
   const { session, setTenantId } = useSession();
   const navigate = useNavigate();
   const roles = session?.roles ?? [];
   const canCreateBusiness = roles.includes('platform-owner');
   const canScopeConsoleToTenant = roles.includes('platform-owner');
 
+  function openBusinessContext(business: BusinessRow) {
+    setTenantId(business.tenantId ?? '');
+    navigate(`/app/businesses/${business.id}`);
+  }
+
   async function reloadBusinesses() {
     setLoading(true);
     setErr(null);
     try {
-      setRows(await listBusinesses());
+      const [businessRows, locationRows] = await Promise.all([
+        listBusinesses(),
+        listBusinessLocations(),
+      ]);
+      setRows(businessRows);
+      setAllLocations(locationRows);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load');
     } finally {
@@ -96,6 +128,116 @@ export default function BusinessesPage() {
     () => filteredRows.reduce((sum, row) => sum + (row.memberships?.length ?? 0), 0),
     [filteredRows],
   );
+  const filteredBusinessIds = useMemo(
+    () => new Set(filteredRows.map((r) => r.id)),
+    [filteredRows],
+  );
+  const filteredLocations = useMemo(
+    () => allLocations.filter((loc) => filteredBusinessIds.has(loc.businessId)),
+    [allLocations, filteredBusinessIds],
+  );
+  const arenaLocationCount = useMemo(
+    () => filteredLocations.filter((loc) => (loc.locationType ?? '').trim() === 'arena').length,
+    [filteredLocations],
+  );
+  const gamingLocationCount = useMemo(
+    () =>
+      filteredLocations.filter((loc) => (loc.locationType ?? '').trim() === 'gaming-zone').length,
+    [filteredLocations],
+  );
+
+  async function openTypeDrilldown(type: LocationTypeCard) {
+    setActiveTypeCard(type);
+    setTypeDrilldown(null);
+    setDrilldownErr(null);
+    setDrilldownLoading(true);
+    try {
+      const selectedLocations = filteredLocations.filter(
+        (loc) => (loc.locationType ?? '').trim() === type,
+      );
+      const selectedBusinessIds = new Set(selectedLocations.map((loc) => loc.businessId));
+      const selectedBusinesses = filteredRows.filter((b) => selectedBusinessIds.has(b.id));
+      const tenantIds = Array.from(
+        new Set(selectedBusinesses.map((b) => (b.tenantId ?? '').trim()).filter(Boolean)),
+      );
+      const bookingsByTenant = await Promise.all(
+        tenantIds.map(async (tid) => {
+          try {
+            return await listBookingsForTenant(tid);
+          } catch {
+            return [];
+          }
+        }),
+      );
+      const allBookings = bookingsByTenant.flat();
+      const locationById = new Map(selectedLocations.map((loc) => [loc.id, loc]));
+      const businessNameById = new Map(filteredRows.map((b) => [b.id, b.businessName]));
+      const typeCounts = { futsal: 0, cricket: 0, padel: 0 };
+      const facilityStats = new Map<
+        string,
+        { facilityName: string; locationName: string; businessName: string; bookings: number }
+      >();
+
+      for (const loc of selectedLocations) {
+        for (const facility of loc.facilityCourts ?? []) {
+          const facilityType = facility.facilityType;
+          if (facilityType === 'futsal' || facilityType === 'cricket' || facilityType === 'padel') {
+            typeCounts[facilityType] += 1;
+          }
+          const kind =
+            facilityType === 'futsal'
+              ? 'futsal_court'
+              : facilityType === 'cricket'
+              ? 'cricket_court'
+              : 'padel_court';
+          const key = `${kind}:${facility.id}`;
+          if (!facilityStats.has(key)) {
+            facilityStats.set(key, {
+              facilityName: facility.name,
+              locationName: loc.name,
+              businessName: businessNameById.get(loc.businessId) ?? '—',
+              bookings: 0,
+            });
+          }
+        }
+      }
+
+      for (const booking of allBookings) {
+        const loc = locationById.get(booking.arenaId);
+        if (!loc) continue;
+        for (const item of booking.items ?? []) {
+          const key = `${item.courtKind}:${item.courtId}`;
+          const existing = facilityStats.get(key);
+          if (existing) {
+            existing.bookings += 1;
+            facilityStats.set(key, existing);
+          } else {
+            facilityStats.set(key, {
+              facilityName: item.courtId.slice(0, 8),
+              locationName: loc.name,
+              businessName: businessNameById.get(loc.businessId) ?? '—',
+              bookings: 1,
+            });
+          }
+        }
+      }
+
+      const topFacilities = Array.from(facilityStats.entries())
+        .map(([key, row]) => ({ key, ...row }))
+        .sort((a, b) => b.bookings - a.bookings)
+        .slice(0, 8);
+      setTypeDrilldown({
+        facilityTypeCounts: typeCounts,
+        topFacilities,
+      });
+    } catch (e) {
+      setDrilldownErr(
+        e instanceof Error ? e.message : 'Failed to load facility stats for selected card.',
+      );
+    } finally {
+      setDrilldownLoading(false);
+    }
+  }
 
   return (
     <div>
@@ -132,8 +274,92 @@ export default function BusinessesPage() {
                 : '0.0'}
             </strong>
           </div>
+          <button
+            type="button"
+            className="connection-panel"
+            style={{ margin: 0, padding: '0.9rem 1rem', textAlign: 'left', cursor: 'pointer' }}
+            onClick={() => void openTypeDrilldown('arena')}
+          >
+            <h2>Total arenas</h2>
+            <strong style={{ fontSize: '1.25rem' }}>{arenaLocationCount}</strong>
+          </button>
+          <button
+            type="button"
+            className="connection-panel"
+            style={{ margin: 0, padding: '0.9rem 1rem', textAlign: 'left', cursor: 'pointer' }}
+            onClick={() => void openTypeDrilldown('gaming-zone')}
+          >
+            <h2>Total gaming zones</h2>
+            <strong style={{ fontSize: '1.25rem' }}>{gamingLocationCount}</strong>
+          </button>
         </div>
       )}
+      {activeTypeCard ? (
+        <div className="connection-panel" style={{ marginTop: '1rem', padding: '0.9rem 1rem' }}>
+          <h2 style={{ marginTop: 0 }}>
+            {activeTypeCard === 'arena' ? 'Arena' : 'Gaming zone'} drilldown
+          </h2>
+          {drilldownLoading ? (
+            <p className="muted" style={{ margin: 0 }}>Loading stats…</p>
+          ) : drilldownErr ? (
+            <div className="err-banner">{drilldownErr}</div>
+          ) : typeDrilldown ? (
+            <>
+              <div className="connection-grid" style={{ marginTop: '0.5rem' }}>
+                <div className="connection-panel" style={{ margin: 0, padding: '0.8rem 0.9rem' }}>
+                  <h2>Futsal fields</h2>
+                  <strong style={{ fontSize: '1.15rem' }}>
+                    {typeDrilldown.facilityTypeCounts.futsal}
+                  </strong>
+                </div>
+                <div className="connection-panel" style={{ margin: 0, padding: '0.8rem 0.9rem' }}>
+                  <h2>Cricket fields</h2>
+                  <strong style={{ fontSize: '1.15rem' }}>
+                    {typeDrilldown.facilityTypeCounts.cricket}
+                  </strong>
+                </div>
+                <div className="connection-panel" style={{ margin: 0, padding: '0.8rem 0.9rem' }}>
+                  <h2>Padel courts</h2>
+                  <strong style={{ fontSize: '1.15rem' }}>
+                    {typeDrilldown.facilityTypeCounts.padel}
+                  </strong>
+                </div>
+              </div>
+              <h3 style={{ margin: '0.9rem 0 0.5rem', fontSize: '0.95rem' }}>
+                Top facilities by bookings
+              </h3>
+              {typeDrilldown.topFacilities.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  No booking activity found for this facility type.
+                </p>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: '0.45rem' }}>
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Facility</th>
+                        <th>Location</th>
+                        <th>Business</th>
+                        <th>Bookings</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {typeDrilldown.topFacilities.map((row) => (
+                        <tr key={row.key}>
+                          <td>{row.facilityName}</td>
+                          <td>{row.locationName}</td>
+                          <td>{row.businessName}</td>
+                          <td>{row.bookings}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
+      ) : null}
       {err && <div className="err-banner">{err}</div>}
       <div className="connection-panel" style={{ marginTop: '1rem' }}>
         <div
@@ -218,6 +444,10 @@ export default function BusinessesPage() {
                 <tr
                   key={b.id}
                   onClick={() => {
+                    if (canScopeConsoleToTenant) {
+                      openBusinessContext(b);
+                      return;
+                    }
                     navigate(`/app/businesses/${b.id}`);
                   }}
                 >
@@ -236,6 +466,22 @@ export default function BusinessesPage() {
                       <Link to={`/app/businesses/${b.id}`} className="action-link">
                         View
                       </Link>
+                      {canScopeConsoleToTenant ? (
+                        <button
+                          type="button"
+                          className="action-link"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            font: 'inherit',
+                          }}
+                          onClick={() => openBusinessContext(b)}
+                        >
+                          Select business
+                        </button>
+                      ) : null}
                       {canScopeConsoleToTenant ? (
                         <button
                           type="button"

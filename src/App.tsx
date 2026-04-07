@@ -40,6 +40,20 @@ function HealthAccess() {
   return <HealthPage />;
 }
 
+function RequireBusinessSelectionForPlatformOwner({
+  children,
+}: {
+  children: JSX.Element;
+}) {
+  const { session, tenantId } = useSession();
+  const roles = session?.roles ?? [];
+  const isPlatformOwner = roles.includes('platform-owner');
+  if (isPlatformOwner && !tenantId.trim()) {
+    return <Navigate to="/app/businesses" replace />;
+  }
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -85,7 +99,9 @@ export default function App() {
               path="locations"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'customer-end-user']}>
-                  <LocationsPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <LocationsPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -93,7 +109,9 @@ export default function App() {
               path="Facilites"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
-                  <AddFacilityPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <AddFacilityPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -148,7 +166,9 @@ export default function App() {
               path="users"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
-                  <UsersPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <UsersPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -191,7 +211,9 @@ export default function App() {
                     'customer-end-user',
                   ]}
                 >
-                  <BookingsPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <BookingsPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -206,7 +228,9 @@ export default function App() {
                     'customer-end-user',
                   ]}
                 >
-                  <BookingCreatePage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <BookingCreatePage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -221,7 +245,9 @@ export default function App() {
                     'customer-end-user',
                   ]}
                 >
-                  <BookingEditPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <BookingEditPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -229,7 +255,9 @@ export default function App() {
               path="time-slots"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
-                  <ManageTimeSlotsPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <ManageTimeSlotsPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
@@ -253,7 +281,9 @@ export default function App() {
               path="billing"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
-                  <BillingPage />
+                  <RequireBusinessSelectionForPlatformOwner>
+                    <BillingPage />
+                  </RequireBusinessSelectionForPlatformOwner>
                 </RequireRoles>
               }
             />
