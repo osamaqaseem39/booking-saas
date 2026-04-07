@@ -74,7 +74,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/facilities-live',
     label: 'Facilities live',
-    anyOf: ['platform-owner', 'business-admin'],
+    anyOf: ['business-admin'],
   },
   {
     to: '/app/billing',
