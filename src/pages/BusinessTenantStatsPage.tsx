@@ -22,6 +22,21 @@ type Counts = {
   invoices: number;
 };
 
+type BusinessDetailTab =
+  | 'profile'
+  | 'revenue'
+  | 'bookings'
+  | 'invoices'
+  | 'footprint';
+
+const BUSINESS_DETAIL_TABS: Array<{ key: BusinessDetailTab; label: string }> = [
+  { key: 'profile', label: 'Profile' },
+  { key: 'revenue', label: 'Revenue & bookings' },
+  { key: 'bookings', label: 'Booking analytics' },
+  { key: 'invoices', label: 'Invoices & billing' },
+  { key: 'footprint', label: 'People & footprint' },
+];
+
 function formatMoney(value: number, currency?: string): string {
   const n = new Intl.NumberFormat(undefined, {
     minimumFractionDigits: 2,
@@ -171,6 +186,7 @@ export default function BusinessTenantStatsPage() {
     bookings: 0,
     invoices: 0,
   });
+  const [activeTab, setActiveTab] = useState<BusinessDetailTab>('profile');
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -289,7 +305,26 @@ export default function BusinessTenantStatsPage() {
         <div className="empty-state">Loading business…</div>
       ) : (
         <>
-          <section className="connection-panel business-profile-card" style={{ margin: 0 }}>
+          <div className="biz-location-bar" role="tablist" aria-label="Business detail sections">
+            {BUSINESS_DETAIL_TABS.map((tab) => {
+              const isActive = tab.key === activeTab;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`biz-loc-tab${isActive ? ' biz-loc-tab--active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeTab === 'profile' ? (
+            <section className="connection-panel business-profile-card" style={{ marginTop: '0.8rem' }}>
             <div className="business-profile-card__head">
               <h2>Business profile</h2>
               <p className="muted">Core identity, ownership, and billing setup.</p>
@@ -384,9 +419,12 @@ export default function BusinessTenantStatsPage() {
                 </strong>
               </div>
             </div>
-          </section>
+            </section>
+          ) : null}
 
-          <h2 className="page-title" style={{ marginTop: '1.25rem', fontSize: '1.1rem' }}>
+          {activeTab === 'revenue' ? (
+            <>
+          <h2 className="page-title" style={{ marginTop: '1rem', fontSize: '1.1rem' }}>
             Revenue & bookings
           </h2>
           <p className="muted" style={{ marginTop: '0.15rem', marginBottom: '0.65rem' }}>
@@ -449,8 +487,12 @@ export default function BusinessTenantStatsPage() {
               the request failed). Figures below are from live booking and invoice lists only.
             </div>
           )}
+            </>
+          ) : null}
 
-          <h2 className="page-title" style={{ marginTop: '1.35rem', fontSize: '1.1rem' }}>
+          {activeTab === 'bookings' ? (
+            <>
+          <h2 className="page-title" style={{ marginTop: '1rem', fontSize: '1.1rem' }}>
             Booking value & payments
           </h2>
           <div className="connection-grid" style={{ marginTop: '0.5rem' }}>
@@ -480,124 +522,121 @@ export default function BusinessTenantStatsPage() {
             </div>
           </div>
 
-          <div
-            className="connection-panel"
-            style={{ marginTop: '1rem', padding: '0.9rem 1rem' }}
-          >
-            <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Bookings by status</h3>
-            {bookingStatusChart.length === 0 ? (
-              <p className="muted" style={{ margin: 0 }}>
-                No bookings yet.
-              </p>
-            ) : (
-              <div className="overview-source-bars">
-                {bookingStatusChart.map((row) => (
-                  <div key={row.key} className="overview-source-row">
-                    <span className="overview-source-label">{row.label}</span>
-                    <div className="overview-source-track">
-                      <div
-                        className="overview-source-fill overview-source-fill--walkin"
-                        style={{ width: `${row.widthPct}%` }}
-                      />
-                    </div>
-                    <span className="overview-source-value">
-                      {row.value} ({row.pct}%)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div
-            className="connection-panel"
-            style={{ marginTop: '0.75rem', padding: '0.9rem 1rem' }}
-          >
-            <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Payments by status</h3>
-            {paymentStatusChart.length === 0 ? (
-              <p className="muted" style={{ margin: 0 }}>
-                No payment rows.
-              </p>
-            ) : (
-              <div className="overview-source-bars">
-                {paymentStatusChart.map((row) => (
-                  <div key={row.key} className="overview-source-row">
-                    <span className="overview-source-label">{row.label}</span>
-                    <div className="overview-source-track">
-                      <div
-                        className="overview-source-fill overview-source-fill--app"
-                        style={{ width: `${row.widthPct}%` }}
-                      />
-                    </div>
-                    <span className="overview-source-value">
-                      {row.value} ({row.pct}%)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div
-            className="connection-panel"
-            style={{ marginTop: '0.75rem', padding: '0.9rem 1rem' }}
-          >
-            <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>By sport</h3>
-            {sportCountChart.length === 0 ? (
-              <p className="muted" style={{ margin: 0 }}>
-                No sport breakdown.
-              </p>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                  gap: '0.85rem',
-                }}
-              >
-                <article className="overview-chart-card">
-                  <h4 style={{ marginTop: 0 }}>Bookings count by sport</h4>
-                  <div className="overview-source-bars">
-                    {sportCountChart.map((row) => (
-                      <div key={row.key} className="overview-source-row">
-                        <span className="overview-source-label">{row.label}</span>
-                        <div className="overview-source-track">
-                          <div
-                            className="overview-source-fill overview-source-fill--walkin"
-                            style={{ width: `${row.widthPct}%` }}
-                          />
-                        </div>
-                        <span className="overview-source-value">
-                          {row.value} ({row.pct}%)
-                        </span>
+          <div className="connection-grid" style={{ marginTop: '1rem' }}>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Bookings by status</h3>
+              {bookingStatusChart.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  No bookings yet.
+                </p>
+              ) : (
+                <div className="overview-source-bars">
+                  {bookingStatusChart.map((row) => (
+                    <div key={row.key} className="overview-source-row">
+                      <span className="overview-source-label">{row.label}</span>
+                      <div className="overview-source-track">
+                        <div
+                          className="overview-source-fill overview-source-fill--walkin"
+                          style={{ width: `${row.widthPct}%` }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                </article>
-                <article className="overview-chart-card">
-                  <h4 style={{ marginTop: 0 }}>Booking value by sport</h4>
-                  <div className="overview-source-bars">
-                    {sportAmountChart.map((row) => (
-                      <div key={row.key} className="overview-source-row">
-                        <span className="overview-source-label">{row.label}</span>
-                        <div className="overview-source-track">
-                          <div
-                            className="overview-source-fill overview-source-fill--call"
-                            style={{ width: `${row.widthPct}%` }}
-                          />
-                        </div>
-                        <span className="overview-source-value">
-                          {formatMoney(row.value, displayCurrency)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              </div>
-            )}
-          </div>
+                      <span className="overview-source-value">
+                        {row.value} ({row.pct}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <h2 className="page-title" style={{ marginTop: '1.35rem', fontSize: '1.1rem' }}>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Payments by status</h3>
+              {paymentStatusChart.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  No payment rows.
+                </p>
+              ) : (
+                <div className="overview-source-bars">
+                  {paymentStatusChart.map((row) => (
+                    <div key={row.key} className="overview-source-row">
+                      <span className="overview-source-label">{row.label}</span>
+                      <div className="overview-source-track">
+                        <div
+                          className="overview-source-fill overview-source-fill--app"
+                          style={{ width: `${row.widthPct}%` }}
+                        />
+                      </div>
+                      <span className="overview-source-value">
+                        {row.value} ({row.pct}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>By sport</h3>
+              {sportCountChart.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  No sport breakdown.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                    gap: '0.85rem',
+                  }}
+                >
+                  <article className="overview-chart-card">
+                    <h4 style={{ marginTop: 0 }}>Bookings count by sport</h4>
+                    <div className="overview-source-bars">
+                      {sportCountChart.map((row) => (
+                        <div key={row.key} className="overview-source-row">
+                          <span className="overview-source-label">{row.label}</span>
+                          <div className="overview-source-track">
+                            <div
+                              className="overview-source-fill overview-source-fill--walkin"
+                              style={{ width: `${row.widthPct}%` }}
+                            />
+                          </div>
+                          <span className="overview-source-value">
+                            {row.value} ({row.pct}%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                  <article className="overview-chart-card">
+                    <h4 style={{ marginTop: 0 }}>Booking value by sport</h4>
+                    <div className="overview-source-bars">
+                      {sportAmountChart.map((row) => (
+                        <div key={row.key} className="overview-source-row">
+                          <span className="overview-source-label">{row.label}</span>
+                          <div className="overview-source-track">
+                            <div
+                              className="overview-source-fill overview-source-fill--call"
+                              style={{ width: `${row.widthPct}%` }}
+                            />
+                          </div>
+                          <span className="overview-source-value">
+                            {formatMoney(row.value, displayCurrency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                </div>
+              )}
+            </div>
+          </div>
+            </>
+          ) : null}
+
+          {activeTab === 'invoices' ? (
+            <>
+          <h2 className="page-title" style={{ marginTop: '1rem', fontSize: '1.1rem' }}>
             Invoices & billing
           </h2>
           <div className="connection-grid" style={{ marginTop: '0.5rem' }}>
@@ -636,8 +675,12 @@ export default function BusinessTenantStatsPage() {
               </div>
             </div>
           ) : null}
+            </>
+          ) : null}
 
-          <h2 className="page-title" style={{ marginTop: '1.35rem', fontSize: '1.1rem' }}>
+          {activeTab === 'footprint' ? (
+            <>
+          <h2 className="page-title" style={{ marginTop: '1rem', fontSize: '1.1rem' }}>
             People & footprint
           </h2>
           <div className="connection-grid" style={{ marginTop: '0.5rem' }}>
@@ -720,6 +763,8 @@ export default function BusinessTenantStatsPage() {
               </>
             )}
           </div>
+            </>
+          ) : null}
 
           <div className="page-actions-row" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
             <Link to="/app/bookings" className="btn-ghost">
