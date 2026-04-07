@@ -210,6 +210,12 @@ export default function LocationsPage() {
                   </td>
                   <td style={{ minWidth: '220px' }}>
                     <div className="location-actions">
+                      <Link
+                        className="action-link"
+                        to={`/app/bookings/new?locationId=${encodeURIComponent(r.id)}`}
+                      >
+                        Add booking
+                      </Link>
                       <Link className="action-link" to="/app/Facilites">Manage</Link>
                       <Link className="action-link" to={`/app/locations/${r.id}`}>View</Link>
                       <Link className="action-link" to={`/app/locations/${r.id}/edit`}>Edit</Link>

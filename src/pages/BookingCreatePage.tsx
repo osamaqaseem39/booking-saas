@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   createBooking,
   createBookingForTenant,
@@ -310,6 +310,8 @@ function ButtonOptionGroup({
 export default function BookingCreatePage() {
   const INTERVALS_PER_SLIDE = 5;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedLocationId = searchParams.get('locationId')?.trim() ?? '';
   const { tenantId, session } = useSession();
   const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
   /** Platform owners do not use global tenant scope; pick per booking here. */
@@ -478,6 +480,14 @@ export default function BookingCreatePage() {
       setFacilityLocationId(selectedLocationId);
     }
   }, [selectedLocationId, topbarLocationLocked]);
+
+  useEffect(() => {
+    if (topbarLocationLocked) return;
+    if (!preselectedLocationId) return;
+    const exists = locations.some((loc) => loc.id === preselectedLocationId);
+    if (!exists) return;
+    setFacilityLocationId(preselectedLocationId);
+  }, [locations, preselectedLocationId, topbarLocationLocked]);
 
   useEffect(() => {
     if (topbarLocationLocked) return;

@@ -30,6 +30,36 @@ function formatMoney(value: number, currency?: string): string {
   return currency ? `${n} ${currency}` : n;
 }
 
+function normalizeKey(value?: string | null): string {
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+}
+
+function normalizeBookingStatus(value?: string | null): string {
+  const key = normalizeKey(value);
+  if (!key) return 'unknown';
+  if (key === 'canceled') return 'cancelled';
+  return key;
+}
+
+function normalizePaymentStatus(value?: string | null): string {
+  const key = normalizeKey(value);
+  if (!key) return 'unknown';
+  if (key === 'complete' || key === 'completed' || key === 'success') return 'paid';
+  if (key === 'awaiting' || key === 'unpaid') return 'pending';
+  if (key === 'cancelled' || key === 'canceled') return 'failed';
+  return key;
+}
+
+function normalizeSport(value?: string | null): string {
+  const key = normalizeKey(value);
+  if (!key) return 'unknown';
+  if (key === 'football') return 'futsal';
+  return key;
+}
+
 function aggregateBookings(bookings: BookingRecord[]) {
   const byStatus: Record<string, number> = {};
   const byPaymentStatus: Record<string, number> = {};
@@ -41,13 +71,13 @@ function aggregateBookings(bookings: BookingRecord[]) {
   const bySport: Record<string, { count: number; amount: number }> = {};
 
   for (const b of bookings) {
-    const st = b.bookingStatus ?? 'unknown';
+    const st = normalizeBookingStatus(b.bookingStatus);
     byStatus[st] = (byStatus[st] ?? 0) + 1;
-    const pStatus = b.payment?.paymentStatus ?? 'unknown';
+    const pStatus = normalizePaymentStatus(b.payment?.paymentStatus);
     byPaymentStatus[pStatus] = (byPaymentStatus[pStatus] ?? 0) + 1;
     const amt = Number(b.pricing?.totalAmount ?? 0);
     totalAmount += amt;
-    const sport = b.sportType ?? 'unknown';
+    const sport = normalizeSport(b.sportType);
     if (!bySport[sport]) bySport[sport] = { count: 0, amount: 0 };
     bySport[sport].count += 1;
     bySport[sport].amount += amt;
@@ -93,7 +123,7 @@ function aggregateInvoices(invoices: InvoiceRow[]) {
   for (const inv of invoices) {
     const amount = Number(inv.amount ?? 0);
     totalAmount += amount;
-    const st = (inv.status ?? 'unknown').toLowerCase();
+    const st = normalizeKey(inv.status) || 'unknown';
     byStatus[st] = (byStatus[st] ?? 0) + amount;
   }
   return { byStatus, totalAmount, count: invoices.length };
@@ -107,6 +137,23 @@ function toProperCase(value?: string | null): string {
     .split(/\s+/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(' ');
+}
+
+function toChartRows(input: Record<string, number>) {
+  const rows = Object.entries(input)
+    .map(([key, value]) => ({
+      key,
+      label: toProperCase(key),
+      value: Number(value ?? 0),
+    }))
+    .sort((a, b) => b.value - a.value);
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  return rows.map((row) => ({
+    ...row,
+    widthPct: row.value > 0 ? Math.max(10, Math.round((row.value / max) * 100)) : 0,
+    pct: total > 0 ? Math.round((row.value / total) * 100) : 0,
+  }));
 }
 
 export default function BusinessTenantStatsPage() {
@@ -134,11 +181,50 @@ export default function BusinessTenantStatsPage() {
 
   const bookingAgg = useMemo(() => aggregateBookings(bookings), [bookings]);
   const invoiceAgg = useMemo(() => aggregateInvoices(invoices), [invoices]);
+  const bookingStatusChart = useMemo(
+    () => toChartRows(bookingAgg.byStatus),
+    [bookingAgg.byStatus],
+  );
+  const paymentStatusChart = useMemo(
+    () => toChartRows(bookingAgg.byPaymentStatus),
+    [bookingAgg.byPaymentStatus],
+  );
+  const sportCountChart = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.entries(bookingAgg.bySport).forEach(([sport, row]) => {
+      counts[sport] = row.count;
+    });
+    return toChartRows(counts);
+  }, [bookingAgg.bySport]);
+  const sportAmountChart = useMemo(() => {
+    const amounts: Record<string, number> = {};
+    Object.entries(bookingAgg.bySport).forEach(([sport, row]) => {
+      amounts[sport] = row.amount;
+    });
+    return toChartRows(amounts);
+  }, [bookingAgg.bySport]);
+  const invoiceStatusChart = useMemo(
+    () => toChartRows(invoiceAgg.byStatus),
+    [invoiceAgg.byStatus],
+  );
+  const locationFacilityChart = useMemo(() => {
+    const input: Record<string, number> = {};
+    businessLocations.forEach((loc) => {
+      input[loc.name] = loc.facilityCourts?.length ?? 0;
+    });
+    return toChartRows(input);
+  }, [businessLocations]);
   const displayCurrency =
     business?.settings?.currency?.trim() ||
     bookingAgg.currency ||
     invoices[0]?.currency ||
     '';
+  const normalizedRevenueTotal = dashboardRow?.revenueTotal ?? bookingAgg.totalAmount;
+  const normalizedRevenuePaid = dashboardRow?.revenuePaid ?? bookingAgg.paidAmount;
+  const normalizedOutstanding = Math.max(
+    0,
+    normalizedRevenueTotal - normalizedRevenuePaid,
+  );
 
   useEffect(() => {
     if (!businessId.trim()) return;
@@ -313,22 +399,19 @@ export default function BusinessTenantStatsPage() {
               <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
                 <h2>Revenue (total)</h2>
                 <strong style={{ fontSize: '1.25rem' }}>
-                  {formatMoney(dashboardRow.revenueTotal, displayCurrency)}
+                  {formatMoney(normalizedRevenueTotal, displayCurrency)}
                 </strong>
               </div>
               <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
                 <h2>Revenue (paid)</h2>
                 <strong style={{ fontSize: '1.25rem' }}>
-                  {formatMoney(dashboardRow.revenuePaid, displayCurrency)}
+                  {formatMoney(normalizedRevenuePaid, displayCurrency)}
                 </strong>
               </div>
               <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
                 <h2>Outstanding</h2>
                 <strong style={{ fontSize: '1.25rem' }}>
-                  {formatMoney(
-                    Math.max(0, dashboardRow.revenueTotal - dashboardRow.revenuePaid),
-                    displayCurrency,
-                  )}
+                  {formatMoney(normalizedOutstanding, displayCurrency)}
                 </strong>
               </div>
               <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
@@ -402,29 +485,27 @@ export default function BusinessTenantStatsPage() {
             style={{ marginTop: '1rem', padding: '0.9rem 1rem' }}
           >
             <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Bookings by status</h3>
-            {Object.keys(bookingAgg.byStatus).length === 0 ? (
+            {bookingStatusChart.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>
                 No bookings yet.
               </p>
             ) : (
-              <table className="data data--noninteractive" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(bookingAgg.byStatus)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([status, n]) => (
-                      <tr key={status}>
-                        <td>{toProperCase(status)}</td>
-                        <td>{n}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div className="overview-source-bars">
+                {bookingStatusChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--walkin"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {row.value} ({row.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -433,29 +514,27 @@ export default function BusinessTenantStatsPage() {
             style={{ marginTop: '0.75rem', padding: '0.9rem 1rem' }}
           >
             <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Payments by status</h3>
-            {Object.keys(bookingAgg.byPaymentStatus).length === 0 ? (
+            {paymentStatusChart.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>
                 No payment rows.
               </p>
             ) : (
-              <table className="data data--noninteractive" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Payment</th>
-                    <th>Bookings</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(bookingAgg.byPaymentStatus)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([status, n]) => (
-                      <tr key={status}>
-                        <td>{toProperCase(status)}</td>
-                        <td>{n}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div className="overview-source-bars">
+                {paymentStatusChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--app"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {row.value} ({row.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -464,31 +543,57 @@ export default function BusinessTenantStatsPage() {
             style={{ marginTop: '0.75rem', padding: '0.9rem 1rem' }}
           >
             <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>By sport</h3>
-            {Object.keys(bookingAgg.bySport).length === 0 ? (
+            {sportCountChart.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>
                 No sport breakdown.
               </p>
             ) : (
-              <table className="data data--noninteractive" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Sport</th>
-                    <th>Bookings</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(bookingAgg.bySport)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([sport, row]) => (
-                      <tr key={sport}>
-                        <td>{toProperCase(sport)}</td>
-                        <td>{row.count}</td>
-                        <td>{formatMoney(row.amount, displayCurrency)}</td>
-                      </tr>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                  gap: '0.85rem',
+                }}
+              >
+                <article className="overview-chart-card">
+                  <h4 style={{ marginTop: 0 }}>Bookings count by sport</h4>
+                  <div className="overview-source-bars">
+                    {sportCountChart.map((row) => (
+                      <div key={row.key} className="overview-source-row">
+                        <span className="overview-source-label">{row.label}</span>
+                        <div className="overview-source-track">
+                          <div
+                            className="overview-source-fill overview-source-fill--walkin"
+                            style={{ width: `${row.widthPct}%` }}
+                          />
+                        </div>
+                        <span className="overview-source-value">
+                          {row.value} ({row.pct}%)
+                        </span>
+                      </div>
                     ))}
-                </tbody>
-              </table>
+                  </div>
+                </article>
+                <article className="overview-chart-card">
+                  <h4 style={{ marginTop: 0 }}>Booking value by sport</h4>
+                  <div className="overview-source-bars">
+                    {sportAmountChart.map((row) => (
+                      <div key={row.key} className="overview-source-row">
+                        <span className="overview-source-label">{row.label}</span>
+                        <div className="overview-source-track">
+                          <div
+                            className="overview-source-fill overview-source-fill--call"
+                            style={{ width: `${row.widthPct}%` }}
+                          />
+                        </div>
+                        <span className="overview-source-value">
+                          {formatMoney(row.value, displayCurrency)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </div>
             )}
           </div>
 
@@ -513,24 +618,22 @@ export default function BusinessTenantStatsPage() {
               style={{ marginTop: '0.75rem', padding: '0.9rem 1rem' }}
             >
               <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Amount by invoice status</h3>
-              <table className="data data--noninteractive" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(invoiceAgg.byStatus)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([status, amount]) => (
-                      <tr key={status}>
-                        <td>{toProperCase(status)}</td>
-                        <td>{formatMoney(amount, displayCurrency)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div className="overview-source-bars">
+                {invoiceStatusChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--call"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {formatMoney(row.value, displayCurrency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 
@@ -566,43 +669,55 @@ export default function BusinessTenantStatsPage() {
                 No locations found for this business.
               </p>
             ) : (
-              <table className="data data--noninteractive" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Location</th>
-                    <th>City</th>
-                    <th>Type</th>
-                    <th>Facilities</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {businessLocations.map((loc) => (
-                    <tr key={loc.id}>
-                      <td>{loc.name}</td>
-                      <td>{loc.city ?? '—'}</td>
-                      <td>{toProperCase(loc.locationType)}</td>
-                      <td>{loc.facilityCourts?.length ?? 0}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <Link to={`/app/locations/${loc.id}`} className="action-link">
-                            View
-                          </Link>
-                          <Link to="/app/Facilites" className="action-link">
-                            Facilities
-                          </Link>
-                          <Link
-                            to={`/app/bookings/new?locationId=${encodeURIComponent(loc.id)}`}
-                            className="action-link"
-                          >
-                            Add booking
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
+              <>
+                <div className="overview-source-bars" style={{ marginBottom: '0.9rem' }}>
+                  {locationFacilityChart.map((row) => (
+                    <div key={row.key} className="overview-source-row">
+                      <span className="overview-source-label" title={row.label}>
+                        {row.label}
+                      </span>
+                      <div className="overview-source-track">
+                        <div
+                          className="overview-source-fill overview-source-fill--app"
+                          style={{ width: `${row.widthPct}%` }}
+                        />
+                      </div>
+                      <span className="overview-source-value">{row.value} facilities</span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                    gap: '0.65rem',
+                  }}
+                >
+                  {businessLocations.map((loc) => (
+                    <article key={loc.id} className="overview-metric-card">
+                      <span className="overview-metric-label">{loc.name}</span>
+                      <strong className="overview-metric-value">{loc.city ?? '—'}</strong>
+                      <span className="overview-metric-hint muted">
+                        {toProperCase(loc.locationType)} · {loc.facilityCourts?.length ?? 0} facilities
+                      </span>
+                      <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                        <Link to={`/app/locations/${loc.id}`} className="action-link">
+                          View
+                        </Link>
+                        <Link to="/app/Facilites" className="action-link">
+                          Facilities
+                        </Link>
+                        <Link
+                          to={`/app/bookings/new?locationId=${encodeURIComponent(loc.id)}`}
+                          className="action-link"
+                        >
+                          Add booking
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
