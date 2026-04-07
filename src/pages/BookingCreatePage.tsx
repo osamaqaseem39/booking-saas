@@ -459,7 +459,7 @@ export default function BookingCreatePage() {
       try {
         const rows = await listBusinessLocations();
         if (isPlatformOwner && !bookingTenant) {
-          setLocations(rows);
+          setLocations([]);
           return;
         }
         if (!bookingTenant) {
