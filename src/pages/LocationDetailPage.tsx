@@ -10,6 +10,14 @@ type FacilityCountsUi = {
   padel: number;
 };
 
+type LocationDetailTab = 'overview' | 'facilities' | 'courts';
+
+const LOCATION_DETAIL_TABS: Array<{ key: LocationDetailTab; label: string }> = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'facilities', label: 'Facilities' },
+  { key: 'courts', label: 'Courts & fields' },
+];
+
 function countsFromLocation(loc: BusinessLocationRow | null): FacilityCountsUi {
   const fc = loc?.facilityCounts;
   if (!fc) {
@@ -37,6 +45,7 @@ export default function LocationDetailPage() {
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<LocationDetailTab>('overview');
 
   const location = useMemo(
     () => rows.find((r) => r.id === locationId) ?? null,
@@ -104,7 +113,27 @@ export default function LocationDetailPage() {
         <div className="err-banner">Location not found or not visible for your user.</div>
       ) : (
         <>
-          <section className="connection-panel business-profile-card" style={{ margin: 0 }}>
+          <div className="biz-location-bar" role="tablist" aria-label="Location detail sections">
+            {LOCATION_DETAIL_TABS.map((tab) => {
+              const isActive = tab.key === activeTab;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`biz-loc-tab${isActive ? ' biz-loc-tab--active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeTab === 'overview' ? (
+            <>
+          <section className="connection-panel business-profile-card" style={{ marginTop: '0.8rem' }}>
             <div className="business-profile-card__head">
               <h2>{location.name}</h2>
               <p className="muted">
@@ -166,7 +195,11 @@ export default function LocationDetailPage() {
               </p>
             </div>
           ) : null}
+            </>
+          ) : null}
 
+          {activeTab === 'facilities' ? (
+            <>
           {availableFacilityCards.length > 0 ? (
             <div className="connection-grid" style={{ marginTop: '1rem' }}>
               {availableFacilityCards.map((card) => (
@@ -189,7 +222,11 @@ export default function LocationDetailPage() {
               </p>
             </div>
           )}
+            </>
+          ) : null}
 
+          {activeTab === 'courts' ? (
+            <>
           {courtsByType.length > 0 ? (
             <div className="connection-panel" style={{ marginTop: '1rem' }}>
               <h2>Courts &amp; fields</h2>
@@ -206,6 +243,15 @@ export default function LocationDetailPage() {
                 ))}
               </div>
             </div>
+          ) : (
+            <div className="connection-panel" style={{ marginTop: '1rem' }}>
+              <h2>Courts &amp; fields</h2>
+              <p className="muted" style={{ marginTop: '0.45rem' }}>
+                No courts or fields are available for this location yet.
+              </p>
+            </div>
+          )}
+            </>
           ) : null}
 
           <div className="page-actions-row">

@@ -73,6 +73,7 @@ export default function BookingsPage() {
   const [availabilityStartTime, setAvailabilityStartTime] = useState('');
   const [availabilityEndTime, setAvailabilityEndTime] = useState('');
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
   const [availability, setAvailability] = useState<
     Awaited<ReturnType<typeof getBookingAvailability>> | null
   >(null);
@@ -196,16 +197,6 @@ export default function BookingsPage() {
   }, [refresh]);
 
   useEffect(() => {
-    if (window.location.hash !== '#availability-explorer') return;
-    window.setTimeout(() => {
-      document.getElementById('availability-explorer')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }, 30);
-  }, []);
-
-  useEffect(() => {
     void (async () => {
       try {
         const users: IamUserRow[] = await listIamUsers();
@@ -294,13 +285,6 @@ export default function BookingsPage() {
     }
   }
 
-  function scrollToAvailability() {
-    document.getElementById('availability-explorer')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }
-
   return (
     <div>
       <h1 className="page-title">Bookings</h1>
@@ -329,7 +313,7 @@ export default function BookingsPage() {
           <button
             type="button"
             className="btn-ghost"
-            onClick={scrollToAvailability}
+            onClick={() => setAvailabilityModalOpen(true)}
           >
             Check availability
           </button>
@@ -445,6 +429,7 @@ export default function BookingsPage() {
           </button>
         </div>
       </section>
+      {!isPlatformOwner ? (
       <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
         <h3 style={{ marginBottom: '0.6rem' }}>Booking stats</h3>
         <div className="overview-totals-grid">
@@ -490,8 +475,19 @@ export default function BookingsPage() {
           </article>
         </div>
       </section>
-      <div id="availability-explorer" className="main-area" style={{ marginBottom: '0.75rem' }}>
-        <section className="detail-card" style={{ gridColumn: '1 / -1' }}>
+      ) : null}
+      {availabilityModalOpen ? (
+        <div
+          className="modal-backdrop"
+          onClick={() => setAvailabilityModalOpen(false)}
+        >
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Court availability explorer"
+            onClick={(e) => e.stopPropagation()}
+          >
           <h3 style={{ marginBottom: '0.8rem' }}>Court availability explorer</h3>
           <div className="form-grid">
             <div className="form-row-2">
@@ -624,9 +620,19 @@ export default function BookingsPage() {
                 )}
               </div>
             )}
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setAvailabilityModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      ) : null}
 
       <div className="main-area" style={{ padding: 0, marginTop: '0.5rem' }}>
         <div>
