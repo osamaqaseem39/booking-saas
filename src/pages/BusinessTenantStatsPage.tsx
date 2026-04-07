@@ -27,7 +27,8 @@ type BusinessDetailTab =
   | 'revenue'
   | 'bookings'
   | 'invoices'
-  | 'footprint';
+  | 'footprint'
+  | 'locations';
 
 const BUSINESS_DETAIL_TABS: Array<{ key: BusinessDetailTab; label: string }> = [
   { key: 'profile', label: 'Profile' },
@@ -35,6 +36,7 @@ const BUSINESS_DETAIL_TABS: Array<{ key: BusinessDetailTab; label: string }> = [
   { key: 'bookings', label: 'Booking analytics' },
   { key: 'invoices', label: 'Invoices & billing' },
   { key: 'footprint', label: 'People & footprint' },
+  { key: 'locations', label: 'Locations' },
 ];
 
 function formatMoney(value: number, currency?: string): string {
@@ -701,10 +703,17 @@ export default function BusinessTenantStatsPage() {
               <strong style={{ fontSize: '1.25rem' }}>{counts.bookings}</strong>
             </div>
           </div>
+            </>
+          ) : null}
 
+          {activeTab === 'locations' ? (
+            <>
+          <h2 className="page-title" style={{ marginTop: '1rem', fontSize: '1.1rem' }}>
+            Locations
+          </h2>
           <div
             className="connection-panel"
-            style={{ marginTop: '1rem', padding: '0.9rem 1rem' }}
+            style={{ marginTop: '0.5rem', padding: '0.9rem 1rem' }}
           >
             <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Business locations</h3>
             {businessLocations.length === 0 ? (
@@ -763,7 +772,7 @@ export default function BusinessTenantStatsPage() {
               </>
             )}
           </div>
-            </>
+          </>
           ) : null}
 
           <div className="page-actions-row" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
