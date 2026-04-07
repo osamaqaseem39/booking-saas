@@ -795,6 +795,28 @@ table.data.data--noninteractive tbody tr:hover {
   border-bottom: 1px solid rgba(42, 53, 68, 0.75);
 }
 
+.location-courts-grid {
+  margin-top: 0.65rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.location-courts-card {
+  border: 1px solid rgba(65, 80, 100, 0.55);
+  background: rgba(21, 30, 40, 0.48);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+}
+
+.location-courts-card h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .form-grid {
   display: grid;
   gap: 0.75rem;

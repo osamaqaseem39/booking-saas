@@ -22,6 +22,16 @@ function countsFromLocation(loc: BusinessLocationRow | null): FacilityCountsUi {
   };
 }
 
+function toTitle(value?: string | null): string {
+  if (!value) return '—';
+  return value
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export default function LocationDetailPage() {
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
@@ -94,51 +104,63 @@ export default function LocationDetailPage() {
         <div className="err-banner">Location not found or not visible for your user.</div>
       ) : (
         <>
-          <div className="connection-panel" style={{ margin: 0 }}>
-            <div className="detail-row">
-              <span>Name</span>
-              <span>{location.name}</span>
+          <section className="connection-panel business-profile-card" style={{ margin: 0 }}>
+            <div className="business-profile-card__head">
+              <h2>{location.name}</h2>
+              <p className="muted">
+                Location profile, available facilities, and quick actions.
+              </p>
             </div>
-            <div className="detail-row">
-              <span>Business</span>
-              <span>{location.business?.businessName ?? location.businessId}</span>
+            <div className="business-profile-grid">
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Business</span>
+                <strong className="business-profile-item__value">
+                  {location.business?.businessName ?? location.businessId}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Tenant</span>
+                <strong className="business-profile-item__value business-profile-item__value--code">
+                  <code>{location.business?.tenantId ?? '—'}</code>
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Type</span>
+                <strong className="business-profile-item__value">
+                  {toTitle(location.locationType)}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Status</span>
+                <strong className="business-profile-item__value">
+                  {location.isActive ? 'Active' : 'Inactive'}
+                </strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">City</span>
+                <strong className="business-profile-item__value">{location.city ?? '—'}</strong>
+              </div>
+              <div className="business-profile-item">
+                <span className="business-profile-item__label">Phone</span>
+                <strong className="business-profile-item__value">{location.phone ?? '—'}</strong>
+              </div>
+              <div className="business-profile-item business-profile-item--wide">
+                <span className="business-profile-item__label">Facility types</span>
+                <strong className="business-profile-item__value">
+                  {location.facilityTypes?.length
+                    ? location.facilityTypes.map(formatFacilityTypeLabel).join(', ')
+                    : '—'}
+                </strong>
+              </div>
             </div>
-            <div className="detail-row">
-              <span>Tenant</span>
-              <span>{location.business?.tenantId ?? '—'}</span>
-            </div>
-            <div className="detail-row">
-              <span>Type</span>
-              <span>{location.locationType ?? '—'}</span>
-            </div>
-            <div className="detail-row">
-              <span>City</span>
-              <span>{location.city ?? '—'}</span>
-            </div>
-            <div className="detail-row">
-              <span>Phone</span>
-              <span>{location.phone ?? '—'}</span>
-            </div>
-            <div className="detail-row">
-              <span>Status</span>
-              <span>{location.isActive ? 'Active' : 'Inactive'}</span>
-            </div>
-            <div className="detail-row">
-              <span>Facility types</span>
-              <span>
-                {location.facilityTypes?.length
-                  ? location.facilityTypes.map(formatFacilityTypeLabel).join(', ')
-                  : '—'}
-              </span>
-            </div>
-          </div>
+          </section>
 
           {location.details?.trim() ? (
             <div className="connection-panel" style={{ marginTop: '1rem' }}>
               <h2>Details</h2>
               <p
                 className="muted"
-                style={{ marginTop: '0.45rem', whiteSpace: 'pre-wrap' }}
+                style={{ marginTop: '0.45rem', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
               >
                 {location.details.trim()}
               </p>
@@ -148,14 +170,15 @@ export default function LocationDetailPage() {
           {availableFacilityCards.length > 0 ? (
             <div className="connection-grid" style={{ marginTop: '1rem' }}>
               {availableFacilityCards.map((card) => (
-                <div
+                <article
                   key={card.key}
-                  className="connection-panel"
+                  className={`connection-panel overview-metric-card sport-stat-card--${card.key}`}
                   style={{ margin: 0, padding: '0.9rem 1rem' }}
                 >
-                  <h2>{card.label}</h2>
-                  <strong style={{ fontSize: '1.25rem' }}>{card.count}</strong>
-                </div>
+                  <span className="overview-metric-label">{card.label}</span>
+                  <strong className="overview-metric-value">{card.count}</strong>
+                  <span className="overview-metric-hint muted">Available facilities</span>
+                </article>
               ))}
             </div>
           ) : (
@@ -170,18 +193,16 @@ export default function LocationDetailPage() {
           {courtsByType.length > 0 ? (
             <div className="connection-panel" style={{ marginTop: '1rem' }}>
               <h2>Courts &amp; fields</h2>
-              <div style={{ marginTop: '0.65rem', display: 'grid', gap: '1rem' }}>
+              <div className="location-courts-grid">
                 {courtsByType.map(({ facilityType, items }) => (
-                  <div key={facilityType}>
-                    <div className="muted" style={{ fontWeight: 600, marginBottom: '0.35rem' }}>
-                      {formatFacilityTypeLabel(facilityType)}
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                  <article key={facilityType} className="location-courts-card">
+                    <h3>{formatFacilityTypeLabel(facilityType)}</h3>
+                    <ul className="items-list">
                       {items.map((c) => (
                         <li key={c.id}>{c.name}</li>
                       ))}
                     </ul>
-                  </div>
+                  </article>
                 ))}
               </div>
             </div>
