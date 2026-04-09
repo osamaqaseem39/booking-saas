@@ -1,37 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   deleteBusinessLocation,
   listBusinessLocations,
-  listBusinesses,
 } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { formatFacilityTypeLabel } from '../constants/locationFacilityTypes';
 import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
-import type { BusinessLocationRow, BusinessRow } from '../types/domain';
+import type { BusinessLocationRow } from '../types/domain';
 
 export default function LocationsPage() {
   const { session } = useSession();
+  const [searchParams] = useSearchParams();
   const isOwner = session?.roles?.includes('platform-owner');
+  const initialTypeFilter = searchParams.get('type')?.trim() || 'all';
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
-  const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState(initialTypeFilter);
+
+  useEffect(() => {
+    const nextTypeFilter = searchParams.get('type')?.trim() || 'all';
+    setTypeFilter(nextTypeFilter);
+  }, [searchParams]);
 
   const load = () => {
     void (async () => {
       setLoading(true);
       setErr(null);
       try {
-        const [locs, biz] = await Promise.all([
-          listBusinessLocations(),
-          listBusinesses(),
-        ]);
+        const locs = await listBusinessLocations();
         setRows(locs);
-        setBusinesses(biz);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {

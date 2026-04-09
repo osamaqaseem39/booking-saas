@@ -117,42 +117,75 @@ export default function UserEditPage() {
         <div className="empty-state">User not found.</div>
       ) : (
         <>
-          <div className="form-grid" style={{ maxWidth: '520px' }}>
-            <div>
-              <label>Full name</label>
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <form
+            className="form-grid"
+            style={{ maxWidth: '760px' }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onSave();
+            }}
+          >
+            <div className="connection-panel" style={{ margin: 0 }}>
+              <h2>Profile</h2>
+              <div className="form-row-2">
+                <div>
+                  <label>Full name *</label>
+                  <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                </div>
+                <div>
+                  <label>Email *</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div>
+                  <label>Phone (optional)</label>
+                  <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div>
+                  <label>User ID</label>
+                  <input value={user.id} disabled />
+                </div>
+              </div>
+              <div>
+                <label>Current roles</label>
+                <div>
+                  <code>{(user.roles ?? []).join(', ') || '—'}</code>
+                </div>
+              </div>
+              <div>
+                <label>Created</label>
+                <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}</div>
+              </div>
             </div>
-            <div>
-              <label>Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <div className="connection-panel" style={{ margin: 0 }}>
+              <h2>Security</h2>
+              <div>
+                <label>New password (optional)</label>
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="Leave blank to keep current password"
+                />
+              </div>
             </div>
-            <div>
-              <label>Phone (optional)</label>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div>
-              <label>New password (optional)</label>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="Leave blank to keep current"
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
-                type="button"
+                type="submit"
                 className="btn-primary"
                 disabled={busy || !fullName.trim() || !email.trim()}
-                onClick={() => void onSave()}
               >
                 {busy ? 'Saving…' : 'Save changes'}
               </button>
+              <Link to={`/app/users/${user.id}`} className="btn-ghost">
+                View user
+              </Link>
               <button type="button" className="btn-danger" disabled={deleting} onClick={() => void onDelete()}>
                 {deleting ? 'Deleting…' : 'Delete user'}
               </button>
             </div>
-          </div>
+          </form>
 
           {canAssign && (
             <div className="form-grid" style={{ maxWidth: '520px', marginTop: '1.25rem' }}>

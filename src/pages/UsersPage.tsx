@@ -1,14 +1,48 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { deleteIamUser, listEndUsers, listIamUsers } from '../api/saasClient';
+import {
+  deleteIamUser,
+  listBookings,
+  listBookingsForTenant,
+  listBusinesses,
+  listEndUsers,
+  listIamUsers,
+} from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import type { IamUserRow } from '../types/domain';
+import type { BookingRecord } from '../types/booking';
 
 type PeopleKind = 'staff' | 'customers';
 
 function isCustomerOnly(u: IamUserRow): boolean {
   const roles = u.roles ?? [];
   return roles.length === 1 && roles[0] === 'customer-end-user';
+}
+
+function toChartRows(input: Record<string, number>) {
+  const rows = Object.entries(input)
+    .map(([key, value]) => ({
+      key,
+      label: key,
+      value: Number(value ?? 0),
+    }))
+    .sort((a, b) => b.value - a.value);
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  return rows.map((row) => ({
+    ...row,
+    widthPct: row.value > 0 ? Math.max(10, Math.round((row.value / max) * 100)) : 0,
+    pct: total > 0 ? Math.round((row.value / total) * 100) : 0,
+  }));
+}
+
+function classifyUserSource(roles: string[] | undefined): string {
+  const r = new Set(roles ?? []);
+  if (r.has('platform-owner')) return 'Platform';
+  if (r.has('business-admin')) return 'Business admin';
+  if (r.has('business-staff')) return 'Business staff';
+  if (r.has('customer-end-user')) return 'Customer app';
+  return 'Unknown';
 }
 
 export default function UsersPage() {
@@ -26,6 +60,7 @@ export default function UsersPage() {
 
   const [staffRows, setStaffRows] = useState<IamUserRow[]>([]);
   const [customerRows, setCustomerRows] = useState<IamUserRow[]>([]);
+  const [customerBookings, setCustomerBookings] = useState<BookingRecord[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -64,18 +99,34 @@ export default function UsersPage() {
       setLoading(true);
       setErr(null);
       try {
-        const all = await listEndUsers();
+        const [all, bookingsForStats] = await Promise.all([
+          listEndUsers(),
+          (async () => {
+            if (isPlatformOwner) {
+              const businesses = await listBusinesses();
+              const chunks = await Promise.all(
+                businesses.map((b) =>
+                  listBookingsForTenant(b.tenantId).catch(() => [] as BookingRecord[]),
+                ),
+              );
+              return chunks.flat();
+            }
+            return listBookings().catch(() => [] as BookingRecord[]);
+          })(),
+        ]);
         setCustomerRows(
           all.filter((u) => (u.roles ?? []).some((role) => role === 'customer-end-user')),
         );
+        setCustomerBookings(bookingsForStats);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load customers');
         setCustomerRows([]);
+        setCustomerBookings([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [kind]);
+  }, [kind, isPlatformOwner]);
 
   async function onDelete(userId: string) {
     const yes = window.confirm('Delete this user? This cannot be undone.');
@@ -145,6 +196,63 @@ export default function UsersPage() {
       : isPlatformOwner
         ? 'Business admins, staff, and other non–customer-only accounts for the active tenant.'
         : 'Manage business staff accounts and role access.';
+
+  const customerSpendById = useMemo(() => {
+    const out: Record<string, { amount: number; bookings: number }> = {};
+    for (const b of customerBookings) {
+      const id = b.userId;
+      if (!out[id]) out[id] = { amount: 0, bookings: 0 };
+      out[id].amount += Number(b.pricing?.totalAmount ?? 0);
+      out[id].bookings += 1;
+    }
+    return out;
+  }, [customerBookings]);
+
+  const customerSourceChart = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const u of visibleCustomers) {
+      const source = classifyUserSource(u.roles);
+      counts[source] = (counts[source] ?? 0) + 1;
+    }
+    return toChartRows(counts);
+  }, [visibleCustomers]);
+
+  const customerSpendingBandChart = useMemo(() => {
+    const bands: Record<string, number> = {
+      'No spend': 0,
+      '1 - 4,999': 0,
+      '5,000 - 19,999': 0,
+      '20,000+': 0,
+    };
+    for (const u of visibleCustomers) {
+      const spend = customerSpendById[u.id]?.amount ?? 0;
+      if (spend <= 0) bands['No spend'] += 1;
+      else if (spend < 5000) bands['1 - 4,999'] += 1;
+      else if (spend < 20000) bands['5,000 - 19,999'] += 1;
+      else bands['20,000+'] += 1;
+    }
+    return toChartRows(bands);
+  }, [customerSpendById, visibleCustomers]);
+
+  const customerSpendTotals = useMemo(() => {
+    let totalSpend = 0;
+    let customersWithSpend = 0;
+    let topSpender: { name: string; amount: number } | null = null;
+    for (const u of visibleCustomers) {
+      const spend = customerSpendById[u.id]?.amount ?? 0;
+      totalSpend += spend;
+      if (spend > 0) customersWithSpend += 1;
+      if (!topSpender || spend > topSpender.amount) {
+        topSpender = { name: u.fullName || u.email, amount: spend };
+      }
+    }
+    return {
+      totalSpend,
+      customersWithSpend,
+      avgSpend: visibleCustomers.length > 0 ? totalSpend / visibleCustomers.length : 0,
+      topSpender,
+    };
+  }, [customerSpendById, visibleCustomers]);
 
   return (
     <div>
@@ -301,7 +409,73 @@ export default function UsersPage() {
               <h2>Showing</h2>
               <strong style={{ fontSize: '1.25rem' }}>{visibleCustomers.length}</strong>
             </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Total spend</h2>
+              <strong style={{ fontSize: '1.25rem' }}>
+                {customerSpendTotals.totalSpend.toLocaleString()} PKR
+              </strong>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Avg spend / user</h2>
+              <strong style={{ fontSize: '1.25rem' }}>
+                {Math.round(customerSpendTotals.avgSpend).toLocaleString()} PKR
+              </strong>
+            </div>
           </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '0.75rem',
+              margin: '0.75rem 0',
+            }}
+          >
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Users source</h3>
+              <div className="overview-source-bars">
+                {customerSourceChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--app"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {row.value} ({row.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Spending bands</h3>
+              <div className="overview-source-bars">
+                {customerSpendingBandChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--call"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {row.value} ({row.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {customerSpendTotals.topSpender ? (
+            <p className="muted" style={{ marginTop: '-0.1rem' }}>
+              Top customer by spending: <strong>{customerSpendTotals.topSpender.name}</strong> (
+              {Math.round(customerSpendTotals.topSpender.amount).toLocaleString()} PKR).
+              Customers with spend: {customerSpendTotals.customersWithSpend}.
+            </p>
+          ) : null}
           <div className="connection-panel" style={{ margin: 0 }}>
             <div
               style={{
@@ -355,6 +529,8 @@ export default function UsersPage() {
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Roles</th>
+                    <th>Bookings</th>
+                    <th>Spending</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -369,6 +545,8 @@ export default function UsersPage() {
                           {(u.roles ?? []).join(', ')}
                         </code>
                       </td>
+                      <td>{customerSpendById[u.id]?.bookings ?? 0}</td>
+                      <td>{Math.round(customerSpendById[u.id]?.amount ?? 0).toLocaleString()} PKR</td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <Link to={`/app/users/${u.id}`} className="action-link">

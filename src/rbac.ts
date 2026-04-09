@@ -33,6 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
     anyOf: ['platform-owner'],
     children: [
       { to: '/app/locations', label: 'Locations' },
+      { to: '/app/locations?type=gaming-zone', label: 'Gaming zones' },
       { to: '/app/Facilites', label: 'Facilities' },
     ],
   },

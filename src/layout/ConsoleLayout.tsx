@@ -157,6 +157,7 @@ export default function ConsoleLayout() {
     if (to === '/app/health') return '🛡️';
     return '•';
   };
+  const navPathname = (to: string): string => to.split('?')[0] ?? to;
 
   return (
     <div className={`console-root ${isNavCollapsed ? 'console-root--collapsed' : ''}`}>
@@ -183,11 +184,13 @@ export default function ConsoleLayout() {
         <div className="console-nav-main">
           {navMain.map((item) => {
             const subs = item.children ?? [];
-            const childPaths = new Set(subs.map((s) => s.to));
+            const childPaths = new Set(subs.map((s) => navPathname(s.to)));
             const childActive =
               subs.length > 0 &&
               (childPaths.has(location.pathname) ||
-                subs.some((s) => location.pathname.startsWith(`${s.to}/`)));
+                subs.some((s) =>
+                  location.pathname.startsWith(`${navPathname(s.to)}/`),
+                ));
             return (
               <div key={item.to} className="console-nav-group">
                 <NavLink

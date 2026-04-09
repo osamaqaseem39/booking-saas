@@ -5,6 +5,7 @@ import {
   getCourtBookedSlots,
   listBookings,
   listBookingsForTenant,
+  listBusinessLocations,
   listBusinesses,
   listCourtOptions,
   listIamUsers,
@@ -67,6 +68,7 @@ export default function BookingsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [usersMap, setUsersMap] = useState<Record<string, UserSummary>>({});
   const [courtsMap, setCourtsMap] = useState<Record<string, string>>({});
+  const [locationsMap, setLocationsMap] = useState<Record<string, { name: string; phone: string }>>({});
   const [availabilitySport, setAvailabilitySport] =
     useState<BookingSportType | ''>('');
   const [availabilityDate, setAvailabilityDate] = useState('');
@@ -227,6 +229,21 @@ export default function BookingsPage() {
         setCourtsMap({});
       }
     })();
+    void (async () => {
+      try {
+        const rows = await listBusinessLocations();
+        const map: Record<string, { name: string; phone: string }> = {};
+        for (const row of rows) {
+          map[row.id] = {
+            name: row.name,
+            phone: row.phone?.trim() || '-',
+          };
+        }
+        setLocationsMap(map);
+      } catch {
+        setLocationsMap({});
+      }
+    })();
   }, [selectedLocationId]);
 
 
@@ -327,51 +344,6 @@ export default function BookingsPage() {
           </button>
         </div>
       </div>
-      <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.75rem',
-            alignItems: 'end',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ minWidth: '180px' }}>
-            <label>Booking status</label>
-            <select
-              value={bookingStatusFilter}
-              onChange={(e) =>
-                setBookingStatusFilter(e.target.value as 'all' | BookingStatus)
-              }
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="no_show">No Show</option>
-            </select>
-          </div>
-          <div style={{ minWidth: '180px' }}>
-            <label>Payment status</label>
-            <select
-              value={paymentStatusFilter}
-              onChange={(e) =>
-                setPaymentStatusFilter(e.target.value as 'all' | PaymentStatus)
-              }
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-              <option value="failed">Failed</option>
-              <option value="refunded">Refunded</option>
-            </select>
-          </div>
-          <span className="muted" style={{ marginLeft: 'auto', paddingBottom: '0.2rem' }}>
-            Showing {filteredBookings.length} of {bookings.length} bookings
-          </span>
-        </div>
-      </section>
       {error && <div className="err-banner">{error}</div>}
       <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
         <h3 style={{ marginBottom: '0.6rem' }}>Quick filters</h3>
@@ -644,8 +616,10 @@ export default function BookingsPage() {
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Customer</th>
-                    <th>Phone</th>
+                    <th>Person name</th>
+                    <th>Person phone</th>
+                    <th>Location</th>
+                    <th>Location phone</th>
                     <th>Sport</th>
                     <th>Status</th>
                     <th>Payment</th>
@@ -666,6 +640,8 @@ export default function BookingsPage() {
                       <td>{b.bookingDate}</td>
                       <td>{user?.name ?? `User ${b.userId.slice(0, 8)}`}</td>
                       <td>{user?.phone ?? '-'}</td>
+                      <td>{locationsMap[b.arenaId]?.name ?? b.arenaId?.slice(0, 8) ?? '-'}</td>
+                      <td>{locationsMap[b.arenaId]?.phone ?? '-'}</td>
                       <td>
                         <span className={sportBadgeClass(b.sportType)}>
                           {titleCaseWords(b.sportType ?? 'unknown')}
