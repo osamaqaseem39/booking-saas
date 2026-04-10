@@ -224,8 +224,14 @@ export default function LocationsPage() {
                       >
                         Add booking
                       </Link>
+                      <Link
+                        className="action-link"
+                        to={`/app/Facilites?locationId=${encodeURIComponent(r.id)}`}
+                      >
+                        View facilities
+                      </Link>
                       <Link className="action-link" to={`/app/locations/${r.id}/facilities`}>
-                        Manage
+                        Manage facilities
                       </Link>
                       <Link className="action-link" to={`/app/locations/${r.id}`}>View</Link>
                       <Link className="action-link" to={`/app/locations/${r.id}/edit`}>Edit</Link>

@@ -35,19 +35,16 @@ export default function BusinessesPage() {
   const [typeDrilldown, setTypeDrilldown] = useState<TypeDrilldown | null>(null);
   const [drilldownLoading, setDrilldownLoading] = useState(false);
   const [drilldownErr, setDrilldownErr] = useState<string | null>(null);
-  const { session, setTenantId } = useSession();
+  const { session } = useSession();
   const navigate = useNavigate();
   const roles = session?.roles ?? [];
   const canCreateBusiness = roles.includes('platform-owner');
-  const canScopeConsoleToTenant = roles.includes('platform-owner');
 
   function openBusinessContext(business: BusinessRow) {
-    setTenantId(business.tenantId ?? '');
     navigate(`/app/businesses/${business.id}`);
   }
 
   function openBusinessLocations(business: BusinessRow) {
-    setTenantId(business.tenantId ?? '');
     navigate(`/app/locations?businessId=${encodeURIComponent(business.id)}`);
   }
 
@@ -246,9 +243,7 @@ export default function BusinessesPage() {
       <p className="muted">
         Each business has a <strong>tenantId</strong> used as{' '}
         <code>X-Tenant-Id</code>. Platform owners see all businesses;
-        business admins only see businesses they belong to. Use{' '}
-        <strong>Clear tenant scope</strong> resets the top bar to all businesses (platform
-        owners). Detail pages do not change your global tenant selection.
+        business admins only see businesses they belong to.
       </p>
       {!loading && rows.length > 0 && (
         <div className="connection-grid" style={{ marginTop: '1rem' }}>
@@ -425,13 +420,7 @@ export default function BusinessesPage() {
               {filteredRows.map((b) => (
                 <tr
                   key={b.id}
-                  onClick={() => {
-                    if (canScopeConsoleToTenant) {
-                      openBusinessContext(b);
-                      return;
-                    }
-                    navigate(`/app/businesses/${b.id}`);
-                  }}
+                  onClick={() => openBusinessContext(b)}
                 >
                   <td>{b.businessName}</td>
                   <td>
@@ -461,41 +450,6 @@ export default function BusinessesPage() {
                       >
                         Locations
                       </button>
-                      {canScopeConsoleToTenant ? (
-                        <button
-                          type="button"
-                          className="action-link"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            font: 'inherit',
-                          }}
-                          onClick={() => openBusinessContext(b)}
-                        >
-                          Select business
-                        </button>
-                      ) : null}
-                      {canScopeConsoleToTenant ? (
-                        <button
-                          type="button"
-                          className="action-link"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            font: 'inherit',
-                          }}
-                          onClick={() => {
-                            setTenantId('');
-                            navigate('/app');
-                          }}
-                        >
-                          Clear tenant scope
-                        </button>
-                      ) : null}
                       <Link
                         to={`/app/businesses/${b.id}/edit`}
                         className="action-link"

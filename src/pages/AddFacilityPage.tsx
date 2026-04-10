@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useOutletContext } from 'react-router-dom';
+import { Link, useLocation, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   deleteFacilityByCode,
   type FacilityRowCode,
@@ -80,6 +80,8 @@ function hasSetupForm(code: string): boolean {
 
 export default function AddFacilityPage() {
   const routeLocation = useLocation();
+  const [searchParams] = useSearchParams();
+  const preselectedLocationId = searchParams.get('locationId')?.trim() ?? '';
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const topbarLocationLocked = selectedLocationId !== 'all';
@@ -156,6 +158,14 @@ export default function AddFacilityPage() {
       }
     })();
   }, [selectedLocationId, topbarLocationLocked]);
+
+  useEffect(() => {
+    if (topbarLocationLocked) return;
+    if (!preselectedLocationId) return;
+    const exists = locations.some((loc) => loc.id === preselectedLocationId);
+    if (!exists) return;
+    setLocationId(preselectedLocationId);
+  }, [locations, preselectedLocationId, topbarLocationLocked]);
 
   useEffect(() => {
     if (topbarLocationLocked) setLocationId(selectedLocationId);
