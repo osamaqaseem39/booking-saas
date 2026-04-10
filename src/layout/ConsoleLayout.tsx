@@ -183,27 +183,13 @@ export default function ConsoleLayout() {
         </div>
         <div className="console-nav-main">
           {navMain.map((item) => {
-            const subs = item.children ?? [];
-            const childPaths = new Set(subs.map((s) => navPathname(s.to)));
-            const childActive =
-              subs.length > 0 &&
-              (childPaths.has(location.pathname) ||
-                subs.some((s) =>
-                  location.pathname.startsWith(`${navPathname(s.to)}/`),
-                ));
             return (
               <div key={item.to} className="console-nav-group">
                 <NavLink
                   to={item.to}
                   end={item.to === '/app'}
                   className={({ isActive }) =>
-                    [
-                      subs.length ? 'console-nav-parent' : '',
-                      isActive ? 'active' : '',
-                      subs.length && childActive ? 'console-nav-parent--open' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')
+                    isActive ? 'active' : ''
                   }
                   title={isNavCollapsed ? item.label : undefined}
                 >
@@ -212,38 +198,6 @@ export default function ConsoleLayout() {
                   </span>
                   {!isNavCollapsed ? <span>{item.label}</span> : null}
                 </NavLink>
-                {subs.length > 0 && !isNavCollapsed ? (
-                  <div className="console-nav-sub" role="group" aria-label={`${item.label} submenu`}>
-                    {subs.map((sub) => (
-                      <NavLink
-                        key={sub.to}
-                        to={sub.to}
-                        end
-                        className={({ isActive }) => (isActive ? 'active' : '')}
-                      >
-                        <span className="console-nav-link-icon" aria-hidden="true">
-                          {navIconForPath(sub.to)}
-                        </span>
-                        <span>{sub.label}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                ) : null}
-                {subs.length > 0 && isNavCollapsed
-                  ? subs.map((sub) => (
-                      <NavLink
-                        key={sub.to}
-                        to={sub.to}
-                        end
-                        className={({ isActive }) => (isActive ? 'active' : '')}
-                        title={sub.label}
-                      >
-                        <span className="console-nav-link-icon" aria-hidden="true">
-                          {navIconForPath(sub.to)}
-                        </span>
-                      </NavLink>
-                    ))
-                  : null}
               </div>
             );
           })}
