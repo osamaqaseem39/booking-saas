@@ -339,12 +339,6 @@ export default function BusinessTenantStatsPage() {
                 </strong>
               </div>
               <div className="business-profile-item">
-                <span className="business-profile-item__label">Type</span>
-                <strong className="business-profile-item__value">
-                  {toProperCase(business?.businessType)}
-                </strong>
-              </div>
-              <div className="business-profile-item">
                 <span className="business-profile-item__label">Status</span>
                 <strong className="business-profile-item__value">
                   {toProperCase(business?.status ?? 'active')}

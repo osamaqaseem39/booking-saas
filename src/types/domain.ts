@@ -26,7 +26,6 @@ export interface BusinessRow {
   tenantId: string;
   businessName: string;
   legalName?: string | null;
-  businessType?: string | null;
   sportsOffered?: string[] | null;
   owner?: { name?: string; email?: string; phone?: string } | null;
   subscription?:

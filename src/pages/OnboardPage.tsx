@@ -8,7 +8,6 @@ export default function OnboardPage() {
   const navigate = useNavigate();
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
-  const [businessType, setBusinessType] = useState('multi_branch');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
@@ -72,7 +71,6 @@ export default function OnboardPage() {
       const res = await onboardBusiness({
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        businessType: businessType.trim() || undefined,
         owner: {
           name: ownerName.trim(),
           email: ownerEmail.trim(),
@@ -156,14 +154,6 @@ export default function OnboardPage() {
                 aria-invalid={!!fieldErrors.legalName}
               />
             </div>
-          </div>
-          <div>
-            <label>Business type</label>
-            <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
-              <option value="single_branch">Single Branch</option>
-              <option value="multi_branch">Multi Branch</option>
-              <option value="franchise">Franchise</option>
-            </select>
           </div>
         </div>
         <div className="connection-panel" style={{ margin: 0 }}>

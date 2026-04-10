@@ -4,12 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { onboardBusiness } from '../api/saasClient';
 import { normalizePhoneForStorage } from '../utils/phone';
 
-const BUSINESS_TYPE_OPTIONS = [
-  { value: 'single_branch', label: 'Single Branch' },
-  { value: 'multi_branch', label: 'Multi Branch' },
-  { value: 'franchise', label: 'Franchise' },
-];
-
 const PLAN_OPTIONS = [
   { value: 'basic', label: 'Basic' },
   { value: 'standard', label: 'Standard' },
@@ -30,7 +24,6 @@ export default function BusinessCreatePage() {
   const [tenantId, setTenantId] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
-  const [businessType, setBusinessType] = useState('multi_branch');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
@@ -99,7 +92,6 @@ export default function BusinessCreatePage() {
         tenantId: tenantId.trim() || undefined,
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        businessType: businessType.trim() || undefined,
         owner: {
           name: ownerName.trim(),
           email: ownerEmail.trim(),
@@ -168,24 +160,12 @@ export default function BusinessCreatePage() {
             <input value={legalName} onChange={(e) => setLegalName(e.target.value)} />
             {fieldErrors.legalName && <div className="muted" style={{ color: 'var(--danger)' }}>{fieldErrors.legalName}</div>}
           </div>
-          <div className="form-row-2">
-            <div>
-              <label>Business Type</label>
-              <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
-                {BUSINESS_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+          <div>
+            <label>Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
           </div>
         </div>
 

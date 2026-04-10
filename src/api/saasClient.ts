@@ -385,7 +385,7 @@ export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
   });
 }
 
-/** Map/sidebar marker row from GET /getVenues/all|gaming|FutsalArenas */
+/** Map/sidebar marker row from GET /public/venues/markers[...] */
 export type VenueMapMarker = {
   venueId: string;
   name: string;
@@ -396,7 +396,7 @@ export type VenueMapMarker = {
   bannerImage: string | null;
 };
 
-/** Alias of GET /businesses/locations/cities — distinct city names for filters. */
+/** Distinct city names for filters (legacy: GET /getAllCities). */
 export async function getAllCities(params?: {
   q?: string;
   limit?: number;
@@ -405,31 +405,35 @@ export async function getAllCities(params?: {
   if (params?.q) q.set('q', params.q);
   if (params?.limit != null) q.set('limit', String(params.limit));
   const qs = q.toString();
-  return request(`/getAllCities${qs ? `?${qs}` : ''}`, { method: 'GET' });
+  return request(`/public/cities${qs ? `?${qs}` : ''}`, { method: 'GET' });
 }
 
 /** Registered catalog + every distinct locationType in DB (any location). */
 export async function getAllLocationTypes(): Promise<{
   locationTypes: string[];
 }> {
-  return request('/getAllLocationTypes', { method: 'GET' });
+  return request('/public/location-types', { method: 'GET' });
 }
 
 /** Full venue list (same payload as GET /businesses/locations). */
 export async function getVenues(): Promise<BusinessLocationRow[]> {
-  return request<BusinessLocationRow[]>('/getVenues', { method: 'GET' });
+  return request<BusinessLocationRow[]>('/public/venues', { method: 'GET' });
 }
 
 export async function getVenuesAllMarkers(): Promise<VenueMapMarker[]> {
-  return request<VenueMapMarker[]>('/getVenues/all', { method: 'GET' });
+  return request<VenueMapMarker[]>('/public/venues/markers', {
+    method: 'GET',
+  });
 }
 
 export async function getVenuesGamingMarkers(): Promise<VenueMapMarker[]> {
-  return request<VenueMapMarker[]>('/getVenues/gaming', { method: 'GET' });
+  return request<VenueMapMarker[]>('/public/venues/markers/gaming', {
+    method: 'GET',
+  });
 }
 
 export async function getVenuesFutsalArenasMarkers(): Promise<VenueMapMarker[]> {
-  return request<VenueMapMarker[]>('/getVenues/FutsalArenas', {
+  return request<VenueMapMarker[]>('/public/venues/markers/futsal', {
     method: 'GET',
   });
 }
@@ -460,7 +464,7 @@ export type VenueDetailsPublic = {
 export async function getVenueDetails(
   locationId: string,
 ): Promise<VenueDetailsPublic> {
-  return request<VenueDetailsPublic>(`/getVenueDetails/${locationId}`, {
+  return request<VenueDetailsPublic>(`/public/venues/${locationId}`, {
     method: 'GET',
   });
 }
@@ -474,7 +478,7 @@ export async function placeFutsalBooking(body: {
   venueId: string;
   userId: string;
 }): Promise<{ message: string; bookingId: string; placedAt: string }> {
-  return request('/placeFutsalBooking', {
+  return request('/public/bookings/futsal', {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -595,7 +599,6 @@ export async function onboardBusiness(body: {
   tenantId?: string;
   businessName: string;
   legalName?: string;
-  businessType?: string;
   sportsOffered?: string[];
   owner?: {
     name: string;
@@ -627,7 +630,6 @@ export async function updateBusiness(
   body: {
     businessName?: string;
     legalName?: string;
-    businessType?: string;
     sportsOffered?: string[];
     owner?: { name?: string; email?: string; phone?: string };
     subscription?: { plan?: string; status?: string; billingCycle?: string };

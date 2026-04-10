@@ -28,7 +28,6 @@ export default function BusinessesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'tenantId' | 'members'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [allLocations, setAllLocations] = useState<BusinessLocationRow[]>([]);
@@ -93,25 +92,15 @@ export default function BusinessesPage() {
       .join(' ');
   }
 
-  const typeOptions = useMemo(
-    () =>
-      Array.from(new Set(rows.map((r) => r.businessType).filter(Boolean) as string[])).sort(
-        (a, b) => a.localeCompare(b),
-      ),
-    [rows],
-  );
-
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = rows.filter((r) => {
       const normalizedStatus = (r.status ?? 'active').toLowerCase();
       if (statusFilter !== 'all' && normalizedStatus !== statusFilter) return false;
-      if (typeFilter !== 'all' && (r.businessType ?? '') !== typeFilter) return false;
       if (!q) return true;
       return (
         (r.businessName ?? '').toLowerCase().includes(q) ||
-        (r.tenantId ?? '').toLowerCase().includes(q) ||
-        (r.businessType ?? '').toLowerCase().includes(q)
+        (r.tenantId ?? '').toLowerCase().includes(q)
       );
     });
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -122,7 +111,7 @@ export default function BusinessesPage() {
       }
       return a.businessName.localeCompare(b.businessName) * dir;
     });
-  }, [query, rows, sortBy, sortDir, statusFilter, typeFilter]);
+  }, [query, rows, sortBy, sortDir, statusFilter]);
 
   const totalMemberships = useMemo(
     () => filteredRows.reduce((sum, row) => sum + (row.memberships?.length ?? 0), 0),
@@ -387,17 +376,6 @@ export default function BusinessesPage() {
             </select>
           </div>
           <div>
-            <label>Type</label>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="all">All types</option>
-              {typeOptions.map((t) => (
-                <option key={t} value={t}>
-                  {toProperCase(t)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label>Sort by</label>
             <select
               value={sortBy}
@@ -433,7 +411,6 @@ export default function BusinessesPage() {
               <tr>
                 <th>Name</th>
                 <th>Tenant ID</th>
-                <th>Type</th>
                 <th>Status</th>
                 <th>Members</th>
                 <th>Actions</th>
@@ -455,7 +432,6 @@ export default function BusinessesPage() {
                   <td>
                     <code style={{ fontSize: '0.75rem' }}>{b.tenantId}</code>
                   </td>
-                  <td>{toProperCase(b.businessType)}</td>
                   <td>{toProperCase(b.status ?? 'active')}</td>
                   <td>{b.memberships?.length ?? 0}</td>
                   <td style={{ width: '260px' }}>

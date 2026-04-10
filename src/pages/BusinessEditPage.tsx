@@ -14,7 +14,6 @@ export default function BusinessEditPage() {
   const [deleting, setDeleting] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
-  const [businessType, setBusinessType] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
@@ -50,7 +49,6 @@ export default function BusinessEditPage() {
     if (!business) return;
     setBusinessName(business.businessName);
     setLegalName(business.legalName ?? '');
-    setBusinessType(business.businessType ?? '');
     setOwnerName(business.owner?.name ?? '');
     setOwnerEmail(business.owner?.email ?? '');
     setOwnerPhone(business.owner?.phone ?? '');
@@ -72,7 +70,6 @@ export default function BusinessEditPage() {
       await updateBusiness(businessId, {
         businessName: businessName.trim(),
         legalName: legalName.trim() || undefined,
-        businessType: businessType.trim() || undefined,
         owner: {
           name: ownerName.trim() || undefined,
           email: ownerEmail.trim() || undefined,
@@ -145,14 +142,6 @@ export default function BusinessEditPage() {
                 <label>Legal name (optional)</label>
                 <input value={legalName} onChange={(e) => setLegalName(e.target.value)} />
               </div>
-            </div>
-            <div>
-              <label>Business type</label>
-              <select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
-                <option value="single_branch">Single Branch</option>
-                <option value="multi_branch">Multi Branch</option>
-                <option value="franchise">Franchise</option>
-              </select>
             </div>
           </div>
           <div className="connection-panel" style={{ margin: 0 }}>
