@@ -31,11 +31,6 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/businesses',
     label: 'Business',
     anyOf: ['platform-owner'],
-    children: [
-      { to: '/app/locations', label: 'Locations' },
-      { to: '/app/locations?type=gaming-zone', label: 'Gaming zones' },
-      { to: '/app/Facilites', label: 'Facilities' },
-    ],
   },
   {
     to: '/app/locations',
@@ -109,14 +104,7 @@ export function navSectionsForRoles(userRoles: string[]): {
     userRoles.includes('business-admin') &&
     !userRoles.includes('platform-owner');
   if (!businessAdminOnly) {
-    let main = filtered;
-    if (userRoles.includes('platform-owner')) {
-      const nestedUnderBusiness = new Set(['/app/locations', '/app/Facilites']);
-      main = dedupeNavByTo(
-        filtered.filter((item) => !nestedUnderBusiness.has(item.to)),
-      );
-    }
-    return { main, footer: [] };
+    return { main: filtered, footer: [] };
   }
   const main: NavItem[] = [];
   const footer: NavItem[] = [];

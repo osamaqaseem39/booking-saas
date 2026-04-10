@@ -18,6 +18,7 @@ import LocationFacilitySetupPage from './pages/LocationFacilitySetupPage';
 import LocationCreatePage from './pages/LocationCreatePage';
 import LocationDetailPage from './pages/LocationDetailPage';
 import LocationEditPage from './pages/LocationEditPage';
+import LocationFacilitiesPage from './pages/LocationFacilitiesPage';
 import LocationsPage from './pages/LocationsPage';
 import HealthPage from './pages/HealthPage';
 import LoginPage from './pages/LoginPage';
@@ -135,7 +136,11 @@ export default function App() {
             />
             <Route
               path="locations/:locationId/facilities"
-              element={<Navigate to="/app/Facilites" replace />}
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                  <LocationFacilitiesPage />
+                </RequireRoles>
+              }
             />
             <Route
               path="locations/:locationId/facilities/setup/:facilityCode"

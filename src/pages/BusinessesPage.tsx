@@ -46,6 +46,11 @@ export default function BusinessesPage() {
     navigate(`/app/businesses/${business.id}`);
   }
 
+  function openBusinessLocations(business: BusinessRow) {
+    setTenantId(business.tenantId ?? '');
+    navigate(`/app/locations?businessId=${encodeURIComponent(business.id)}`);
+  }
+
   async function reloadBusinesses() {
     setLoading(true);
     setErr(null);
@@ -442,6 +447,20 @@ export default function BusinessesPage() {
                       <Link to={`/app/businesses/${b.id}`} className="action-link">
                         View
                       </Link>
+                      <button
+                        type="button"
+                        className="action-link"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          font: 'inherit',
+                        }}
+                        onClick={() => openBusinessLocations(b)}
+                      >
+                        Locations
+                      </button>
                       {canScopeConsoleToTenant ? (
                         <button
                           type="button"

@@ -35,7 +35,7 @@ import { normalizePhoneForStorage } from '../utils/phone';
 const ARENA_FACILITY_CODE_SET = new Set(
   LOCATION_FACILITY_TYPE_OPTIONS.map((o) => o.value),
 );
-const GAMING_FACILITY_CODE_SET = new Set(
+const GAMING_FACILITY_CODE_SET = new Set<string>(
   GAMING_LOCATION_FACILITY_OPTIONS.map((o) => o.value),
 );
 

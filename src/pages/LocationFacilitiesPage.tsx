@@ -14,6 +14,14 @@ import {
   courtSetupOptions,
   isCourtSetupAllowedForLocation,
 } from '../constants/locationFacilityTypes';
+import {
+  GAMING_SETUP_OPTIONS,
+  isGamingSetupAllowedForLocation,
+} from '../constants/gamingFacilityTypes';
+import {
+  listGamingStationsForLocation,
+  type GamingStationRecord,
+} from '../utils/gamingStationLocalStore';
 import type { BusinessLocationRow, NamedCourt } from '../types/domain';
 
 function setupPath(locationId: string, facilityCode: string) {
@@ -125,6 +133,7 @@ export default function LocationFacilitiesPage() {
   const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
   const [cricketCourts, setCricketCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
+  const [gamingStations, setGamingStations] = useState<GamingStationRecord[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -149,6 +158,7 @@ export default function LocationFacilitiesPage() {
         setFutsalCourts(fc);
         setCricketCourts(cc);
         setPadel(pa);
+        setGamingStations(listGamingStationsForLocation(locationId));
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {
@@ -196,14 +206,20 @@ export default function LocationFacilitiesPage() {
             Add facility (setup form)
           </h3>
           <div className="facility-setup-grid">
-            {courtSetupOptions().map((o) => {
-              const allowed = isCourtSetupAllowedForLocation(location, o.code);
-              return allowed ? (
-                <Link
-                  key={o.code}
-                  to={setupPath(locationId, o.code)}
-                  className="btn-primary"
-                >
+            {(location.locationType === 'gaming-zone'
+              ? GAMING_SETUP_OPTIONS.map((o) => ({
+                  code: o.value,
+                  label: `Add ${o.label}`,
+                  allowed: isGamingSetupAllowedForLocation(location, o.value),
+                }))
+              : courtSetupOptions().map((o) => ({
+                  code: o.code,
+                  label: `Add ${o.label}`,
+                  allowed: isCourtSetupAllowedForLocation(location, o.code),
+                }))
+            ).map((o) =>
+              o.allowed ? (
+                <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">
                   {o.label}
                 </Link>
               ) : (
@@ -216,37 +232,59 @@ export default function LocationFacilitiesPage() {
                 >
                   {o.label}
                 </button>
-              );
-            })}
+              ),
+            )}
           </div>
 
           <h3 style={{ fontSize: '1rem', marginTop: '1.5rem' }}>
             At this location
           </h3>
-          <FacilitiesTableBlock
-            title="Futsal pitches"
-            rows={futsalCourts}
-            facilityCode="futsal-court"
-            locationId={locationId}
-            onReload={load}
-            setPageErr={setErr}
-          />
-          <FacilitiesTableBlock
-            title="Cricket pitches"
-            rows={cricketCourts}
-            facilityCode="cricket-court"
-            locationId={locationId}
-            onReload={load}
-            setPageErr={setErr}
-          />
-          <FacilitiesTableBlock
-            title="Padel courts"
-            rows={padel}
-            facilityCode="padel-court"
-            locationId={locationId}
-            onReload={load}
-            setPageErr={setErr}
-          />
+          {location.locationType === 'gaming-zone' ? (
+            GAMING_SETUP_OPTIONS.map((o) => (
+              <FacilitiesTableBlock
+                key={o.value}
+                title={o.label}
+                rows={gamingStations.filter((s) =>
+                  s.setupCode === o.value,
+                ).map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  businessLocationId: s.businessLocationId,
+                }))}
+                facilityCode={o.value}
+                locationId={locationId}
+                onReload={load}
+                setPageErr={setErr}
+              />
+            ))
+          ) : (
+            <>
+              <FacilitiesTableBlock
+                title="Futsal pitches"
+                rows={futsalCourts}
+                facilityCode="futsal-court"
+                locationId={locationId}
+                onReload={load}
+                setPageErr={setErr}
+              />
+              <FacilitiesTableBlock
+                title="Cricket pitches"
+                rows={cricketCourts}
+                facilityCode="cricket-court"
+                locationId={locationId}
+                onReload={load}
+                setPageErr={setErr}
+              />
+              <FacilitiesTableBlock
+                title="Padel courts"
+                rows={padel}
+                facilityCode="padel-court"
+                locationId={locationId}
+                onReload={load}
+                setPageErr={setErr}
+              />
+            </>
+          )}
         </>
       )}
     </div>

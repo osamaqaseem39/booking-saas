@@ -14,6 +14,7 @@ export default function LocationsPage() {
   const [searchParams] = useSearchParams();
   const isOwner = session?.roles?.includes('platform-owner');
   const initialTypeFilter = searchParams.get('type')?.trim() || 'all';
+  const businessIdFilter = searchParams.get('businessId')?.trim() || '';
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,7 @@ export default function LocationsPage() {
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
+      if (businessIdFilter && r.businessId !== businessIdFilter) return false;
       if (typeFilter !== 'all' && (r.locationType ?? 'unknown') !== typeFilter) return false;
       if (!q) return true;
       return (
@@ -72,7 +74,7 @@ export default function LocationsPage() {
         (r.business?.tenantId ?? '').toLowerCase().includes(q)
       );
     });
-  }, [query, rows, typeFilter]);
+  }, [businessIdFilter, query, rows, typeFilter]);
 
   const stats = useMemo(() => {
     const active = filteredRows.filter((r) => (r.status ?? '').toLowerCase() === 'active').length;
@@ -104,6 +106,11 @@ export default function LocationsPage() {
         under <strong>Facilities</strong>. Facility tags (courts / gaming
         stations) are stored on the location.
       </p>
+      {businessIdFilter ? (
+        <p className="muted" style={{ marginTop: '-0.35rem' }}>
+          Showing locations for the selected business.
+        </p>
+      ) : null}
       {err && <div className="err-banner">{err}</div>}
 
       <div className="connection-panel location-list-toolbar">
@@ -217,7 +224,9 @@ export default function LocationsPage() {
                       >
                         Add booking
                       </Link>
-                      <Link className="action-link" to="/app/Facilites">Manage</Link>
+                      <Link className="action-link" to={`/app/locations/${r.id}/facilities`}>
+                        Manage
+                      </Link>
                       <Link className="action-link" to={`/app/locations/${r.id}`}>View</Link>
                       <Link className="action-link" to={`/app/locations/${r.id}/edit`}>Edit</Link>
                       <button
