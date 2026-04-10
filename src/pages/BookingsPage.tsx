@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   getBookingAvailability,
   getCourtBookedSlots,
@@ -59,6 +59,8 @@ function sportBadgeClass(sport: string | null | undefined): string {
 
 export default function BookingsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const businessIdFilter = searchParams.get('businessId')?.trim() ?? '';
   const { tenantId, session } = useSession();
   const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
@@ -68,7 +70,9 @@ export default function BookingsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [usersMap, setUsersMap] = useState<Record<string, UserSummary>>({});
   const [courtsMap, setCourtsMap] = useState<Record<string, string>>({});
-  const [locationsMap, setLocationsMap] = useState<Record<string, { name: string; phone: string }>>({});
+  const [locationsMap, setLocationsMap] = useState<
+    Record<string, { name: string; phone: string; businessId: string }>
+  >({});
   const [availabilitySport, setAvailabilitySport] =
     useState<BookingSportType | ''>('');
   const [availabilityDate, setAvailabilityDate] = useState('');
@@ -108,6 +112,9 @@ export default function BookingsPage() {
 
     return bookings.filter((b) => {
       if (selectedLocationId !== 'all' && b.arenaId !== selectedLocationId) return false;
+      if (businessIdFilter && locationsMap[b.arenaId]?.businessId !== businessIdFilter) {
+        return false;
+      }
       if (dayFilter === 'today' && b.bookingDate !== today) return false;
       if (dayFilter === 'tomorrow' && b.bookingDate !== tomorrow) return false;
       if (gameFilter === 'completed' && b.bookingStatus !== 'completed') return false;
@@ -130,6 +137,8 @@ export default function BookingsPage() {
     bookings,
     dayFilter,
     gameFilter,
+    businessIdFilter,
+    locationsMap,
     selectedLocationId,
     bookingStatusFilter,
     paymentStatusFilter,
@@ -232,11 +241,12 @@ export default function BookingsPage() {
     void (async () => {
       try {
         const rows = await listBusinessLocations();
-        const map: Record<string, { name: string; phone: string }> = {};
+        const map: Record<string, { name: string; phone: string; businessId: string }> = {};
         for (const row of rows) {
           map[row.id] = {
             name: row.name,
             phone: row.phone?.trim() || '-',
+            businessId: row.businessId,
           };
         }
         setLocationsMap(map);
@@ -314,6 +324,11 @@ export default function BookingsPage() {
       {selectedLocationId !== 'all' && (
         <p className="muted" style={{ marginTop: '-0.25rem', marginBottom: '0.75rem' }}>
           Top bar location filter is active. Showing bookings for the selected location only.
+        </p>
+      )}
+      {businessIdFilter && (
+        <p className="muted" style={{ marginTop: '-0.25rem', marginBottom: '0.75rem' }}>
+          Business filter is active. Showing bookings for the selected business only.
         </p>
       )}
       {!tenantId.trim() && !isPlatformOwner && (

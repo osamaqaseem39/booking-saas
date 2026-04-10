@@ -21,6 +21,8 @@ export interface NavItem {
 /** Shown after all other links for business admins (not platform owners). */
 const BUSINESS_ADMIN_NAV_BOTTOM = new Set([
   '/app/users',
+  '/app/locations',
+  '/app/Facilites',
 ]);
 
 export const NAV_ITEMS: NavItem[] = [
@@ -34,6 +36,16 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/users',
     label: 'Users',
     anyOf: ['platform-owner', 'business-admin'],
+  },
+  {
+    to: '/app/locations',
+    label: 'Locations',
+    anyOf: ['business-admin'],
+  },
+  {
+    to: '/app/Facilites',
+    label: 'Facilities',
+    anyOf: ['business-admin'],
   },
   {
     to: '/app/bookings',

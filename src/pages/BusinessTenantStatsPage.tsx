@@ -770,7 +770,14 @@ export default function BusinessTenantStatsPage() {
           ) : null}
 
           <div className="page-actions-row" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
-            <Link to="/app/bookings" className="btn-ghost">
+            <Link
+              to={
+                business
+                  ? `/app/bookings?businessId=${encodeURIComponent(business.id)}`
+                  : '/app/bookings'
+              }
+              className="btn-ghost"
+            >
               Open bookings
             </Link>
             <Link to="/app/billing" className="btn-ghost">
