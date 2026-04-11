@@ -1,10 +1,5 @@
-/**
- * Client-side store until gaming stations API exists.
- * Keyed by location; safe to replace with API calls later.
- */
 import type { GamingSetupCode } from '../constants/gamingFacilityTypes';
-
-const STORAGE_KEY = 'bookings-dashboard:v1:gaming-stations';
+import { request } from '../api/saasClient';
 
 export type GamingStationRecord = {
   id: string;
@@ -29,71 +24,170 @@ export type GamingStationRecord = {
   updatedAt: string;
 };
 
-type StoreShape = Record<string, GamingStationRecord[]>;
+type GamingStationApiRow = {
+  id: string;
+  businessLocationId: string;
+  setupCode: GamingSetupCode;
+  name: string;
+  unitStatus?: 'active' | 'maintenance' | 'draft';
+  description?: string;
+  isActive?: boolean;
+  imageUrls?: string[];
+  pricePerSlot?: string | number | null;
+  peakPricing?: { weekdayEvening?: number; weekend?: number } | null;
+  bundleNote?: string | null;
+  slotDurationMinutes?: number | null;
+  bufferBetweenSlotsMinutes?: number | null;
+  amenities?: {
+    snacksNearby?: boolean;
+    extraControllers?: boolean;
+    streamingCapture?: boolean;
+  } | null;
+  specs?: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
-function readAll(): StoreShape {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as StoreShape;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
+const PATH_BY_SETUP: Record<GamingSetupCode, string> = {
+  'gaming-pc': '/gaming/pc-stations',
+  'gaming-ps5': '/gaming/ps5-stations',
+  'gaming-ps4': '/gaming/ps4-stations',
+  'gaming-xbox-one': '/gaming/xbox-one-stations',
+  'gaming-xbox-360': '/gaming/xbox-360-stations',
+  'gaming-vr': '/gaming/vr-stations',
+  'gaming-steering-sim': '/gaming/steering-sim-stations',
+};
+
+function toNumText(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'string') return v;
+  return '';
 }
 
-function writeAll(data: StoreShape) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function toMinutes(v: unknown): GamingStationRecord['slotDuration'] {
+  const s = toNumText(v);
+  return s === '30' || s === '60' || s === '90' ? s : '';
 }
 
-export function listGamingStationsForLocation(
+function rowToRecord(row: GamingStationApiRow): GamingStationRecord {
+  return {
+    id: row.id,
+    businessLocationId: row.businessLocationId,
+    setupCode: row.setupCode,
+    name: row.name ?? '',
+    unitStatus: row.unitStatus ?? 'active',
+    description: row.description ?? '',
+    isActive: row.isActive ?? true,
+    imageLines: (row.imageUrls ?? []).join('\n'),
+    pricePerSlot: toNumText(row.pricePerSlot),
+    peakWeekdayEvening: toNumText(row.peakPricing?.weekdayEvening),
+    peakWeekend: toNumText(row.peakPricing?.weekend),
+    bundleNote: row.bundleNote ?? '',
+    slotDuration: toMinutes(row.slotDurationMinutes),
+    bufferMinutes: toNumText(row.bufferBetweenSlotsMinutes),
+    amenSnacksNearby: !!row.amenities?.snacksNearby,
+    amenExtraControllers: !!row.amenities?.extraControllers,
+    amenStreamingCapture: !!row.amenities?.streamingCapture,
+    specs: row.specs ?? {},
+    createdAt: row.createdAt ?? new Date().toISOString(),
+    updatedAt: row.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+function toBody(record: GamingStationRecord) {
+  const imageUrls = record.imageLines
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return {
+    businessLocationId: record.businessLocationId,
+    setupCode: record.setupCode,
+    name: record.name,
+    unitStatus: record.unitStatus,
+    isActive: record.isActive,
+    description: record.description || undefined,
+    imageUrls: imageUrls.length ? imageUrls : undefined,
+    pricePerSlot: record.pricePerSlot ? Number(record.pricePerSlot) : undefined,
+    peakPricing:
+      record.peakWeekdayEvening || record.peakWeekend
+        ? {
+            ...(record.peakWeekdayEvening
+              ? { weekdayEvening: Number(record.peakWeekdayEvening) }
+              : {}),
+            ...(record.peakWeekend ? { weekend: Number(record.peakWeekend) } : {}),
+          }
+        : undefined,
+    bundleNote: record.bundleNote || undefined,
+    slotDurationMinutes: record.slotDuration ? Number(record.slotDuration) : undefined,
+    bufferBetweenSlotsMinutes: record.bufferMinutes ? Number(record.bufferMinutes) : undefined,
+    amenities: {
+      snacksNearby: record.amenSnacksNearby,
+      extraControllers: record.amenExtraControllers,
+      streamingCapture: record.amenStreamingCapture,
+    },
+    specs: record.specs ?? {},
+  };
+}
+
+export async function listGamingStationsForLocation(
   locationId: string,
-): GamingStationRecord[] {
-  const all = readAll();
-  return [...(all[locationId] ?? [])].sort((a, b) =>
+): Promise<GamingStationRecord[]> {
+  const rows = await request<GamingStationApiRow[]>(
+    `/gaming/stations?businessLocationId=${encodeURIComponent(locationId)}`,
+    { method: 'GET' },
+  );
+  return rows.map(rowToRecord).sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
   );
 }
 
-export function getGamingStation(
+export async function getGamingStation(
   locationId: string,
   id: string,
-): GamingStationRecord | undefined {
-  return listGamingStationsForLocation(locationId).find((r) => r.id === id);
+): Promise<GamingStationRecord | undefined> {
+  const row = await request<GamingStationApiRow>(`/gaming/stations/${id}`, {
+    method: 'GET',
+  });
+  const rec = rowToRecord(row);
+  return rec.businessLocationId === locationId ? rec : undefined;
 }
 
-export function saveGamingStation(record: GamingStationRecord): void {
-  const all = readAll();
-  const list = [...(all[record.businessLocationId] ?? [])];
-  const idx = list.findIndex((r) => r.id === record.id);
-  if (idx >= 0) list[idx] = record;
-  else list.push(record);
-  all[record.businessLocationId] = list;
-  writeAll(all);
+export async function saveGamingStation(record: GamingStationRecord): Promise<void> {
+  const basePath = PATH_BY_SETUP[record.setupCode];
+  const body = toBody(record);
+  if (record.id) {
+    await request(`${basePath}/${record.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return;
+  }
+  await request(basePath, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
-export function deleteGamingStation(locationId: string, id: string): void {
-  const all = readAll();
-  const list = (all[locationId] ?? []).filter((r) => r.id !== id);
-  if (list.length) all[locationId] = list;
-  else delete all[locationId];
-  writeAll(all);
+export async function deleteGamingStation(locationId: string, id: string): Promise<void> {
+  await request(`/gaming/stations/${id}`, { method: 'DELETE' });
 }
 
-export function duplicateGamingStation(
+export async function duplicateGamingStation(
   locationId: string,
   id: string,
-): GamingStationRecord | null {
-  const src = getGamingStation(locationId, id);
+): Promise<GamingStationRecord | null> {
+  const src = await getGamingStation(locationId, id);
   if (!src) return null;
-  const now = new Date().toISOString();
-  const copy: GamingStationRecord = {
+  const body = toBody({
     ...src,
-    id: crypto.randomUUID(),
+    id: '',
     name: `${src.name} (copy)`,
-    createdAt: now,
-    updatedAt: now,
-  };
-  saveGamingStation(copy);
-  return copy;
+  });
+  const basePath = PATH_BY_SETUP[src.setupCode];
+  const created = await request<GamingStationApiRow>(basePath, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return rowToRecord(created);
 }

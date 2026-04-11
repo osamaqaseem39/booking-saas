@@ -93,6 +93,14 @@ export default function AddFacilityPage() {
   const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
   const [cricketCourts, setCricketCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
+  const [gamingStations, setGamingStations] = useState<
+    Array<{
+      id: string;
+      name: string;
+      businessLocationId: string;
+      setupCode: string;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -113,11 +121,30 @@ export default function AddFacilityPage() {
       setFutsalCourts([]);
       setCricketCourts([]);
       setPadel([]);
+      setGamingStations([]);
       return;
     }
     const selected = locs.find((l) => l.id === locationIdArg);
     const locationType = selected?.locationType ?? '';
     if (locationType && locationType !== 'arena') {
+      if (locationType === 'gaming-zone') {
+        try {
+          const rows = await listGamingStationsForLocation(locationIdArg);
+          setGamingStations(
+            rows.map((r) => ({
+              id: r.id,
+              name: r.name,
+              businessLocationId: r.businessLocationId,
+              setupCode: r.setupCode,
+            })),
+          );
+        } catch (e) {
+          setErr(e instanceof Error ? e.message : 'Failed to load facilities');
+          setGamingStations([]);
+        }
+      } else {
+        setGamingStations([]);
+      }
       setLoading(false);
       setFutsalCourts([]);
       setCricketCourts([]);
@@ -134,6 +161,7 @@ export default function AddFacilityPage() {
       setFutsalCourts(fc);
       setCricketCourts(cc);
       setPadel(pa);
+      setGamingStations([]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load facilities');
       setFutsalCourts([]);
@@ -199,14 +227,14 @@ export default function AddFacilityPage() {
 
   const gamingRows = useMemo(() => {
     if (!isGamingLocation || !locationId) return [];
-    return listGamingStationsForLocation(locationId).map((r) => ({
+    return gamingStations.map((r) => ({
       id: r.id,
       name: r.name,
       businessLocationId: r.businessLocationId,
       type: formatGamingSetupLabel(r.setupCode),
       code: r.setupCode as FacilityRowCode,
     }));
-  }, [isGamingLocation, locationId, routeLocation.pathname]);
+  }, [gamingStations, isGamingLocation, locationId, routeLocation.pathname]);
 
   const allFacilities = useMemo(
     () => [
@@ -228,13 +256,13 @@ export default function AddFacilityPage() {
 
   const gamingFacilityCards = useMemo(() => {
     if (!isGamingLocation || !locationId) return [];
-    const rows = listGamingStationsForLocation(locationId);
+    const rows = gamingStations;
     return GAMING_SETUP_OPTIONS.map((o) => ({
       key: o.value,
       label: o.label,
       count: rows.filter((r) => r.setupCode === o.value).length,
     })).filter((c) => c.count > 0);
-  }, [isGamingLocation, locationId, routeLocation.pathname]);
+  }, [gamingStations, isGamingLocation, locationId, routeLocation.pathname]);
   const facilityTypeOptions = useMemo(
     () => Array.from(new Set(allFacilities.map((f) => f.type))).sort((a, b) => a.localeCompare(b)),
     [allFacilities],
@@ -366,7 +394,7 @@ export default function AddFacilityPage() {
           });
         }
       } else if (isGamingSetupCode(row.code)) {
-        duplicateGamingStation(businessLocationId, row.id);
+        await duplicateGamingStation(businessLocationId, row.id);
       }
       setDupModal(null);
       await reloadFacilitiesFor(locationId, locations);

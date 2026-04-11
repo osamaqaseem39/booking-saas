@@ -158,7 +158,7 @@ export default function LocationFacilitiesPage() {
         setFutsalCourts(fc);
         setCricketCourts(cc);
         setPadel(pa);
-        setGamingStations(listGamingStationsForLocation(locationId));
+        setGamingStations(await listGamingStationsForLocation(locationId));
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {

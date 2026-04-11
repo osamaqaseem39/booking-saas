@@ -687,61 +687,94 @@ export default function OverviewPage() {
                 </div>
                 <div className="overview-filter-form overview-filter-form--tenant-bar">
                   <div className="overview-filter-field">
-                    <label htmlFor="ov-owner-date-range">Date window</label>
-                    <select
-                      id="ov-owner-date-range"
-                      className="overview-select"
-                      value={dateRange}
-                      onChange={(e) => setDateRange(e.target.value as typeof dateRange)}
-                    >
-                      <option value="7">Last 7 days</option>
-                      <option value="30">Last 30 days</option>
-                      <option value="90">Last 90 days</option>
-                      <option value="all">All time</option>
-                    </select>
-                  </div>
-                  <div className="overview-filter-field">
-                    <label htmlFor="ov-owner-booking-status">Booking status</label>
-                    <select
-                      id="ov-owner-booking-status"
-                      className="overview-select"
-                      value={ownerBookingStatus}
-                      onChange={(e) =>
-                        setOwnerBookingStatus(e.target.value as typeof ownerBookingStatus)
-                      }
-                    >
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="completed">Completed</option>
-                      <option value="no_show">No show</option>
-                    </select>
-                  </div>
-                  <div className="overview-filter-field">
-                    <label htmlFor="ov-owner-invoice-status">Invoice status</label>
-                    <select
-                      id="ov-owner-invoice-status"
-                      className="overview-select"
-                      value={invoiceStatus}
-                      onChange={(e) => setInvoiceStatus(e.target.value)}
-                    >
-                      <option value="all">All invoice statuses</option>
-                      {invoiceStatusOptions.map((s) => (
-                        <option key={s} value={s}>
-                          {titleCase(s)}
-                        </option>
+                    <label>Date window</label>
+                    <div className="filter-chip-row">
+                      {[
+                        { value: '7', label: 'Last 7 days' },
+                        { value: '30', label: 'Last 30 days' },
+                        { value: '90', label: 'Last 90 days' },
+                        { value: 'all', label: 'All time' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={`filter-chip ${dateRange === opt.value ? 'filter-chip--active' : ''}`}
+                          onClick={() => setDateRange(opt.value as typeof dateRange)}
+                        >
+                          {opt.label}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+                  </div>
+                  <div className="overview-filter-field">
+                    <label>Booking status</label>
+                    <div className="filter-chip-row">
+                      {(
+                        [
+                          ['all', 'All statuses'],
+                          ['pending', 'Pending'],
+                          ['confirmed', 'Confirmed'],
+                          ['cancelled', 'Cancelled'],
+                          ['completed', 'Completed'],
+                          ['no_show', 'No show'],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`filter-chip ${ownerBookingStatus === value ? 'filter-chip--active' : ''}`}
+                          onClick={() => setOwnerBookingStatus(value as typeof ownerBookingStatus)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="overview-filter-field">
+                    <label>Invoice status</label>
+                    <div className="filter-chip-row">
+                      <button
+                        type="button"
+                        className={`filter-chip ${invoiceStatus === 'all' ? 'filter-chip--active' : ''}`}
+                        onClick={() => setInvoiceStatus('all')}
+                      >
+                        All invoice statuses
+                      </button>
+                      {invoiceStatusOptions.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className={`filter-chip ${invoiceStatus === s ? 'filter-chip--active' : ''}`}
+                          onClick={() => setInvoiceStatus(s)}
+                        >
+                          {titleCase(s)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="overview-filter-field overview-filter-field--tenant-search">
-                    <label htmlFor="ov-owner-tenant-search">Search</label>
-                    <input
-                      id="ov-owner-tenant-search"
-                      placeholder="Name or tenant ID…"
-                      value={tenantQuery}
-                      onChange={(e) => setTenantQuery(e.target.value)}
-                    />
+                    <label>Search</label>
+                    <div className="filter-chip-row">
+                      <button
+                        type="button"
+                        className={`filter-chip ${tenantQuery.trim() === '' ? 'filter-chip--active' : ''}`}
+                        onClick={() => setTenantQuery('')}
+                      >
+                        All tenants
+                      </button>
+                      <button
+                        type="button"
+                        className="filter-chip"
+                        onClick={() => {
+                          setDateRange('30');
+                          setOwnerBookingStatus('all');
+                          setInvoiceStatus('all');
+                          setTenantQuery('');
+                        }}
+                      >
+                        Reset filters
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

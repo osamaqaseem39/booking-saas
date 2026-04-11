@@ -92,6 +92,8 @@ export interface IamUserRow {
   email: string;
   phone?: string | null;
   createdAt?: string;
+  /** When false, the user cannot sign in until a platform owner reactivates them. */
+  isActive?: boolean;
   roles?: string[];
 }
 

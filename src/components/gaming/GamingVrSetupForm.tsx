@@ -100,20 +100,22 @@ export function GamingVrSetupForm({
       setHygieneNotes('');
       return;
     }
-    const row = getGamingStation(locationId, existingStationId);
-    if (!row || row.setupCode !== SETUP_CODE) {
+    void (async () => {
+      const row = await getGamingStation(locationId, existingStationId);
+      if (!row || row.setupCode !== SETUP_CODE) {
+        setLoading(false);
+        setLoadErr('Station not found for this location.');
+        return;
+      }
+      setShared(recordToSharedFormState(row));
+      setArenaLocationId(row.businessLocationId);
+      setSpecs(specsFromRecord(row.specs));
+      setHygieneNotes(
+        typeof row.specs.hygieneNotes === 'string' ? row.specs.hygieneNotes : '',
+      );
       setLoading(false);
-      setLoadErr('Station not found for this location.');
-      return;
-    }
-    setShared(recordToSharedFormState(row));
-    setArenaLocationId(row.businessLocationId);
-    setSpecs(specsFromRecord(row.specs));
-    setHygieneNotes(
-      typeof row.specs.hygieneNotes === 'string' ? row.specs.hygieneNotes : '',
-    );
-    setLoading(false);
-    setLoadErr(null);
+      setLoadErr(null);
+    })();
   }, [existingStationId, locationId]);
 
   useEffect(() => {
@@ -128,18 +130,18 @@ export function GamingVrSetupForm({
     [locations],
   );
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const effectiveLocationId = existingStationId ? arenaLocationId : locationId;
     if (!effectiveLocationId || !shared.name.trim()) return;
     const now = new Date().toISOString();
     const prev =
       existingStationId && effectiveLocationId
-        ? getGamingStation(effectiveLocationId, existingStationId)
+        ? await getGamingStation(effectiveLocationId, existingStationId)
         : undefined;
     const record: GamingStationRecord = mergeSharedIntoRecord(
       {
-        id: existingStationId ?? crypto.randomUUID(),
+        id: existingStationId ?? '',
         businessLocationId: effectiveLocationId,
         setupCode: SETUP_CODE,
         specs: { ...specs, hygieneNotes: hygieneNotes.trim() },
@@ -166,7 +168,7 @@ export function GamingVrSetupForm({
     setSaving(true);
     setErr(null);
     try {
-      saveGamingStation(record);
+      await saveGamingStation(record);
       onSuccess();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Save failed');

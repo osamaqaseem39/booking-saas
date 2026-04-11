@@ -469,7 +469,7 @@ export async function getVenueDetails(
   });
 }
 
-export async function placeFutsalBooking(body: {
+export type PlacePublicBookingBody = {
   date: string;
   startTime: string;
   endTime: string;
@@ -477,8 +477,36 @@ export async function placeFutsalBooking(body: {
   fieldSelected: string;
   venueId: string;
   userId: string;
-}): Promise<{ message: string; bookingId: string; placedAt: string }> {
+};
+
+export type PlacePublicBookingResponse = {
+  message: string;
+  bookingId: string;
+  placedAt: string;
+};
+
+export async function placeFutsalBooking(
+  body: PlacePublicBookingBody,
+): Promise<PlacePublicBookingResponse> {
   return request('/public/bookings/futsal', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function placeCricketBooking(
+  body: PlacePublicBookingBody,
+): Promise<PlacePublicBookingResponse> {
+  return request('/public/bookings/cricket', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function placePadelBooking(
+  body: PlacePublicBookingBody,
+): Promise<PlacePublicBookingResponse> {
+  return request('/public/bookings/padel', {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -718,9 +746,16 @@ export async function updateIamUser(
 
 export async function deleteIamUser(
   userId: string,
-): Promise<{ deleted: true; userId: string }> {
-  return request<{ deleted: true; userId: string }>(`/iam/users/${userId}`, {
+): Promise<{ deactivated: true; userId: string }> {
+  return request<{ deactivated: true; userId: string }>(`/iam/users/${userId}`, {
     method: 'DELETE',
+  });
+}
+
+/** Platform owner only — sets `isActive` so the user can sign in again. */
+export async function activateIamUser(userId: string): Promise<IamUserRow> {
+  return request<IamUserRow>(`/iam/users/${userId}/activate`, {
+    method: 'POST',
   });
 }
 

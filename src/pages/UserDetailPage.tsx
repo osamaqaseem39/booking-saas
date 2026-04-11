@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  activateIamUser,
   deleteIamUser,
   listBookings,
   listBookingsForTenant,
@@ -48,6 +49,7 @@ export default function UserDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [activating, setActivating] = useState(false);
 
   const user = useMemo(() => rows.find((r) => r.id === userId) ?? null, [rows, userId]);
 
@@ -117,9 +119,11 @@ export default function UserDetailPage() {
     return toChartRows(counts);
   }, [bookings]);
 
-  async function onDelete() {
+  async function onDeactivate() {
     if (!userId.trim()) return;
-    const yes = window.confirm('Delete this user? This cannot be undone.');
+    const yes = window.confirm(
+      'Deactivate this account? They cannot sign in until a platform owner reactivates them.',
+    );
     if (!yes) return;
     setDeleting(true);
     setErr(null);
@@ -127,9 +131,36 @@ export default function UserDetailPage() {
       await deleteIamUser(userId);
       navigate('/app/users', { replace: true });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Delete failed');
+      setErr(e instanceof Error ? e.message : 'Deactivate failed');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function onActivateAccount() {
+    if (!userId.trim()) return;
+    setActivating(true);
+    setErr(null);
+    try {
+      const profile = await activateIamUser(userId);
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === userId
+            ? {
+                ...r,
+                fullName: profile.fullName,
+                email: profile.email,
+                phone: profile.phone,
+                isActive: profile.isActive,
+                roles: profile.roles,
+              }
+            : r,
+        ),
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Activate failed');
+    } finally {
+      setActivating(false);
     }
   }
 
@@ -254,6 +285,10 @@ export default function UserDetailPage() {
                   <label>Created</label>
                   <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}</div>
                 </div>
+                <div>
+                  <label>Account</label>
+                  <div>{user.isActive === false ? 'Inactive (cannot sign in)' : 'Active'}</div>
+                </div>
               </div>
             </div>
             <div className="connection-panel" style={{ margin: 0 }}>
@@ -302,9 +337,26 @@ export default function UserDetailPage() {
               <Link to={`/app/users/${user.id}/edit`} className="btn-primary">
                 Edit user
               </Link>
-              <button type="button" className="btn-danger" disabled={deleting} onClick={() => void onDelete()}>
-                {deleting ? 'Deleting…' : 'Delete user'}
-              </button>
+              {user.isActive === false && isPlatformOwner ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={activating}
+                  onClick={() => void onActivateAccount()}
+                >
+                  {activating ? 'Working…' : 'Activate account'}
+                </button>
+              ) : null}
+              {user.isActive !== false ? (
+                <button
+                  type="button"
+                  className="btn-danger"
+                  disabled={deleting}
+                  onClick={() => void onDeactivate()}
+                >
+                  {deleting ? 'Working…' : 'Deactivate account'}
+                </button>
+              ) : null}
             </div>
           </div>
         </>

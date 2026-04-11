@@ -109,17 +109,19 @@ export function GamingConsoleSetupForm({
       });
       return;
     }
-    const row = getGamingStation(locationId, existingStationId);
-    if (!row || row.setupCode !== setupCode) {
+    void (async () => {
+      const row = await getGamingStation(locationId, existingStationId);
+      if (!row || row.setupCode !== setupCode) {
+        setLoading(false);
+        setLoadErr('Station not found for this location.');
+        return;
+      }
+      setShared(recordToSharedFormState(row));
+      setArenaLocationId(row.businessLocationId);
+      setSpecs(specsFromRecord(row.specs));
       setLoading(false);
-      setLoadErr('Station not found for this location.');
-      return;
-    }
-    setShared(recordToSharedFormState(row));
-    setArenaLocationId(row.businessLocationId);
-    setSpecs(specsFromRecord(row.specs));
-    setLoading(false);
-    setLoadErr(null);
+      setLoadErr(null);
+    })();
   }, [existingStationId, locationId, setupCode]);
 
   useEffect(() => {
@@ -134,18 +136,18 @@ export function GamingConsoleSetupForm({
     [locations],
   );
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const effectiveLocationId = existingStationId ? arenaLocationId : locationId;
     if (!effectiveLocationId || !shared.name.trim()) return;
     const now = new Date().toISOString();
     const prev =
       existingStationId && effectiveLocationId
-        ? getGamingStation(effectiveLocationId, existingStationId)
+        ? await getGamingStation(effectiveLocationId, existingStationId)
         : undefined;
     const record: GamingStationRecord = mergeSharedIntoRecord(
       {
-        id: existingStationId ?? crypto.randomUUID(),
+        id: existingStationId ?? '',
         businessLocationId: effectiveLocationId,
         setupCode,
         specs: { ...specs },
@@ -172,7 +174,7 @@ export function GamingConsoleSetupForm({
     setSaving(true);
     setErr(null);
     try {
-      saveGamingStation(record);
+      await saveGamingStation(record);
       onSuccess();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Save failed');

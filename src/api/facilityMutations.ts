@@ -25,7 +25,7 @@ export async function deleteFacilityByCode(
     if (!loc) {
       throw new Error('Missing location for gaming station delete');
     }
-    deleteGamingStation(loc, id);
+    await deleteGamingStation(loc, id);
     return;
   }
   if (code === 'futsal-court') {

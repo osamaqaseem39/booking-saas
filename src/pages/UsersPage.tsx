@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  activateIamUser,
   deleteIamUser,
   listBookings,
   listBookingsForTenant,
@@ -17,6 +18,10 @@ type PeopleKind = 'staff' | 'customers';
 function isCustomerOnly(u: IamUserRow): boolean {
   const roles = u.roles ?? [];
   return roles.length === 1 && roles[0] === 'customer-end-user';
+}
+
+function iamUserIsActive(u: IamUserRow): boolean {
+  return u.isActive !== false;
 }
 
 function toChartRows(input: Record<string, number>) {
@@ -64,6 +69,7 @@ export default function UsersPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'createdAt' | 'fullName' | 'email'>('createdAt');
@@ -128,8 +134,10 @@ export default function UsersPage() {
     })();
   }, [kind, isPlatformOwner]);
 
-  async function onDelete(userId: string) {
-    const yes = window.confirm('Delete this user? This cannot be undone.');
+  async function onDeactivate(userId: string) {
+    const yes = window.confirm(
+      'Deactivate this account? They cannot sign in until a platform owner reactivates them.',
+    );
     if (!yes) return;
     setDeletingId(userId);
     setErr(null);
@@ -137,12 +145,32 @@ export default function UsersPage() {
       await deleteIamUser(userId);
       if (kind === 'staff') void reloadStaff();
       else {
-        setCustomerRows((prev) => prev.filter((u) => u.id !== userId));
+        setCustomerRows((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isActive: false } : u)),
+        );
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Delete failed');
+      setErr(e instanceof Error ? e.message : 'Deactivate failed');
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function onActivate(userId: string) {
+    setActivatingId(userId);
+    setErr(null);
+    try {
+      const updated = await activateIamUser(userId);
+      if (kind === 'staff') void reloadStaff();
+      else {
+        setCustomerRows((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, ...updated, isActive: true } : u)),
+        );
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Activate failed');
+    } finally {
+      setActivatingId(null);
     }
   }
 
@@ -354,6 +382,7 @@ export default function UsersPage() {
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Roles</th>
+                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -369,6 +398,13 @@ export default function UsersPage() {
                         </code>
                       </td>
                       <td>
+                        {iamUserIsActive(u) ? (
+                          <span className="muted">Active</span>
+                        ) : (
+                          <span className="muted">Inactive</span>
+                        )}
+                      </td>
+                      <td>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <Link to={`/app/users/${u.id}`} className="action-link">
                             View
@@ -376,15 +412,31 @@ export default function UsersPage() {
                           <Link to={`/app/users/${u.id}/edit`} className="action-link">
                             Edit
                           </Link>
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                            disabled={deletingId === u.id}
-                            onClick={() => void onDelete(u.id)}
-                          >
-                            {deletingId === u.id ? 'Deleting…' : 'Delete'}
-                          </button>
+                          {iamUserIsActive(u) ? (
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={deletingId === u.id}
+                              onClick={() => void onDeactivate(u.id)}
+                            >
+                              {deletingId === u.id ? 'Working…' : 'Deactivate'}
+                            </button>
+                          ) : isPlatformOwner ? (
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={activatingId === u.id}
+                              onClick={() => void onActivate(u.id)}
+                            >
+                              {activatingId === u.id ? 'Working…' : 'Activate'}
+                            </button>
+                          ) : (
+                            <span className="muted" style={{ fontSize: '0.75rem' }}>
+                              Inactive
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -529,6 +581,7 @@ export default function UsersPage() {
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Roles</th>
+                    <th>Status</th>
                     <th>Bookings</th>
                     <th>Spending</th>
                     <th>Actions</th>
@@ -545,6 +598,13 @@ export default function UsersPage() {
                           {(u.roles ?? []).join(', ')}
                         </code>
                       </td>
+                      <td>
+                        {iamUserIsActive(u) ? (
+                          <span className="muted">Active</span>
+                        ) : (
+                          <span className="muted">Inactive</span>
+                        )}
+                      </td>
                       <td>{customerSpendById[u.id]?.bookings ?? 0}</td>
                       <td>{Math.round(customerSpendById[u.id]?.amount ?? 0).toLocaleString()} PKR</td>
                       <td>
@@ -555,15 +615,27 @@ export default function UsersPage() {
                           <Link to={`/app/users/${u.id}/edit`} className="action-link">
                             Edit
                           </Link>
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                            disabled={deletingId === u.id}
-                            onClick={() => void onDelete(u.id)}
-                          >
-                            {deletingId === u.id ? 'Deleting…' : 'Delete'}
-                          </button>
+                          {iamUserIsActive(u) ? (
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={deletingId === u.id}
+                              onClick={() => void onDeactivate(u.id)}
+                            >
+                              {deletingId === u.id ? 'Working…' : 'Deactivate'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={activatingId === u.id}
+                              onClick={() => void onActivate(u.id)}
+                            >
+                              {activatingId === u.id ? 'Working…' : 'Activate'}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

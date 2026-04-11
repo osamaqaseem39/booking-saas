@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  activateIamUser,
   assignRole,
   deleteIamUser,
   listIamUsers,
@@ -22,11 +23,14 @@ export default function UserEditPage() {
   const { userId = '' } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { session } = useSession();
-  const canAssign = userMayAssignRoles(session?.roles ?? []);
+  const roles = session?.roles ?? [];
+  const canAssign = userMayAssignRoles(roles);
+  const isPlatformOwner = roles.includes('platform-owner');
   const [rows, setRows] = useState<IamUserRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -73,9 +77,11 @@ export default function UserEditPage() {
     }
   }
 
-  async function onDelete() {
+  async function onDeactivate() {
     if (!userId.trim()) return;
-    const yes = window.confirm('Delete this user? This cannot be undone.');
+    const yes = window.confirm(
+      'Deactivate this account? They cannot sign in until a platform owner reactivates them.',
+    );
     if (!yes) return;
     setDeleting(true);
     setErr(null);
@@ -83,9 +89,36 @@ export default function UserEditPage() {
       await deleteIamUser(userId);
       navigate('/app/users', { replace: true });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Delete failed');
+      setErr(e instanceof Error ? e.message : 'Deactivate failed');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function onActivateAccount() {
+    if (!userId.trim()) return;
+    setActivating(true);
+    setErr(null);
+    try {
+      const profile = await activateIamUser(userId);
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === userId
+            ? {
+                ...r,
+                fullName: profile.fullName,
+                email: profile.email,
+                phone: profile.phone,
+                isActive: profile.isActive,
+                roles: profile.roles,
+              }
+            : r,
+        ),
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Activate failed');
+    } finally {
+      setActivating(false);
     }
   }
 
@@ -157,6 +190,10 @@ export default function UserEditPage() {
                 <label>Created</label>
                 <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}</div>
               </div>
+              <div>
+                <label>Account</label>
+                <div>{user.isActive === false ? 'Inactive (cannot sign in)' : 'Active'}</div>
+              </div>
             </div>
             <div className="connection-panel" style={{ margin: 0 }}>
               <h2>Security</h2>
@@ -181,9 +218,26 @@ export default function UserEditPage() {
               <Link to={`/app/users/${user.id}`} className="btn-ghost">
                 View user
               </Link>
-              <button type="button" className="btn-danger" disabled={deleting} onClick={() => void onDelete()}>
-                {deleting ? 'Deleting…' : 'Delete user'}
-              </button>
+              {user.isActive === false && isPlatformOwner ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={activating}
+                  onClick={() => void onActivateAccount()}
+                >
+                  {activating ? 'Working…' : 'Activate account'}
+                </button>
+              ) : null}
+              {user.isActive !== false ? (
+                <button
+                  type="button"
+                  className="btn-danger"
+                  disabled={deleting}
+                  onClick={() => void onDeactivate()}
+                >
+                  {deleting ? 'Working…' : 'Deactivate account'}
+                </button>
+              ) : null}
             </div>
           </form>
 
