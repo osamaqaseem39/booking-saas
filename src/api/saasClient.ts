@@ -965,6 +965,37 @@ export async function listPadelCourts(
   return request<NamedCourt[]>(`/arena/padel-court${q}`, { method: 'GET' });
 }
 
+export type CreateTurfTwinLinkBody = {
+  futsalCourtId: string;
+  cricketCourtId: string;
+};
+
+export async function createTurfTwinLink(
+  body: CreateTurfTwinLinkBody,
+): Promise<{
+  message: string;
+  link: { futsalCourtId: string; cricketCourtId: string };
+}> {
+  return request('/arena/turf-twin-links/link', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export type RemoveTurfTwinLinkBody = {
+  courtKind: 'futsal_court' | 'cricket_court';
+  courtId: string;
+};
+
+export async function removeTurfTwinLink(
+  body: RemoveTurfTwinLinkBody,
+): Promise<{ message: string }> {
+  return request('/arena/turf-twin-links/unlink', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 /** Matches API `CreateFutsalCourtDto`. */
 export type CreateFutsalCourtBody = {
   businessLocationId: string;

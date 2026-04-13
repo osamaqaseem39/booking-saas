@@ -5,10 +5,12 @@ import {
   type FacilityRowCode,
 } from '../api/facilityMutations';
 import {
+  createTurfTwinLink,
   listBusinessLocations,
   listCricketCourts,
   listFutsalCourts,
   listPadelCourts,
+  removeTurfTwinLink,
 } from '../api/saasClient';
 import {
   courtSetupOptions,
@@ -136,6 +138,11 @@ export default function LocationFacilitiesPage() {
   const [gamingStations, setGamingStations] = useState<GamingStationRecord[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [linking, setLinking] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+  const [selectedFutsalId, setSelectedFutsalId] = useState('');
+  const [selectedCricketId, setSelectedCricketId] = useState('');
+  const [unlinkTarget, setUnlinkTarget] = useState('');
 
   const location = useMemo(
     () => locations.find((l) => l.id === locationId),
@@ -159,6 +166,11 @@ export default function LocationFacilitiesPage() {
         setCricketCourts(cc);
         setPadel(pa);
         setGamingStations(await listGamingStationsForLocation(locationId));
+        setSelectedFutsalId((prev) => (prev ? prev : fc[0]?.id ?? ''));
+        setSelectedCricketId((prev) => (prev ? prev : cc[0]?.id ?? ''));
+        setUnlinkTarget((prev) =>
+          prev ? prev : fc[0]?.id ? `futsal_court:${fc[0].id}` : cc[0]?.id ? `cricket_court:${cc[0].id}` : '',
+        );
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
       } finally {
@@ -170,6 +182,63 @@ export default function LocationFacilitiesPage() {
   useEffect(() => {
     load();
   }, [locationId]);
+
+  useEffect(() => {
+    if (!futsalCourts.some((c) => c.id === selectedFutsalId)) {
+      setSelectedFutsalId(futsalCourts[0]?.id ?? '');
+    }
+  }, [futsalCourts, selectedFutsalId]);
+
+  useEffect(() => {
+    if (!cricketCourts.some((c) => c.id === selectedCricketId)) {
+      setSelectedCricketId(cricketCourts[0]?.id ?? '');
+    }
+  }, [cricketCourts, selectedCricketId]);
+
+  useEffect(() => {
+    const [kind, id] = unlinkTarget.split(':');
+    const isValid =
+      (kind === 'futsal_court' && futsalCourts.some((c) => c.id === id)) ||
+      (kind === 'cricket_court' && cricketCourts.some((c) => c.id === id));
+    if (!isValid) {
+      if (futsalCourts[0]?.id) setUnlinkTarget(`futsal_court:${futsalCourts[0].id}`);
+      else if (cricketCourts[0]?.id) setUnlinkTarget(`cricket_court:${cricketCourts[0].id}`);
+      else setUnlinkTarget('');
+    }
+  }, [futsalCourts, cricketCourts, unlinkTarget]);
+
+  async function linkSharedTurf() {
+    if (!selectedFutsalId || !selectedCricketId) return;
+    setErr(null);
+    setLinking(true);
+    try {
+      await createTurfTwinLink({
+        futsalCourtId: selectedFutsalId,
+        cricketCourtId: selectedCricketId,
+      });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to link shared turf');
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function unlinkSharedTurf() {
+    const [courtKind, courtId] = unlinkTarget.split(':');
+    if (!courtKind || !courtId) return;
+    if (courtKind !== 'futsal_court' && courtKind !== 'cricket_court') return;
+    setErr(null);
+    setUnlinking(true);
+    try {
+      await removeTurfTwinLink({ courtKind, courtId });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to unlink shared turf');
+    } finally {
+      setUnlinking(false);
+    }
+  }
 
   if (!locationId) {
     return <p className="muted">Missing location id.</p>;
@@ -259,6 +328,111 @@ export default function LocationFacilitiesPage() {
             ))
           ) : (
             <>
+              <div className="table-wrap" style={{ marginBottom: '1rem' }}>
+                <div style={{ padding: '0.9rem' }}>
+                  <h3 style={{ fontSize: '1rem', margin: '0 0 0.5rem' }}>
+                    Shared turf linking (futsal + cricket)
+                  </h3>
+                  <p className="muted" style={{ margin: '0 0 0.75rem' }}>
+                    Keep sport forms separate on frontend, but link two courts as one physical field so bookings conflict across both.
+                  </p>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '0.5rem',
+                      alignItems: 'end',
+                    }}
+                  >
+                    <div>
+                      <label>Futsal court</label>
+                      <select
+                        value={selectedFutsalId}
+                        onChange={(e) => setSelectedFutsalId(e.target.value)}
+                        disabled={futsalCourts.length === 0 || linking}
+                      >
+                        {futsalCourts.length === 0 ? (
+                          <option value="">No futsal courts</option>
+                        ) : (
+                          futsalCourts.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <label>Cricket court</label>
+                      <select
+                        value={selectedCricketId}
+                        onChange={(e) => setSelectedCricketId(e.target.value)}
+                        disabled={cricketCourts.length === 0 || linking}
+                      >
+                        {cricketCourts.length === 0 ? (
+                          <option value="">No cricket courts</option>
+                        ) : (
+                          cricketCourts.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => void linkSharedTurf()}
+                        disabled={!selectedFutsalId || !selectedCricketId || linking}
+                      >
+                        {linking ? 'Linking…' : 'Link as one field'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '0.5rem',
+                      alignItems: 'end',
+                    }}
+                  >
+                    <div>
+                      <label>Unlink by court</label>
+                      <select
+                        value={unlinkTarget}
+                        onChange={(e) => setUnlinkTarget(e.target.value)}
+                        disabled={unlinking || (!futsalCourts.length && !cricketCourts.length)}
+                      >
+                        {futsalCourts.map((c) => (
+                          <option key={`f:${c.id}`} value={`futsal_court:${c.id}`}>
+                            Futsal — {c.name}
+                          </option>
+                        ))}
+                        {cricketCourts.map((c) => (
+                          <option key={`c:${c.id}`} value={`cricket_court:${c.id}`}>
+                            Cricket — {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => void unlinkSharedTurf()}
+                        disabled={!unlinkTarget || unlinking}
+                      >
+                        {unlinking ? 'Unlinking…' : 'Remove link'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <FacilitiesTableBlock
                 title="Futsal pitches"
                 rows={futsalCourts}
