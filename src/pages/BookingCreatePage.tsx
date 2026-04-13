@@ -102,7 +102,6 @@ type BookingLine = {
   courtKind: CourtKind;
   courtId: string;
   startMinutes: number;
-  durationMins: number;
   price: string;
   status: BookingItemStatus;
   slotPage: number;
@@ -119,24 +118,32 @@ function defaultLine(): BookingLine {
     courtKind: 'futsal_court',
     courtId: '',
     startMinutes: timeToMinutes(nextHalfHourTime()),
-    durationMins: 60,
     price: '5000',
     status: 'reserved',
     slotPage: 0,
   };
 }
 
-function normalizeMoney(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '0';
-  return String(Math.round(n));
-}
-
-function remainingDaySlots(date: string): string[] {
+function remainingDayHourlySlots(date: string): string[] {
   const today = localDateYmd();
   const minMinutes = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
+  const firstHour = Math.ceil(minMinutes / 60) * 60;
   const out: string[] = [];
-  for (let m = minMinutes; m <= 23 * 60 + 30; m += 30) {
+  for (let m = firstHour; m <= 23 * 60; m += 60) {
     out.push(minutesToTime(m));
+  }
+  return out;
+}
+
+function hourlyStartsFromFreeSegments(starts: string[]): string[] {
+  const set = new Set(starts);
+  const out: string[] = [];
+  for (const s of starts) {
+    const m = timeToMinutes(s);
+    if (m % 60 !== 0) continue;
+    if (m + 60 > 24 * 60) continue;
+    if (!set.has(minutesToTime(m + 30))) continue;
+    out.push(s);
   }
   return out;
 }
@@ -225,31 +232,8 @@ function getWorkingDayWindow(
     rec.closed === true || rec.isClosed === true || rec.open === false;
   const open = normalizeTime(rec.open, defaults.open);
   const close = normalizeTime(rec.close, defaults.close);
-  if (open >= close) return { closed: true, open, close };
+  // Overnight informational ranges like 16:00 -> 04:00 are valid for display.
   return { closed, open, close };
-}
-
-function applyMinLeadTimeToStarts(slots: string[], bookingDate: string): string[] {
-  const today = localDateYmd();
-  if (bookingDate !== today) return slots;
-  const minM = timeToMinutes(nextHalfHourTime());
-  return slots.filter((t) => timeToMinutes(t) >= minM);
-}
-
-function remainingDaySlotsInWindow(
-  date: string,
-  openTime: string,
-  closeTime: string,
-): string[] {
-  const today = localDateYmd();
-  const dayMin = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
-  const start = Math.max(timeToMinutes(openTime), dayMin);
-  const endExclusive = timeToMinutes(closeTime);
-  const out: string[] = [];
-  for (let m = start; m < endExclusive; m += 30) {
-    out.push(minutesToTime(m));
-  }
-  return out;
 }
 
 function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }> {
@@ -347,7 +331,7 @@ export default function BookingCreatePage() {
   const [tax, setTax] = useState('0');
   const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
-  /** Per line: server slot grid (free-only, working hours + hides booked) vs local fallback. */
+  /** Per line: server slot grid (free-only, hides booked) vs local fallback. */
   const [lineSlotSource, setLineSlotSource] = useState<
     Record<number, { starts: string[]; source: 'api' | 'local' }>
   >({});
@@ -379,15 +363,11 @@ export default function BookingCreatePage() {
             courtKind: ln.courtKind,
             courtId: ln.courtId.trim(),
             date: bookingDate,
-            useWorkingHours: true,
+            useWorkingHours: false,
             availableOnly: true,
             tenantId: isPlatformOwner ? bookingTenant : undefined,
           });
           if (cancelled) return;
-          if (grid.locationClosed) {
-            next[idx] = { starts: [], source: 'api' };
-            continue;
-          }
           const starts = grid.segments
             .filter((s) => s.state === 'free')
             .map((s) => s.startTime);
@@ -396,7 +376,6 @@ export default function BookingCreatePage() {
             courtKind: ln.courtKind,
             courtId: ln.courtId.trim(),
             bookingDate,
-            locationClosed: grid.locationClosed,
             freeSlots: starts.length,
           });
           next[idx] = { starts, source: 'api' };
@@ -611,19 +590,6 @@ export default function BookingCreatePage() {
     [subTotal, discount, tax],
   );
 
-  function updateDurationWithPrice(line: BookingLine, nextDuration: number): BookingLine {
-    const prevDuration = Math.max(30, line.durationMins);
-    const safeNext = Math.max(60, nextDuration);
-    const currentPrice = Number(line.price || 0);
-    const ratePerMinute = currentPrice > 0 ? currentPrice / prevDuration : 0;
-    const nextPrice = ratePerMinute > 0 ? ratePerMinute * safeNext : currentPrice;
-    return {
-      ...line,
-      durationMins: safeNext,
-      price: normalizeMoney(nextPrice),
-    };
-  }
-
   function applyFacility(lineIndex: number, key: string) {
     const line = lines[lineIndex];
     if (!line) return;
@@ -676,9 +642,7 @@ export default function BookingCreatePage() {
         return;
       }
       const startTime = minutesToTime(ln.startMinutes);
-      const endTime = minutesToTime(
-        Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30),
-      );
+      const endTime = minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60));
       const startMinutes = timeToMinutes(startTime);
       const endMinutes = timeToMinutes(endTime);
       const duration = endMinutes - startMinutes;
@@ -689,14 +653,14 @@ export default function BookingCreatePage() {
         endTime,
         duration,
       });
-      if (duration < 30 || startMinutes % 30 !== 0 || endMinutes % 30 !== 0) {
+      if (duration !== 60 || startMinutes % 60 !== 0) {
         console.warn(BOOKING_TIMING_LOG, 'line-time-invalid-interval', {
           lineIndex: idx,
           startTime,
           endTime,
           duration,
         });
-        setError('Each booking line must use 30-minute intervals (minimum 30 mins).');
+        setError('Each booking line must use an hourly slot (for example 4:00 PM - 5:00 PM).');
         return;
       }
       const startAt = toLocalDateTime(bookingDate, startTime);
@@ -770,6 +734,7 @@ export default function BookingCreatePage() {
           courtId: ln.courtId.trim(),
           startTime: minutesToTime(ln.startMinutes),
           endTime: minutesToTime(Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30)),
+          endTime: minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60)),
           price: Number(ln.price),
           currency: 'PKR',
           status: ln.status,
@@ -1052,9 +1017,7 @@ export default function BookingCreatePage() {
             </div>
             {lines.map((ln, idx) => {
               const startTime = minutesToTime(ln.startMinutes);
-              const endTime = minutesToTime(
-                Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30),
-              );
+              const endTime = minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60));
               const selectedCourt =
                 courtOpts.find((o) => `${o.kind}:${o.id}` === ln.facilityKey) ?? null;
               const location = selectedCourt?.businessLocationId
@@ -1064,17 +1027,13 @@ export default function BookingCreatePage() {
                 (location?.workingHours as Record<string, unknown> | null) ?? null,
                 bookingDate,
               );
-              const fallbackSlots = dayWindow.closed
-                ? []
-                : remainingDaySlotsInWindow(
-                    bookingDate,
-                    dayWindow.open,
-                    dayWindow.close,
-                  );
+              const fallbackSlots = remainingDayHourlySlots(bookingDate);
               const src = lineSlotSource[idx];
               const baseStarts =
-                src?.source === 'api' ? src.starts : fallbackSlots;
-              const startSlots = applyMinLeadTimeToStarts(baseStarts, bookingDate);
+                src?.source === 'api'
+                  ? hourlyStartsFromFreeSegments(src.starts)
+                  : fallbackSlots;
+              const startSlots = baseStarts;
               const totalSlides = Math.max(
                 1,
                 Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),
@@ -1120,7 +1079,7 @@ export default function BookingCreatePage() {
                       />
                       {location && (
                         <div className="muted" style={{ marginTop: '0.3rem' }}>
-                          Working hours:{' '}
+                          Working hours (info only):{' '}
                           {dayWindow.closed
                             ? 'Closed'
                             : `${formatTime12h(dayWindow.open)} - ${formatTime12h(dayWindow.close)}`}
@@ -1129,7 +1088,7 @@ export default function BookingCreatePage() {
                     </div>
                     <div className="form-row-2">
                       <div>
-                        <label>Start time ({formatTime12h(startTime)})</label>
+                        <label>Hourly slot start ({formatTime12h(startTime)})</label>
                         {startSlots.length > 0 && (
                           <div
                             style={{
@@ -1211,49 +1170,21 @@ export default function BookingCreatePage() {
                           })}
                           {startSlots.length === 0 && (
                             <span className="muted" style={{ fontSize: '0.78rem' }}>
-                              No slots available in working hours for this day.
+                              No slots available for this day.
                             </span>
                           )}
                         </div>
                       </div>
                       <div>
-                        <label>Duration</label>
+                        <label>Slot duration</label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                           <button
                             type="button"
                             className="btn-ghost"
                             style={{ padding: '0.45rem 0.8rem', fontSize: '0.92rem' }}
-                            onClick={() => {
-                              const next = [...lines];
-                              next[idx] = updateDurationWithPrice(ln, ln.durationMins);
-                              setLines(next);
-                            }}
+                            disabled
                           >
-                            {Math.max(60, ln.durationMins)} min
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
-                            onClick={() => {
-                              const next = [...lines];
-                              next[idx] = updateDurationWithPrice(ln, ln.durationMins + 30);
-                              setLines(next);
-                            }}
-                          >
-                            +30
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.88rem' }}
-                            onClick={() => {
-                              const next = [...lines];
-                              next[idx] = updateDurationWithPrice(ln, ln.durationMins - 30);
-                              setLines(next);
-                            }}
-                          >
-                            -30
+                            60 min (hourly)
                           </button>
                         </div>
                         <div className="muted" style={{ marginTop: '0.35rem' }}>

@@ -384,7 +384,7 @@ export default function FacilitiesLiveViewPage() {
         date: quickBooking.date,
         startTime,
         endTime,
-        useWorkingHours: true,
+        useWorkingHours: false,
         availableOnly: false,
       });
       console.info(BOOKING_TIMING_LOG, 'slot-grid-loaded', {
@@ -394,10 +394,6 @@ export default function FacilitiesLiveViewPage() {
         locationClosed: slotGrid.locationClosed,
         segmentCount: slotGrid.segments.length,
       });
-      if (slotGrid.locationClosed) {
-        setQuickBookingError('This location is closed for the selected date/time.');
-        return;
-      }
       for (let m = startM; m < endM; m += 30) {
         const seg = slotGrid.segments.find(
           (s) => timeToMinutes(s.startTime) === m,
@@ -410,7 +406,7 @@ export default function FacilitiesLiveViewPage() {
             state: seg?.state ?? null,
           });
           setQuickBookingError(
-            'Selected slot is not available or outside working hours. Please choose another time.',
+            'Selected slot is not available. Please choose another time.',
           );
           return;
         }

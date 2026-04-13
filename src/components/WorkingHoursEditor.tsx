@@ -128,9 +128,7 @@ export function validateWorkingHoursPayload(payload: Record<string, unknown>): s
     if (!current.open || !current.close) {
       return `${day.label}: open and close times are required unless closed.`;
     }
-    if (current.open >= current.close) {
-      return `${day.label}: close time must be after open time.`;
-    }
+    // Overnight ranges (e.g. 16:00 -> 04:00) are allowed because working hours are informational.
   }
   return null;
 }
@@ -155,8 +153,9 @@ export default function WorkingHoursEditor({ value, onChange }: Props) {
     <div>
       <label>Working hours *</label>
       <p className="muted" style={{ margin: '0.35rem 0 0.6rem' }}>
-        Set each day&apos;s schedule. Mark a day as closed if no bookings are allowed. Times are stored
-        as 24-hour (HH:mm) for the API; 12-hour labels show next to each field.
+        Set each day&apos;s schedule for display/reference only. Booking availability is controlled by
+        configured time slots, not this section. Overnight ranges (for example 4:00 PM to 4:00 AM)
+        are supported.
       </p>
       <div style={{ display: 'grid', gap: '0.45rem' }}>
         {WEEK_DAYS.map((day) => {

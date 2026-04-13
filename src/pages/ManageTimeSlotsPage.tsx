@@ -17,7 +17,7 @@ export default function ManageTimeSlotsPage() {
   const [courts, setCourts] = useState<CourtOption[]>([]);
   const [facilityKey, setFacilityKey] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [useWorkingHours, setUseWorkingHours] = useState(true);
+  const [useWorkingHours, setUseWorkingHours] = useState(false);
   const [gridLoading, setGridLoading] = useState(false);
   const [grid, setGrid] = useState<Awaited<ReturnType<typeof getCourtSlotGrid>> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +182,7 @@ export default function ManageTimeSlotsPage() {
               onChange={(e) => setUseWorkingHours(e.target.checked)}
             />
             <span className="ui-switch-track" aria-hidden />
-            <span className="ui-switch-text">Limit grid to location working hours</span>
+            <span className="ui-switch-text">Apply working-hours overlay (info)</span>
           </label>
         </div>
       </section>
@@ -191,8 +191,8 @@ export default function ManageTimeSlotsPage() {
         {gridLoading && <p className="muted">Loading slot grid…</p>}
         {!gridLoading && grid?.locationClosed && (
           <p className="muted">
-            This location is closed on the selected date (per working hours). Slots below are shown as
-            closed — open the day in Locations → Edit → working hours to allow bookings.
+            Working-hours overlay marks this date as closed. This is informational only; actual
+            booking availability is controlled by slot blocks/bookings.
           </p>
         )}
         {!gridLoading && grid && !grid.locationClosed && grid.segments.length === 0 && (
@@ -226,7 +226,7 @@ export default function ManageTimeSlotsPage() {
                     )}
                     {dayClosed && (
                       <span className="muted" style={{ marginLeft: '0.5rem', fontSize: '0.85rem' }}>
-                        Closed (working hours)
+                        Closed (working-hours info)
                       </span>
                     )}
                     {!busy && !dayClosed && seg.state === 'blocked' && (

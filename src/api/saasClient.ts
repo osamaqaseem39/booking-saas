@@ -850,7 +850,7 @@ export async function getCourtSlotGrid(params: {
   date: string;
   startTime?: string;
   endTime?: string;
-  /** Align grid to location working hours (ignored if start/end are set). */
+  /** Optional informational overlay: align grid to location working hours (ignored if start/end are set). */
   useWorkingHours?: boolean;
   /** Only free segments — use for booking pickers so booked times are omitted. */
   availableOnly?: boolean;

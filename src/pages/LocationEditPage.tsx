@@ -574,6 +574,10 @@ export default function LocationEditPage() {
                 </div>
                 <div>
                   <WorkingHoursEditor value={workingHours} onChange={setWorkingHours} />
+                  <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.82rem' }}>
+                    Informational only. Booking windows come from configured time slots (including
+                    overnight splits such as 12:00 AM-4:00 AM and 4:00 PM-12:00 AM).
+                  </p>
                 </div>
               </div>
               <div>
