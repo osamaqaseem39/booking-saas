@@ -69,6 +69,13 @@ function nextHalfHourTime(): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
+function nextHourTime(): string {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map((x) => Number(x || 0));
   return h * 60 + m;
@@ -117,7 +124,7 @@ function defaultLine(): BookingLine {
     facilityKey: '',
     courtKind: 'futsal_court',
     courtId: '',
-    startMinutes: timeToMinutes(nextHalfHourTime()),
+    startMinutes: timeToMinutes(nextHourTime()),
     price: '5000',
     status: 'reserved',
     slotPage: 0,
@@ -733,7 +740,6 @@ export default function BookingCreatePage() {
           courtKind: ln.courtKind,
           courtId: ln.courtId.trim(),
           startTime: minutesToTime(ln.startMinutes),
-          endTime: minutesToTime(Math.min(ln.startMinutes + ln.durationMins, 23 * 60 + 30)),
           endTime: minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60)),
           price: Number(ln.price),
           currency: 'PKR',

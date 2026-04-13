@@ -37,7 +37,6 @@ type QuickBookingState = {
   location: BusinessLocationRow | null;
   date: string;
   startTime: string;
-  durationMins: number;
   phone: string;
 };
 
@@ -52,12 +51,10 @@ function localDateYmd(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-function nextHalfHourTime(now = new Date()): string {
+function nextHourTime(now = new Date()): string {
   const d = new Date(now);
   d.setSeconds(0, 0);
-  const mins = d.getMinutes();
-  if (mins <= 30) d.setMinutes(30, 0, 0);
-  else d.setHours(d.getHours() + 1, 0, 0, 0);
+  d.setHours(d.getHours() + 1, 0, 0, 0);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
@@ -72,8 +69,8 @@ function minutesToTime(v: number): string {
   return `${pad2(hh)}:${pad2(mm)}`;
 }
 
-function endTimeFrom(startTime: string, durationMins: number): string {
-  const end = Math.min(timeToMinutes(startTime) + durationMins, 23 * 60 + 30);
+function endTimeFrom(startTime: string): string {
+  const end = Math.min(timeToMinutes(startTime) + 60, 24 * 60);
   return minutesToTime(end);
 }
 
@@ -272,7 +269,7 @@ export default function FacilitiesLiveViewPage() {
           ? 'cricket'
           : 'padel';
     const startTime = state.startTime;
-    const endTime = endTimeFrom(startTime, state.durationMins);
+    const endTime = endTimeFrom(startTime);
     setQuickPriceLoading(true);
     try {
       const avail = await getBookingAvailability({
@@ -290,7 +287,7 @@ export default function FacilitiesLiveViewPage() {
         return;
       }
       const slotDuration = row.slotDurationMinutes && row.slotDurationMinutes > 0 ? row.slotDurationMinutes : 60;
-      const computed = row.pricePerSlot * (state.durationMins / slotDuration);
+      const computed = row.pricePerSlot * (60 / slotDuration);
       setQuickPrice(Number.isFinite(computed) ? Math.max(0, Math.round(computed)) : null);
     } catch {
       setQuickPrice(null);
@@ -306,7 +303,7 @@ export default function FacilitiesLiveViewPage() {
 
   useEffect(() => {
     if (!quickBooking) return;
-    const maxStart = 23 * 60 + 30 - quickBooking.durationMins;
+    const maxStart = 23 * 60;
     if (timeToMinutes(quickBooking.startTime) <= maxStart) return;
     setQuickBooking((cur) =>
       cur ? { ...cur, startTime: minutesToTime(Math.max(0, maxStart)) } : cur,
@@ -335,7 +332,7 @@ export default function FacilitiesLiveViewPage() {
       return;
     }
     const startTime = quickBooking.startTime;
-    const endTime = endTimeFrom(startTime, quickBooking.durationMins);
+    const endTime = endTimeFrom(startTime);
     const startM = timeToMinutes(startTime);
     const endM = timeToMinutes(endTime);
     const duration = endM - startM;
@@ -343,12 +340,12 @@ export default function FacilitiesLiveViewPage() {
       date: quickBooking.date,
       startTime,
       endTime,
-      durationMins: quickBooking.durationMins,
+      durationMins: 60,
       computedDuration: duration,
     });
-    if (duration < 30 || startM % 30 !== 0 || endM % 30 !== 0) {
+    if (duration !== 60 || startM % 60 !== 0) {
       setQuickBookingError(
-        'Quick booking must use 30-minute intervals (minimum 30 minutes).',
+        'Quick booking must use an hourly slot (for example 4:00 PM - 5:00 PM).',
       );
       return;
     }
@@ -543,16 +540,14 @@ export default function FacilitiesLiveViewPage() {
                 style={{ cursor: 'pointer' }}
                 onClick={() =>
                   {
-                    const defaultDuration = 60;
-                    const nowStart = nextHalfHourTime();
-                    const maxStart = 23 * 60 + 30 - defaultDuration;
+                    const nowStart = nextHourTime();
+                    const maxStart = 23 * 60;
                     const safeStart = timeToMinutes(nowStart) <= maxStart ? nowStart : minutesToTime(maxStart);
                     setQuickBooking({
                       facility,
                       location: location ?? null,
                       date: localDateYmd(),
                       startTime: safeStart,
-                      durationMins: defaultDuration,
                       phone: '+92',
                     });
                   }
@@ -560,16 +555,14 @@ export default function FacilitiesLiveViewPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    const defaultDuration = 60;
-                    const nowStart = nextHalfHourTime();
-                    const maxStart = 23 * 60 + 30 - defaultDuration;
+                    const nowStart = nextHourTime();
+                    const maxStart = 23 * 60;
                     const safeStart = timeToMinutes(nowStart) <= maxStart ? nowStart : minutesToTime(maxStart);
                     setQuickBooking({
                       facility,
                       location: location ?? null,
                       date: localDateYmd(),
                       startTime: safeStart,
-                      durationMins: defaultDuration,
                       phone: '+92',
                     });
                   }
@@ -706,7 +699,7 @@ export default function FacilitiesLiveViewPage() {
                   <label>Start time</label>
                   <input
                     type="time"
-                    step={1800}
+                    step={3600}
                     value={quickBooking.startTime}
                     onChange={(e) =>
                       setQuickBooking((cur) => (cur ? { ...cur, startTime: e.target.value } : cur))
@@ -717,43 +710,12 @@ export default function FacilitiesLiveViewPage() {
               </div>
               <div className="form-row-2">
                 <div>
-                  <label>Duration</label>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.4rem',
-                      flexWrap: 'wrap',
-                      marginTop: '0.35rem',
-                    }}
-                  >
-                    {[30, 60, 90, 120, 150, 180].map((m) => {
-                      const active = quickBooking.durationMins === m;
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          className={active ? 'btn-primary' : 'btn-ghost'}
-                          style={{
-                            padding: '0.35rem 0.7rem',
-                            borderRadius: '999px',
-                            fontSize: '0.86rem',
-                          }}
-                          disabled={quickBookingSubmitting}
-                          onClick={() =>
-                            setQuickBooking((cur) =>
-                              cur ? { ...cur, durationMins: m } : cur,
-                            )
-                          }
-                        >
-                          {m} min
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <label>Slot duration</label>
+                  <input value="60 min (hourly)" readOnly />
                 </div>
                 <div>
                   <label>End time</label>
-                  <input value={formatTime12h(endTimeFrom(quickBooking.startTime, quickBooking.durationMins))} readOnly />
+                  <input value={formatTime12h(endTimeFrom(quickBooking.startTime))} readOnly />
                 </div>
               </div>
               <div className="detail-row">
