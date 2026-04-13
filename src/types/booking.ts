@@ -136,13 +136,21 @@ export interface CourtSlotsRecord {
   date: string;
   kind: CourtKind;
   courtId: string;
-  slots: Array<{
-    startTime: string;
-    endTime: string;
-    bookingId: string;
-    itemId: string;
-    status: BookingItemStatus;
-  }>;
+  slots: Array<
+    | {
+        startTime: string;
+        endTime: string;
+        availability: 'available';
+      }
+    | {
+        startTime: string;
+        endTime: string;
+        availability: 'booked';
+        bookingId: string;
+        itemId: string;
+        status: BookingItemStatus;
+      }
+  >;
 }
 
 export type CourtSlotGridSegment =

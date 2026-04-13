@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CreateCricketCourtBody,
   CreateFutsalCourtBody,
   CreatePadelCourtBody,
@@ -11,7 +11,7 @@ import {
   sharedDetailToFormState,
   sharedTurfFormStateToCricketPayload,
   sharedTurfFormStateToPayload,
-} from '../components/arena/sharedArenaTurfFormState';
+} from '../components/facilities/arena/sharedArenaTurfFormState';
 
 function num(v: unknown): number | undefined {
   if (v === null || v === undefined || v === '') return undefined;
@@ -165,3 +165,4 @@ export function padelDetailToCreateBody(
     rules: d.rules,
   };
 }
+

@@ -830,7 +830,7 @@ export async function getBookingAvailability(params: {
   });
 }
 
-export async function getCourtBookedSlots(params: {
+export async function getCourtSlots(params: {
   courtKind: CourtKind;
   courtId: string;
   date: string;
@@ -842,6 +842,9 @@ export async function getCourtBookedSlots(params: {
     { method: 'GET' },
   );
 }
+
+/** Backward-compatible alias. */
+export const getCourtBookedSlots = getCourtSlots;
 
 /** 30-minute segments for one facility/court for a day (or optional time window). */
 export async function getCourtSlotGrid(params: {
