@@ -4,6 +4,7 @@ import {
   getCricketCourt,
   getFutsalCourt,
   listCricketCourts,
+  listTimeSlotTemplates,
   updateFutsalCourt,
   type CricketCourtDetail,
   type CreateFutsalCourtBody,
@@ -48,6 +49,9 @@ export function FutsalCourtSetupForm({
   const [sameFieldAsCricket, setSameFieldAsCricket] = useState(false);
   const [selectedCricketTwinId, setSelectedCricketTwinId] = useState('');
   const [cricketTwinOptions, setCricketTwinOptions] = useState<NamedCourt[]>([]);
+  const [timeSlotTemplateOptions, setTimeSlotTemplateOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -138,6 +142,22 @@ export function FutsalCourtSetupForm({
   }, [arenaLocationId, existingCourtId]);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await listTimeSlotTemplates();
+        if (cancelled) return;
+        setTimeSlotTemplateOptions(rows.map((r) => ({ id: r.id, name: r.name })));
+      } catch {
+        if (!cancelled) setTimeSlotTemplateOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (existingCourtId || !sameFieldAsCricket || !selectedCricketTwinId) return;
     let cancelled = false;
     void (async () => {
@@ -175,12 +195,18 @@ export function FutsalCourtSetupForm({
     }
     const arena = locations.find((l) => l.id === arenaLocationId);
     const sharedPayload = sharedTurfFormStateToPayload(shared);
+    const templatePayload = shared.timeSlotTemplateId.trim()
+      ? { timeSlotTemplateId: shared.timeSlotTemplateId.trim() }
+      : existingCourtId
+        ? { timeSlotTemplateId: null as null }
+        : {};
     const body: CreateFutsalCourtBody = {
       businessLocationId: effectiveLocationId,
       name: shared.name.trim(),
       courtStatus,
       arenaLabel: arena?.name?.trim() || undefined,
       ...sharedPayload,
+      ...templatePayload,
       futsalFormat: futsalFormat || undefined,
       futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
       futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
@@ -281,6 +307,7 @@ export function FutsalCourtSetupForm({
           courtStatus={courtStatus}
           setCourtStatus={setCourtStatus}
           existingCourtId={existingCourtId}
+          timeSlotTemplateOptions={timeSlotTemplateOptions}
           gameSection={gameSection}
         />
         {!existingCourtId ? (

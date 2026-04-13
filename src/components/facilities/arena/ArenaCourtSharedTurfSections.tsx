@@ -12,6 +12,8 @@ type Props = {
   courtStatus: 'active' | 'maintenance' | 'draft';
   setCourtStatus: (v: 'active' | 'maintenance' | 'draft') => void;
   existingCourtId?: string;
+  /** Labels for optional time-slot template dropdown (tenant-level). */
+  timeSlotTemplateOptions?: { id: string; name: string }[];
   /** Futsal / cricket specific controls */
   gameSection: ReactNode;
   gameSectionTitle?: string;
@@ -26,6 +28,7 @@ export function ArenaCourtSharedTurfSections({
   courtStatus,
   setCourtStatus,
   existingCourtId,
+  timeSlotTemplateOptions = [],
   gameSection,
   gameSectionTitle = '5. Game settings',
 }: Props) {
@@ -353,6 +356,25 @@ export function ArenaCourtSharedTurfSections({
       <div className="turf-setup-card">
         <h4>7. Slot timing (saved with this facility)</h4>
         <div className="form-grid">
+          <div>
+            <label>Time slot template</label>
+            <select
+              value={shared.timeSlotTemplateId}
+              onChange={(e) => patch({ timeSlotTemplateId: e.target.value })}
+            >
+              <option value="">None (full day grid on time slots page)</option>
+              {timeSlotTemplateOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+              Create named lists of half-hour starts on{' '}
+              <Link to="/app/time-slots">Manage time slots</Link>, then pick one here so the
+              grid focuses on those windows.
+            </p>
+          </div>
           <div>
             <label>Slot length</label>
             <select

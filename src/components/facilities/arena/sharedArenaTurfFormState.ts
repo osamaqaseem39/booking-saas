@@ -37,6 +37,8 @@ export type SharedArenaTurfFormState = {
   slotDuration: '' | '60' | '90' | '120';
   bufferMinutes: string;
   allowParallelBooking: boolean;
+  /** Optional tenant time-slot template (30-minute starts). Empty = none. */
+  timeSlotTemplateId: string;
 };
 
 export function emptySharedArenaTurfState(): SharedArenaTurfFormState {
@@ -75,6 +77,7 @@ export function emptySharedArenaTurfState(): SharedArenaTurfFormState {
     slotDuration: '',
     bufferMinutes: '',
     allowParallelBooking: false,
+    timeSlotTemplateId: '',
   };
 }
 
@@ -122,6 +125,7 @@ type SharedDetail = Partial<
     | 'slotDurationMinutes'
     | 'bufferBetweenSlotsMinutes'
     | 'allowParallelBooking'
+    | 'timeSlotTemplateId'
   >
 >;
 
@@ -193,6 +197,10 @@ export function sharedDetailToFormState(
             : '',
     bufferMinutes: strFromApi(d.bufferBetweenSlotsMinutes),
     allowParallelBooking: d.allowParallelBooking === true,
+    timeSlotTemplateId:
+      typeof d.timeSlotTemplateId === 'string' && d.timeSlotTemplateId
+        ? d.timeSlotTemplateId
+        : '',
   };
 }
 

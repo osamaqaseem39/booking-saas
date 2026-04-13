@@ -4,6 +4,7 @@ import {
   getFutsalCourt,
   getCricketCourt,
   listFutsalCourts,
+  listTimeSlotTemplates,
   updateCricketCourt,
   type CreateCricketCourtBody,
   type CricketCourtDetail,
@@ -47,6 +48,9 @@ export function CricketCourtSetupForm({
   const [sameFieldAsFutsal, setSameFieldAsFutsal] = useState(false);
   const [selectedFutsalTwinId, setSelectedFutsalTwinId] = useState('');
   const [futsalTwinOptions, setFutsalTwinOptions] = useState<NamedCourt[]>([]);
+  const [timeSlotTemplateOptions, setTimeSlotTemplateOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -141,6 +145,22 @@ export function CricketCourtSetupForm({
   }, [arenaLocationId, existingCourtId]);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await listTimeSlotTemplates();
+        if (cancelled) return;
+        setTimeSlotTemplateOptions(rows.map((r) => ({ id: r.id, name: r.name })));
+      } catch {
+        if (!cancelled) setTimeSlotTemplateOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (existingCourtId || !sameFieldAsFutsal || !selectedFutsalTwinId) return;
     let cancelled = false;
     void (async () => {
@@ -178,12 +198,18 @@ export function CricketCourtSetupForm({
     }
     const arena = locations.find((l) => l.id === arenaLocationId);
     const sharedPayload = sharedTurfFormStateToCricketPayload(shared);
+    const templatePayload = shared.timeSlotTemplateId.trim()
+      ? { timeSlotTemplateId: shared.timeSlotTemplateId.trim() }
+      : existingCourtId
+        ? { timeSlotTemplateId: null as null }
+        : {};
     const body: CreateCricketCourtBody = {
       businessLocationId: effectiveLocationId,
       name: shared.name.trim(),
       courtStatus,
       arenaLabel: arena?.name?.trim() || undefined,
       ...sharedPayload,
+      ...templatePayload,
       cricketFormat: cricketFormat || undefined,
       cricketStumpsAvailable: cricketStumpsAvailable || undefined,
       cricketBowlingMachine: cricketBowlingMachine || undefined,
@@ -288,6 +314,7 @@ export function CricketCourtSetupForm({
           courtStatus={courtStatus}
           setCourtStatus={setCourtStatus}
           existingCourtId={existingCourtId}
+          timeSlotTemplateOptions={timeSlotTemplateOptions}
           gameSection={gameSection}
         />
         {!existingCourtId ? (

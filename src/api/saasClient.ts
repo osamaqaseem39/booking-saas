@@ -873,9 +873,13 @@ export async function getCourtSlots(params: {
   courtKind: CourtKind;
   courtId: string;
   date: string;
+  startTime?: string;
+  endTime?: string;
 }): Promise<CourtSlotsRecord> {
   const q = new URLSearchParams();
   q.set('date', params.date);
+  if (params.startTime) q.set('startTime', params.startTime);
+  if (params.endTime) q.set('endTime', params.endTime);
   return request<CourtSlotsRecord>(
     `/bookings/courts/${params.courtKind}/${params.courtId}/slots?${q.toString()}`,
     { method: 'GET' },
@@ -1122,6 +1126,7 @@ export type CreateFutsalCourtBody = {
     safetyInstructions?: string;
     cancellationPolicy?: string;
   };
+  timeSlotTemplateId?: string | null;
 };
 
 export type FutsalCourtDetail = Partial<CreateFutsalCourtBody> & {
@@ -1214,6 +1219,7 @@ export type CreateCricketCourtBody = {
     safetyInstructions?: string;
     cancellationPolicy?: string;
   };
+  timeSlotTemplateId?: string | null;
 };
 
 export type CricketCourtDetail = Partial<CreateCricketCourtBody> & {
@@ -1302,6 +1308,7 @@ export type CreatePadelCourtBody = {
     cancellationPolicy?: string;
   };
   isActive?: boolean;
+  timeSlotTemplateId?: string | null;
 };
 
 /** GET /arena/padel-court/:id — full record. */
@@ -1351,6 +1358,69 @@ export async function deletePadelCourt(
   });
 }
 
+export type TimeSlotTemplateRecord = {
+  id: string;
+  name: string;
+  slotStarts: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listTimeSlotTemplates(
+  tenantIdOverride?: string,
+): Promise<TimeSlotTemplateRecord[]> {
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (!getToken() || !tid) return [];
+  return requestForTenant<TimeSlotTemplateRecord[]>(
+    tid,
+    '/bookings/time-slot-templates',
+    { method: 'GET' },
+  );
+}
+
+export async function createTimeSlotTemplate(
+  body: { name: string; slotStarts: string[] },
+  tenantIdOverride?: string,
+): Promise<TimeSlotTemplateRecord> {
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  return requestForTenant<TimeSlotTemplateRecord>(
+    tid,
+    '/bookings/time-slot-templates',
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function updateTimeSlotTemplate(
+  id: string,
+  body: Partial<{ name: string; slotStarts: string[] }>,
+  tenantIdOverride?: string,
+): Promise<TimeSlotTemplateRecord> {
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  return requestForTenant<TimeSlotTemplateRecord>(
+    tid,
+    `/bookings/time-slot-templates/${id}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function deleteTimeSlotTemplate(
+  id: string,
+  tenantIdOverride?: string,
+): Promise<{ deleted: true; id: string }> {
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  return requestForTenant<{ deleted: true; id: string }>(
+    tid,
+    `/bookings/time-slot-templates/${id}`,
+    { method: 'DELETE' },
+  );
+}
+
 /**
  * Bookable courts for the active tenant. When `businessLocationId` is set, only courts at that location.
  * When `sport` is omitted, returns padel, futsal, and cricket options together.
@@ -1386,6 +1456,7 @@ export async function listCourtOptions(
           id: r.id,
           label: `Padel — ${r.name}`,
           businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
       for (const r of futsalCourts) {
@@ -1394,6 +1465,7 @@ export async function listCourtOptions(
           id: r.id,
           label: `Futsal pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
       for (const r of cricketCourts) {
@@ -1402,6 +1474,7 @@ export async function listCourtOptions(
           id: r.id,
           label: `Cricket pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
       return out;
@@ -1415,6 +1488,7 @@ export async function listCourtOptions(
           id: r.id,
           label: `Padel — ${r.name}`,
           businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
     } else if (sport === 'futsal') {
@@ -1425,6 +1499,7 @@ export async function listCourtOptions(
           id: r.id,
           label: `Futsal pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
     } else {
@@ -1435,6 +1510,7 @@ export async function listCourtOptions(
           id: r.id,
           label: `Cricket pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
     }

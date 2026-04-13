@@ -1,7 +1,9 @@
-﻿import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   createPadelCourt,
   getPadelCourt,
+  listTimeSlotTemplates,
   updatePadelCourt,
   type CreatePadelCourtBody,
   type PadelCourtDetail,
@@ -67,6 +69,8 @@ function buildPayload(
     cancellationPolicy: string;
     description: string;
     isActive: boolean;
+    timeSlotTemplateId: string;
+    isUpdate: boolean;
   },
 ): CreatePadelCourtBody {
   const ceilingH = parseNum(p.ceilingHeightValue);
@@ -151,6 +155,12 @@ function buildPayload(
   if (desc) body.description = desc;
   body.isActive = p.isActive;
 
+  if (p.timeSlotTemplateId.trim()) {
+    body.timeSlotTemplateId = p.timeSlotTemplateId.trim();
+  } else if (p.isUpdate) {
+    body.timeSlotTemplateId = null;
+  }
+
   return body;
 }
 
@@ -202,6 +212,10 @@ export function PadelCourtSetupForm({
 
   const [slotDuration, setSlotDuration] = useState<'60' | '90' | ''>('60');
   const [bufferMinutes, setBufferMinutes] = useState('');
+  const [timeSlotTemplateId, setTimeSlotTemplateId] = useState('');
+  const [timeSlotTemplateOptions, setTimeSlotTemplateOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const [extraRacket, setExtraRacket] = useState(false);
   const [extraBall, setExtraBall] = useState(false);
@@ -218,6 +232,22 @@ export function PadelCourtSetupForm({
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(!!existingCourtId);
   const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await listTimeSlotTemplates();
+        if (cancelled) return;
+        setTimeSlotTemplateOptions(rows.map((r) => ({ id: r.id, name: r.name })));
+      } catch {
+        if (!cancelled) setTimeSlotTemplateOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!existingCourtId) {
@@ -294,6 +324,11 @@ export function PadelCourtSetupForm({
         const rules = d.rules;
         setGameRules(rules?.gameRules ?? '');
         setCancellationPolicy(rules?.cancellationPolicy ?? '');
+        setTimeSlotTemplateId(
+          typeof d.timeSlotTemplateId === 'string' && d.timeSlotTemplateId
+            ? d.timeSlotTemplateId
+            : '',
+        );
         if (rules?.maxPlayers !== undefined && rules.maxPlayers !== null) {
           setMaxPlayers(String(rules.maxPlayers));
         } else if (d.maxPlayers !== undefined && d.maxPlayers !== null) {
@@ -365,6 +400,8 @@ export function PadelCourtSetupForm({
         cancellationPolicy,
         description,
         isActive,
+        timeSlotTemplateId,
+        isUpdate: !!existingCourtId,
       });
       if (existingCourtId) {
         const { businessLocationId: _loc, ...patch } = payload;
@@ -687,6 +724,24 @@ export function PadelCourtSetupForm({
       <div className="turf-setup-card">
         <h4>7. Slot settings</h4>
         <div className="form-grid">
+          <div>
+            <label>Time slot template</label>
+            <select
+              value={timeSlotTemplateId}
+              onChange={(e) => setTimeSlotTemplateId(e.target.value)}
+            >
+              <option value="">None (full day grid on time slots page)</option>
+              {timeSlotTemplateOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+              Create named lists of half-hour starts on the{' '}
+              <Link to="/app/time-slots">Manage time slots</Link> page, then pick one here.
+            </p>
+          </div>
           <div>
             <label>Slot duration</label>
             <select

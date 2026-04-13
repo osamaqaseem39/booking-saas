@@ -107,6 +107,7 @@ export interface CourtOption {
   id: string;
   label: string;
   businessLocationId?: string | null;
+  timeSlotTemplateId?: string | null;
 }
 
 export interface BookingAvailabilityRecord {

@@ -115,6 +115,8 @@ export interface NamedCourt {
   courtStatus?: string;
   /** Facility active flag where available. */
   isActive?: boolean;
+  /** Optional named 30-minute slot-start template for booking UI. */
+  timeSlotTemplateId?: string | null;
 }
 
 export interface BusinessDashboardBusinessRow {
