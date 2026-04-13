@@ -415,9 +415,9 @@ export async function getAllLocationTypes(): Promise<{
   return request('/public/location-types', { method: 'GET' });
 }
 
-/** Full venue list (same payload as GET /businesses/locations). */
-export async function getVenues(): Promise<BusinessLocationRow[]> {
-  return request<BusinessLocationRow[]>('/public/venues', { method: 'GET' });
+/** Short map markers for all active venues (legacy GET /getVenues, same as GET /public/venues/markers). */
+export async function getVenues(): Promise<VenueMapMarker[]> {
+  return request<VenueMapMarker[]>('/public/venues/markers', { method: 'GET' });
 }
 
 export async function getVenuesAllMarkers(): Promise<VenueMapMarker[]> {
@@ -438,26 +438,35 @@ export async function getVenuesFutsalArenasMarkers(): Promise<VenueMapMarker[]> 
   });
 }
 
-export type VenueDetailsPublic = {
+/** GET /public/venues/:id — full {@link BusinessLocationRow} plus legacy/detail helpers. */
+export type VenueDetailsPublic = Omit<BusinessLocationRow, 'business'> & {
+  business: {
+    id: string;
+    tenantId: string;
+    businessName: string;
+    legalName?: string | null;
+    status?: string;
+    createdAt?: string;
+    settings?: Record<string, unknown> | null;
+  } | null;
   venueId: string;
-  name: string;
   address: string;
-  latitude: number | null;
-  longitude: number | null;
-  logo: string | null;
-  bannerImage: string | null;
-  gallery: string[];
   clubDetails: {
     businessName: string | null;
     description: string | null;
     sportsOffered: string[];
   };
-  currency: string;
   price: number | null;
   packages: unknown[];
   availability: { tenantId: string | null; note: string };
   dailyOpenHours: Record<string, unknown> | null;
   facilityAvailable: Array<{ label: string; count: number }>;
+  facilityList: Array<{
+    id: string;
+    name: string;
+    facilityType: 'futsal' | 'cricket' | 'padel';
+    locationId: string;
+  }>;
   tenantId: string | null;
 };
 
@@ -467,6 +476,36 @@ export async function getVenueDetails(
   return request<VenueDetailsPublic>(`/public/venues/${locationId}`, {
     method: 'GET',
   });
+}
+
+/** Query for GET /businesses/locations/search — matches API `SearchLocationsQueryDto`. */
+export type SearchPublicLocationsParams = {
+  cities?: string;
+  locationType?: string;
+  bookingStatus?: 'unbooked';
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+};
+
+/** Same item shape as {@link getVenues} (short map markers). */
+export async function searchPublicLocations(
+  params: SearchPublicLocationsParams = {},
+): Promise<VenueMapMarker[]> {
+  const q = new URLSearchParams();
+  if (params.cities?.trim()) q.set('cities', params.cities.trim());
+  if (params.locationType?.trim()) {
+    q.set('locationType', params.locationType.trim());
+  }
+  if (params.bookingStatus) q.set('bookingStatus', params.bookingStatus);
+  if (params.date?.trim()) q.set('date', params.date.trim());
+  if (params.startTime?.trim()) q.set('startTime', params.startTime.trim());
+  if (params.endTime?.trim()) q.set('endTime', params.endTime.trim());
+  const qs = q.toString();
+  return request<VenueMapMarker[]>(
+    `/businesses/locations/search${qs ? `?${qs}` : ''}`,
+    { method: 'GET' },
+  );
 }
 
 export type PlacePublicBookingBody = {
