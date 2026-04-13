@@ -18,12 +18,23 @@ export interface NavItem {
   children?: NavSubItem[];
 }
 
-/** Shown after all other links for business admins (not platform owners). */
-const BUSINESS_ADMIN_NAV_BOTTOM = new Set([
-  '/app/users',
+/**
+ * Shown in the sidebar footer for business admins (not platform owners).
+ * Order is display order (venue setup, then team).
+ */
+const BUSINESS_ADMIN_FOOTER_ORDER = [
   '/app/locations',
   '/app/Facilites',
-]);
+  '/app/facility-slots',
+  '/app/users',
+] as const;
+
+const BUSINESS_ADMIN_FOOTER_SET = new Set<string>(BUSINESS_ADMIN_FOOTER_ORDER);
+
+function businessAdminFooterSortKey(to: string): number {
+  const i = (BUSINESS_ADMIN_FOOTER_ORDER as readonly string[]).indexOf(to);
+  return i === -1 ? 999 : i;
+}
 
 export const NAV_ITEMS: NavItem[] = [
   { to: '/app', label: 'Overview', anyOf: ['authenticated'] },
@@ -59,7 +70,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/app/facility-slots',
-    label: 'Facility slots',
+    label: 'Daily slots',
     anyOf: ['platform-owner', 'business-admin', 'business-staff'],
   },
   {
@@ -93,7 +104,7 @@ function dedupeNavByTo(items: NavItem[]): NavItem[] {
   );
 }
 
-/** Main nav plus optional footer (e.g. business admin: locations / facilities / users at bottom). */
+/** Main nav plus optional footer (business admin: locations, facilities, daily slots, users). */
 export function navSectionsForRoles(userRoles: string[]): {
   main: NavItem[];
   footer: NavItem[];
@@ -114,9 +125,10 @@ export function navSectionsForRoles(userRoles: string[]): {
   const main: NavItem[] = [];
   const footer: NavItem[] = [];
   for (const item of filtered) {
-    if (BUSINESS_ADMIN_NAV_BOTTOM.has(item.to)) footer.push(item);
+    if (BUSINESS_ADMIN_FOOTER_SET.has(item.to)) footer.push(item);
     else main.push(item);
   }
+  footer.sort((a, b) => businessAdminFooterSortKey(a.to) - businessAdminFooterSortKey(b.to));
   return { main, footer };
 }
 

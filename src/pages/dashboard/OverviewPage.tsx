@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   listBookingsForTenant,
@@ -205,7 +205,7 @@ export default function OverviewPage() {
       try {
         const [biz, loc, endUsers] = await Promise.all([
           listBusinesses(),
-          listBusinessLocations(),
+          listBusinessLocations({ ignoreActiveTenant: true }),
           listEndUsers().catch(() => [] as Awaited<ReturnType<typeof listEndUsers>>),
         ]);
         setBusinesses(biz);

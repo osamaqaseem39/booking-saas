@@ -414,12 +414,12 @@ export function ArenaCourtSharedTurfSections({
             </label>
           </div>
           <p className="muted" style={{ margin: 0 }}>
-            Day-by-day availability (generate slots, mark blocked) is still
-            managed per facility on the facility slots screen.
+            Day-by-day availability (generate slots, mark blocked) is managed
+            per facility on the Daily slots screen.
           </p>
           <div>
             <Link to="/app/facility-slots" className="btn-ghost btn-compact">
-              Open facility slots form
+              Open daily slots
             </Link>
           </div>
         </div>

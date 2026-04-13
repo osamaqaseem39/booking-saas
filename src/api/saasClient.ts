@@ -379,9 +379,20 @@ export async function listBusinesses(): Promise<BusinessRow[]> {
   return request<BusinessRow[]>('/businesses', { method: 'GET' });
 }
 
-export async function listBusinessLocations(): Promise<BusinessLocationRow[]> {
+export async function listBusinessLocations(opts?: {
+  /**
+   * Sends an empty `X-Tenant-Id` for this request so the API does not narrow by the
+   * active tenant (platform-owner cross-tenant overview needs every location).
+   */
+  ignoreActiveTenant?: boolean;
+}): Promise<BusinessLocationRow[]> {
+  const base = headers() as Record<string, string>;
+  if (opts?.ignoreActiveTenant) {
+    base['X-Tenant-Id'] = '';
+  }
   return request<BusinessLocationRow[]>('/businesses/locations', {
     method: 'GET',
+    headers: base,
   });
 }
 

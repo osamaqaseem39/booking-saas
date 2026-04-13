@@ -128,18 +128,21 @@ export default function FacilitySlotsPage() {
   return (
     <>
       <p className="page-toolbar">
-        <Link to="/app/bookings" className="btn-ghost btn-compact">
-          ← Bookings
+        <Link to="/app/Facilites" className="btn-ghost btn-compact">
+          ← Facilities
+        </Link>
+        <Link to="/app/bookings" className="btn-ghost btn-compact" style={{ marginLeft: '0.5rem' }}>
+          Bookings
         </Link>
         <Link to="/app/time-slots" className="btn-ghost btn-compact" style={{ marginLeft: '0.5rem' }}>
-          Legacy slot blocks
+          Manage time slots
         </Link>
       </p>
-      <h1 className="page-title">Facility slots</h1>
+      <h1 className="page-title">Daily slots</h1>
       <p className="muted" style={{ maxWidth: '720px', marginBottom: '1.25rem' }}>
-        Slots are stored per facility and date. Generate a full day of 30-minute rows, then mark
-        segments as blocked or available. Booked times come from existing bookings and cannot be
-        toggled here.
+        Per-court rows for a single calendar day (30-minute steps). Generate the day in the database,
+        then mark segments blocked or open. Booked times follow live bookings and cannot be toggled
+        here. For recurring grid rules and templates, use Manage time slots.
       </p>
       {selectedLocationId !== 'all' && (
         <p className="muted" style={{ marginTop: '-0.75rem', marginBottom: '1rem' }}>
