@@ -33,6 +33,10 @@ export type SharedArenaTurfFormState = {
   maxPlayers: string;
   safetyInstructions: string;
   cancellationPolicy: string;
+  /** Booking slot length sent with the facility (API: min 60, step 30). */
+  slotDuration: '' | '60' | '90' | '120';
+  bufferMinutes: string;
+  allowParallelBooking: boolean;
 };
 
 export function emptySharedArenaTurfState(): SharedArenaTurfFormState {
@@ -68,6 +72,9 @@ export function emptySharedArenaTurfState(): SharedArenaTurfFormState {
     maxPlayers: '',
     safetyInstructions: '',
     cancellationPolicy: '',
+    slotDuration: '',
+    bufferMinutes: '',
+    allowParallelBooking: false,
   };
 }
 
@@ -112,6 +119,9 @@ type SharedDetail = Partial<
     | 'discountMembership'
     | 'amenities'
     | 'rules'
+    | 'slotDurationMinutes'
+    | 'bufferBetweenSlotsMinutes'
+    | 'allowParallelBooking'
   >
 >;
 
@@ -173,6 +183,16 @@ export function sharedDetailToFormState(
         : '',
     safetyInstructions: d.rules?.safetyInstructions ?? '',
     cancellationPolicy: d.rules?.cancellationPolicy ?? '',
+    slotDuration:
+      d.slotDurationMinutes === 60
+        ? '60'
+        : d.slotDurationMinutes === 90
+          ? '90'
+          : d.slotDurationMinutes === 120
+            ? '120'
+            : '',
+    bufferMinutes: strFromApi(d.bufferBetweenSlotsMinutes),
+    allowParallelBooking: d.allowParallelBooking === true,
   };
 }
 
@@ -197,6 +217,9 @@ type SharedPayload = Pick<
   | 'discountMembership'
   | 'amenities'
   | 'rules'
+  | 'slotDurationMinutes'
+  | 'bufferBetweenSlotsMinutes'
+  | 'allowParallelBooking'
 >;
 
 export function sharedTurfFormStateToPayload(
@@ -250,6 +273,16 @@ export function sharedTurfFormStateToPayload(
   if (s.cancellationPolicy.trim())
     rules.cancellationPolicy = s.cancellationPolicy.trim();
 
+  const slotDurationMinutes =
+    s.slotDuration === '60'
+      ? 60
+      : s.slotDuration === '90'
+        ? 90
+        : s.slotDuration === '120'
+          ? 120
+          : undefined;
+  const bufferBetweenSlotsMinutes = parseIntOpt(s.bufferMinutes);
+
   return {
     imageUrls: imageUrls.length ? imageUrls : undefined,
     ceilingHeightValue:
@@ -271,6 +304,9 @@ export function sharedTurfFormStateToPayload(
     discountMembership,
     amenities: Object.keys(amenities).length ? amenities : undefined,
     rules: Object.keys(rules).length ? rules : undefined,
+    slotDurationMinutes,
+    bufferBetweenSlotsMinutes,
+    allowParallelBooking: s.allowParallelBooking ? true : undefined,
   };
 }
 

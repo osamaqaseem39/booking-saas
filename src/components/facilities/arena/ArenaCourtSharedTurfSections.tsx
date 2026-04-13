@@ -351,11 +351,49 @@ export function ArenaCourtSharedTurfSections({
       </div>
 
       <div className="turf-setup-card">
-        <h4>7. Slot assignment</h4>
+        <h4>7. Slot timing (saved with this facility)</h4>
         <div className="form-grid">
+          <div>
+            <label>Slot length</label>
+            <select
+              value={shared.slotDuration}
+              onChange={(e) =>
+                patch({
+                  slotDuration: e.target.value as SharedArenaTurfFormState['slotDuration'],
+                })
+              }
+            >
+              <option value="">Default (server)</option>
+              <option value="60">60 minutes</option>
+              <option value="90">90 minutes</option>
+              <option value="120">120 minutes</option>
+            </select>
+          </div>
+          <div>
+            <label>Buffer between slots (minutes)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={shared.bufferMinutes}
+              onChange={(e) => patch({ bufferMinutes: e.target.value })}
+              placeholder="e.g. 0 or 15"
+            />
+          </div>
+          <div>
+            <label className="turf-setup-inline">
+              <input
+                type="checkbox"
+                checked={shared.allowParallelBooking}
+                onChange={(e) =>
+                  patch({ allowParallelBooking: e.target.checked })
+                }
+              />
+              Allow parallel bookings on this pitch
+            </label>
+          </div>
           <p className="muted" style={{ margin: 0 }}>
-            Slots are stored separately and assigned per facility after save.
-            Use the dedicated slot form to mark each slot as available or booked.
+            Day-by-day availability (generate slots, mark blocked) is still
+            managed per facility on the facility slots screen.
           </p>
           <div>
             <Link to="/app/facility-slots" className="btn-ghost btn-compact">
