@@ -222,7 +222,7 @@ export default function UsersPage() {
     kind === 'customers'
       ? 'End users with the customer-end-user role (platform-wide).'
       : isPlatformOwner
-        ? 'Business admins, staff, and other nonâ€“customer-only accounts for the active tenant.'
+        ? 'Business admins, staff, and other non–customer-only accounts for the active tenant.'
         : 'Manage business staff accounts and role access.';
 
   const customerSpendById = useMemo(() => {
@@ -371,7 +371,7 @@ export default function UsersPage() {
           </div>
           <div className="table-wrap" style={{ marginTop: '1rem' }}>
             {loading ? (
-              <div className="empty-state">Loadingâ€¦</div>
+              <div className="empty-state">Loading…</div>
             ) : staffRows.length === 0 ? (
               <div className="empty-state">No users match this filter.</div>
             ) : (
@@ -391,10 +391,10 @@ export default function UsersPage() {
                     <tr key={u.id}>
                       <td>{u.fullName}</td>
                       <td>{u.email}</td>
-                      <td>{u.phone ?? 'â€”'}</td>
+                      <td>{u.phone ?? '—'}</td>
                       <td>
                         <code style={{ fontSize: '0.75rem' }}>
-                          {(u.roles ?? []).join(', ') || 'â€”'}
+                          {(u.roles ?? []).join(', ') || '—'}
                         </code>
                       </td>
                       <td>
@@ -420,7 +420,7 @@ export default function UsersPage() {
                               disabled={deletingId === u.id}
                               onClick={() => void onDeactivate(u.id)}
                             >
-                              {deletingId === u.id ? 'Workingâ€¦' : 'Deactivate'}
+                              {deletingId === u.id ? 'Working…' : 'Deactivate'}
                             </button>
                           ) : isPlatformOwner ? (
                             <button
@@ -430,7 +430,7 @@ export default function UsersPage() {
                               disabled={activatingId === u.id}
                               onClick={() => void onActivate(u.id)}
                             >
-                              {activatingId === u.id ? 'Workingâ€¦' : 'Activate'}
+                              {activatingId === u.id ? 'Working…' : 'Activate'}
                             </button>
                           ) : (
                             <span className="muted" style={{ fontSize: '0.75rem' }}>
@@ -570,7 +570,7 @@ export default function UsersPage() {
           </div>
           <div className="table-wrap" style={{ marginTop: '1rem' }}>
             {loading ? (
-              <div className="empty-state">Loadingâ€¦</div>
+              <div className="empty-state">Loading…</div>
             ) : visibleCustomers.length === 0 ? (
               <div className="empty-state">No customers yet.</div>
             ) : (
@@ -592,7 +592,7 @@ export default function UsersPage() {
                     <tr key={u.id}>
                       <td>{u.fullName}</td>
                       <td>{u.email}</td>
-                      <td>{u.phone ?? 'â€”'}</td>
+                      <td>{u.phone ?? '—'}</td>
                       <td>
                         <code style={{ fontSize: '0.75rem' }}>
                           {(u.roles ?? []).join(', ')}
@@ -623,7 +623,7 @@ export default function UsersPage() {
                               disabled={deletingId === u.id}
                               onClick={() => void onDeactivate(u.id)}
                             >
-                              {deletingId === u.id ? 'Workingâ€¦' : 'Deactivate'}
+                              {deletingId === u.id ? 'Working…' : 'Deactivate'}
                             </button>
                           ) : (
                             <button
@@ -633,7 +633,7 @@ export default function UsersPage() {
                               disabled={activatingId === u.id}
                               onClick={() => void onActivate(u.id)}
                             >
-                              {activatingId === u.id ? 'Workingâ€¦' : 'Activate'}
+                              {activatingId === u.id ? 'Working…' : 'Activate'}
                             </button>
                           )}
                         </div>

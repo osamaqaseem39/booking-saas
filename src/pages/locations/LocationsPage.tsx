@@ -159,7 +159,7 @@ export default function LocationsPage() {
       <h3 style={{ fontSize: '1rem', marginTop: '1.75rem' }}>All locations</h3>
       <div className="table-wrap">
         {loading ? (
-          <div className="empty-state">Loadingâ€¦</div>
+          <div className="empty-state">Loading…</div>
         ) : filteredRows.length === 0 ? (
           <div className="empty-state">
             No locations match the current filters.
@@ -184,12 +184,12 @@ export default function LocationsPage() {
                   <td>{r.business?.businessName ?? r.businessId}</td>
                   <td>
                     <code style={{ fontSize: '0.7rem' }}>
-                      {r.business?.tenantId?.slice(0, 8) ?? 'â€”'}â€¦
+                      {r.business?.tenantId?.slice(0, 8) ?? '—'}…
                     </code>
                   </td>
                   <td>
                     <code className="location-type-chip">
-                      {r.locationType ?? 'â€”'}
+                      {r.locationType ?? '—'}
                     </code>
                   </td>
                   <td>
@@ -202,13 +202,13 @@ export default function LocationsPage() {
                         ))}
                       </div>
                     ) : (
-                      'â€”'
+                      '—'
                     )}
                   </td>
                   <td>{r.name}</td>
-                  <td>{r.city ?? 'â€”'}</td>
+                  <td>{r.city ?? '—'}</td>
                   <td>
-                    <div>{r.phone ?? 'â€”'}</div>
+                    <div>{r.phone ?? '—'}</div>
                     <span
                       className={`badge ${(r.status ?? '').toLowerCase() === 'active' ? 'badge-confirmed' : 'badge-neutral'}`}
                       style={{ marginTop: '0.3rem' }}
@@ -242,7 +242,7 @@ export default function LocationsPage() {
                         disabled={deletingId === r.id}
                         onClick={() => void onDelete(r.id)}
                       >
-                        {deletingId === r.id ? 'Deletingâ€¦' : 'Delete'}
+                        {deletingId === r.id ? 'Deleting…' : 'Delete'}
                       </button>
                     </div>
                   </td>

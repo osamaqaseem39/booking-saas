@@ -313,7 +313,7 @@ export default function AddFacilityPage() {
     name: string;
   }) {
     const yes = window.confirm(
-      `Delete facility â€œ${row.name}â€? This cannot be undone.`,
+      `Delete facility “${row.name}”? This cannot be undone.`,
     );
     if (!yes) return;
     setDeletingId(row.id);
@@ -411,7 +411,7 @@ export default function AddFacilityPage() {
       {topbarLocationLocked && location ? (
         <p className="muted" style={{ marginTop: '-0.35rem' }}>
           Top bar location filter is active: <strong>{location.name}</strong>
-          {location.city ? ` Â· ${location.city}` : ''}.
+          {location.city ? ` · ${location.city}` : ''}.
         </p>
       ) : null}
       {err && <div className="err-banner">{err}</div>}
@@ -437,7 +437,7 @@ export default function AddFacilityPage() {
               .map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
-                  {l.city ? ` Â· ${l.city}` : ''}
+                  {l.city ? ` · ${l.city}` : ''}
                 </option>
               ))}
           </select>
@@ -447,7 +447,7 @@ export default function AddFacilityPage() {
       {!showLocationPicker && location ? (
         <p className="muted" style={{ marginTop: '0.75rem' }}>
           <strong>{location.name}</strong>
-          {location.city ? ` Â· ${location.city}` : ''}
+          {location.city ? ` · ${location.city}` : ''}
         </p>
       ) : null}
 
@@ -587,7 +587,7 @@ export default function AddFacilityPage() {
 
       <div className="table-wrap">
         {loading ? (
-          <div className="empty-state">Loadingâ€¦</div>
+          <div className="empty-state">Loading…</div>
         ) : filteredFacilities.length === 0 ? (
           <div className="empty-state">None yet</div>
         ) : (
@@ -656,7 +656,7 @@ export default function AddFacilityPage() {
                           }
                           onClick={() => void deleteFacilityRow(row)}
                         >
-                          {deletingId === row.id ? 'Deletingâ€¦' : 'Delete'}
+                          {deletingId === row.id ? 'Deleting…' : 'Delete'}
                         </button>
                         <button
                           type="button"
@@ -756,7 +756,7 @@ export default function AddFacilityPage() {
                 onClick={() => void confirmDuplicateFacility()}
               >
                 {duplicatingId === dupModal.row.id
-                  ? 'Duplicatingâ€¦'
+                  ? 'Duplicating…'
                   : 'Create duplicate'}
               </button>
             </div>

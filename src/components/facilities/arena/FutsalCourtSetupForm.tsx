@@ -215,7 +215,7 @@ export function FutsalCourtSetupForm({
     return <div className="err-banner">{initialLoadError}</div>;
   }
   if (loadingDetail && existingCourtId) {
-    return <div className="empty-state">Loading courtâ€¦</div>;
+    return <div className="empty-state">Loading court…</div>;
   }
 
   const gameSection = (
@@ -228,7 +228,7 @@ export function FutsalCourtSetupForm({
             setFutsalFormat(e.target.value as typeof futsalFormat)
           }
         >
-          <option value="">â€”</option>
+          <option value="">—</option>
           <option value="5v5">5v5</option>
           <option value="6v6">6v6</option>
           <option value="7v7">7v7</option>
@@ -260,7 +260,7 @@ export function FutsalCourtSetupForm({
             setFutsalLineMarkings(e.target.value as typeof futsalLineMarkings)
           }
         >
-          <option value="">â€”</option>
+          <option value="">—</option>
           <option value="permanent">Permanent</option>
           <option value="temporary">Temporary</option>
         </select>
@@ -304,7 +304,7 @@ export function FutsalCourtSetupForm({
                   value={selectedCricketTwinId}
                   onChange={(e) => setSelectedCricketTwinId(e.target.value)}
                 >
-                  <option value="">Select cricket pitchâ€¦</option>
+                  <option value="">Select cricket pitch…</option>
                   {cricketTwinOptions.map((row) => (
                     <option key={row.id} value={row.id}>
                       {row.name}
@@ -326,7 +326,7 @@ export function FutsalCourtSetupForm({
             disabled={saving || !shared.name.trim()}
           >
             {saving
-              ? 'Savingâ€¦'
+              ? 'Saving…'
               : existingCourtId
                 ? 'Save changes'
                 : 'Create futsal pitch'}

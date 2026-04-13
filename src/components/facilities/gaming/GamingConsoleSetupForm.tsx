@@ -187,7 +187,7 @@ export function GamingConsoleSetupForm({
     return <div className="err-banner">{loadErr}</div>;
   }
   if (loading && existingStationId) {
-    return <div className="empty-state">Loading stationâ€¦</div>;
+    return <div className="empty-state">Loading station…</div>;
   }
 
   return (
@@ -237,7 +237,7 @@ export function GamingConsoleSetupForm({
 
         <div className="turf-setup-form-actions">
           <button type="submit" className="btn-primary btn-primary-lg" disabled={saving}>
-            {saving ? 'Savingâ€¦' : existingStationId ? 'Save changes' : `Create ${title} station`}
+            {saving ? 'Saving…' : existingStationId ? 'Save changes' : `Create ${title} station`}
           </button>
         </div>
       </form>

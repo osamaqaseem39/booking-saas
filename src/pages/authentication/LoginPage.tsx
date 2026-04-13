@@ -119,7 +119,7 @@ export default function LoginPage() {
               className="btn-primary"
               disabled={loading || !email.trim() || !password.trim()}
             >
-              {loading ? 'Signing inâ€¦' : 'Continue'}
+              {loading ? 'Signing in…' : 'Continue'}
             </button>
           </div>
           {showOwnerSignupLink && (

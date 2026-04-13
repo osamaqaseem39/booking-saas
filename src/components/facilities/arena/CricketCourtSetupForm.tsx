@@ -218,7 +218,7 @@ export function CricketCourtSetupForm({
     return <div className="err-banner">{initialLoadError}</div>;
   }
   if (loadingDetail && existingCourtId) {
-    return <div className="empty-state">Loading courtâ€¦</div>;
+    return <div className="empty-state">Loading court…</div>;
   }
 
   const gameSection = (
@@ -231,7 +231,7 @@ export function CricketCourtSetupForm({
             setCricketFormat(e.target.value as typeof cricketFormat)
           }
         >
-          <option value="">â€”</option>
+          <option value="">—</option>
           <option value="tape_ball">Tape ball</option>
           <option value="tennis_ball">Tennis ball</option>
           <option value="hard_ball">Hard ball</option>
@@ -267,7 +267,7 @@ export function CricketCourtSetupForm({
             )
           }
         >
-          <option value="">â€”</option>
+          <option value="">—</option>
           <option value="full_ground">Full ground</option>
           <option value="nets_mode">Nets mode</option>
         </select>
@@ -311,7 +311,7 @@ export function CricketCourtSetupForm({
                   value={selectedFutsalTwinId}
                   onChange={(e) => setSelectedFutsalTwinId(e.target.value)}
                 >
-                  <option value="">Select futsal pitchâ€¦</option>
+                  <option value="">Select futsal pitch…</option>
                   {futsalTwinOptions.map((row) => (
                     <option key={row.id} value={row.id}>
                       {row.name}
@@ -333,7 +333,7 @@ export function CricketCourtSetupForm({
             disabled={saving || !shared.name.trim()}
           >
             {saving
-              ? 'Savingâ€¦'
+              ? 'Saving…'
               : existingCourtId
                 ? 'Save changes'
                 : 'Create cricket pitch'}

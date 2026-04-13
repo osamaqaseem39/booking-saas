@@ -102,7 +102,7 @@ export default function OnboardPage() {
     return (
       <div>
         <h1 className="page-title">Onboard business</h1>
-        <p className="muted">Checking whether onboarding is already completedâ€¦</p>
+        <p className="muted">Checking whether onboarding is already completed…</p>
       </div>
     );
   }
@@ -238,7 +238,7 @@ export default function OnboardPage() {
           className="btn-primary"
           disabled={busy}
         >
-          {busy ? 'Submittingâ€¦' : 'Onboard'}
+          {busy ? 'Submitting…' : 'Onboard'}
         </button>
       </form>
     </div>

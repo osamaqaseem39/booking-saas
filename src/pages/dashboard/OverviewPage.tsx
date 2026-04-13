@@ -105,7 +105,7 @@ function bookingSourceFromRecord(booking: BookingRecord): BookingSource {
 
 function sortArrow(active: boolean, asc: boolean): string {
   if (!active) return '';
-  return asc ? ' â†‘' : ' â†“';
+  return asc ? ' ↑' : ' ↓';
 }
 
 type OwnerTenantSortColumn =
@@ -136,10 +136,10 @@ export default function OverviewPage() {
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
   const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
-  /** Single-tenant KPI dashboard (not platform owners â€” they see platform-wide overview below). */
+  /** Single-tenant KPI dashboard (not platform owners — they see platform-wide overview below). */
   const showTenantDashboard = isBusinessUser && !isPlatformOwner;
 
-  // â”€â”€ Platform-wide overview (platform owners only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Platform-wide overview (platform owners only) ────────────────────────
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [ownerLocations, setOwnerLocations] = useState<BusinessLocationRow[]>([]);
   const [bookingsByTenant, setBookingsByTenant] = useState<Record<string, BookingRecord[]>>({});
@@ -155,7 +155,7 @@ export default function OverviewPage() {
     useState<OwnerTenantSortColumn>('bookings');
   const [ownerTenantSortDir, setOwnerTenantSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // â”€â”€ Tenant-scoped dashboard (business staff / admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Tenant-scoped dashboard (business staff / admin only) ───────────────
   const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
   const [tenantBookings, setTenantBookings] = useState<BookingRecord[]>([]);
   const [tenantInvoices, setTenantInvoices] = useState<InvoiceRow[]>([]);
@@ -349,7 +349,7 @@ export default function OverviewPage() {
     invoiceStatus,
   ]);
 
-  // â”€â”€ Computed (tenant-scoped charts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Computed (tenant-scoped charts) ───────────────────────────────────────
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const yesterdayStr = useMemo(() => {
     const d = new Date();
@@ -643,7 +643,7 @@ export default function OverviewPage() {
     return rows;
   }, [filteredBookings, bizListSort]);
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="overview-page">
       <div className="page-head-row" style={{ marginBottom: '0.9rem' }}>
@@ -668,13 +668,13 @@ export default function OverviewPage() {
         </p>
       )}
 
-      {/* â”€â”€ Platform-wide dashboard (platform owners) â”€â”€ */}
+      {/* ── Platform-wide dashboard (platform owners) ── */}
       {isPlatformOwner && (
         <div className="overview-content">
           <h2 className="overview-subtitle">All-tenant activity</h2>
           {ownerError && <div className="err-banner">{ownerError}</div>}
           {ownerLoading ? (
-            <p className="muted">Loading all tenants and activityâ€¦</p>
+            <p className="muted">Loading all tenants and activity…</p>
           ) : (
             <>
               <div className="overview-filter-card connection-panel overview-panel">
@@ -783,23 +783,23 @@ export default function OverviewPage() {
                 <div className="overview-metric-card">
                   <span className="overview-metric-label">Total customers</span>
                   <strong className="overview-metric-value">
-                    {ownerCustomerCount === null ? 'â€”' : ownerCustomerCount}
+                    {ownerCustomerCount === null ? '—' : ownerCustomerCount}
                   </strong>
-                  <span className="overview-metric-hint muted">Platform-wide Â· customer role</span>
+                  <span className="overview-metric-hint muted">Platform-wide · customer role</span>
                 </div>
                 <div className="overview-metric-card">
                   <span className="overview-metric-label">Booking revenue</span>
                   <strong className="overview-metric-value">
                     {fmtCurrency(ownerMoneyTotals.bookingRevenue, 'PKR')}
                   </strong>
-                  <span className="overview-metric-hint muted">Sum of booking totals Â· matches filters</span>
+                  <span className="overview-metric-hint muted">Sum of booking totals · matches filters</span>
                 </div>
                 <div className="overview-metric-card">
                   <span className="overview-metric-label">Invoiced amount</span>
                   <strong className="overview-metric-value">
                     {fmtCurrency(ownerMoneyTotals.invoiceRevenue, 'PKR')}
                   </strong>
-                  <span className="overview-metric-hint muted">Sum of invoices Â· matches status filter</span>
+                  <span className="overview-metric-hint muted">Sum of invoices · matches status filter</span>
                 </div>
               </div>
 
@@ -853,7 +853,7 @@ export default function OverviewPage() {
                                 {label}
                                 {active ? (
                                   <span className="data-sort-btn__arrow" aria-hidden>
-                                    {ownerTenantSortDir === 'asc' ? 'â†‘' : 'â†“'}
+                                    {ownerTenantSortDir === 'asc' ? '↑' : '↓'}
                                   </span>
                                 ) : null}
                               </button>
@@ -906,7 +906,7 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* â”€â”€ Tenant-scoped dashboard (business admin / staff, not platform owner) â”€â”€ */}
+      {/* ── Tenant-scoped dashboard (business admin / staff, not platform owner) ── */}
       {showTenantDashboard && (
         <div className="overview-content">
           <h2 className="overview-subtitle">{activeLocationName}</h2>
@@ -914,7 +914,7 @@ export default function OverviewPage() {
           {tenantError && <div className="err-banner">{tenantError}</div>}
 
           {tenantLoading ? (
-            <p className="muted">Loading dashboardâ€¦</p>
+            <p className="muted">Loading dashboard…</p>
           ) : (
             <>
               {/* KPI cards */}
@@ -995,7 +995,7 @@ export default function OverviewPage() {
                     {fmtCurrency(bizRollup.totalBookingValue, bizRollup.currency)}
                   </strong>
                   <span className="biz-kpi-trend biz-kpi-trend--flat">
-                    Sum of booking totals Â· current location scope
+                    Sum of booking totals · current location scope
                   </span>
                 </div>
                 <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
@@ -1144,10 +1144,10 @@ export default function OverviewPage() {
                             key={bk.bookingId}
                             onClick={() => navigate(`/app/bookings/${bk.bookingId}/edit`)}
                           >
-                            <td>{bk.bookingDate?.slice(0, 10) ?? 'â€”'}</td>
+                            <td>{bk.bookingDate?.slice(0, 10) ?? '—'}</td>
                             <td>{titleCase(bk.sportType ?? '')}</td>
                             <td className="muted" style={{ fontSize: '0.82rem' }}>
-                              {loc?.name ?? bk.arenaId?.slice(0, 8) ?? 'â€”'}
+                              {loc?.name ?? bk.arenaId?.slice(0, 8) ?? '—'}
                             </td>
                             <td>
                               <strong>
@@ -1180,7 +1180,7 @@ export default function OverviewPage() {
                   Booking insights charts
                 </h3>
                 <p className="muted" style={{ marginTop: 0 }}>
-                  Sport, location type, and booking-from (walk-in / app / call), plus last 7 days trends â€”
+                  Sport, location type, and booking-from (walk-in / app / call), plus last 7 days trends —
                   all respect the booking list filters above.
                 </p>
                 <div className="overview-chart-grid">
@@ -1272,7 +1272,7 @@ export default function OverviewPage() {
                   <article className="overview-chart-card">
                     <h4>Bookings by location type</h4>
                     <p className="muted" style={{ margin: '0 0 0.5rem', fontSize: '0.76rem' }}>
-                      Uses each location&apos;s type (arena, gaming zone, â€¦). Bookings without a matching
+                      Uses each location&apos;s type (arena, gaming zone, …). Bookings without a matching
                       location count as Unknown.
                     </p>
                     <div className="overview-source-bars">
@@ -1356,7 +1356,7 @@ export default function OverviewPage() {
                   <article className="overview-chart-card">
                     <h4>Booking from</h4>
                     <p className="muted" style={{ margin: '0 0 0.5rem', fontSize: '0.76rem' }}>
-                      Walk-in, app, or call â€” parsed from booking notes when the booking was created.
+                      Walk-in, app, or call — parsed from booking notes when the booking was created.
                     </p>
                     <div className="overview-source-bars">
                       {sourceChartStats.map((row) => (
@@ -1412,14 +1412,14 @@ export default function OverviewPage() {
 
               <div className="connection-panel overview-panel biz-source-panel">
                 <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
-                  Booking from â€” this month vs last month
+                  Booking from — this month vs last month
                 </h3>
                 <div className="biz-source-grid">
                   {sourceStats.map((row) => (
                     <div key={row.source} className="biz-source-card">
                       <strong>{bookingFromLabel(row.source)}</strong>
                       <span className="muted">
-                        {row.current} this month Â· {row.previous} last month
+                        {row.current} this month · {row.previous} last month
                       </span>
                       <span className={`biz-kpi-trend biz-kpi-trend--${row.trend.tone}`}>
                         {row.trend.sign}

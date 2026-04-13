@@ -81,7 +81,7 @@ export function ArenaCourtSharedTurfSections({
               rows={3}
               value={shared.imageLines}
               onChange={(e) => patch({ imageLines: e.target.value })}
-              placeholder="https://â€¦"
+              placeholder="https://…"
             />
           </div>
         </div>
@@ -126,7 +126,7 @@ export function ArenaCourtSharedTurfSections({
                 })
               }
             >
-              <option value="">â€”</option>
+              <option value="">—</option>
               <option value="open">Open</option>
               <option value="semi_covered">Semi-covered</option>
               <option value="fully_indoor">Fully indoor</option>
@@ -160,7 +160,7 @@ export function ArenaCourtSharedTurfSections({
                 })
               }
             >
-              <option value="">â€”</option>
+              <option value="">—</option>
               <option value="net">Net</option>
               <option value="wall">Wall</option>
             </select>
@@ -206,7 +206,7 @@ export function ArenaCourtSharedTurfSections({
                 })
               }
             >
-              <option value="">â€”</option>
+              <option value="">—</option>
               <option value="led_floodlights">LED floodlights</option>
               <option value="mixed">Mixed</option>
               <option value="daylight">Daylight</option>
@@ -252,7 +252,7 @@ export function ArenaCourtSharedTurfSections({
                 })
               }
             >
-              <option value="">â€”</option>
+              <option value="">—</option>
               <option value="artificial_turf">Artificial turf</option>
               <option value="hard_surface">Hard surface</option>
             </select>
@@ -299,7 +299,7 @@ export function ArenaCourtSharedTurfSections({
           </div>
           <div className="form-row-2">
             <div>
-              <label>Peak â€” weekday evening</label>
+              <label>Peak — weekday evening</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -310,7 +310,7 @@ export function ArenaCourtSharedTurfSections({
               />
             </div>
             <div>
-              <label>Peak â€” weekend</label>
+              <label>Peak — weekend</label>
               <input
                 type="text"
                 inputMode="decimal"

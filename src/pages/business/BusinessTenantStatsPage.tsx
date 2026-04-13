@@ -147,7 +147,7 @@ function aggregateInvoices(invoices: InvoiceRow[]) {
 }
 
 function toProperCase(value?: string | null): string {
-  if (!value) return 'â€”';
+  if (!value) return '—';
   return value
     .replace(/[_-]+/g, ' ')
     .trim()
@@ -304,7 +304,7 @@ export default function BusinessTenantStatsPage() {
       {err && <div className="err-banner">{err}</div>}
 
       {loading ? (
-        <div className="empty-state">Loading businessâ€¦</div>
+        <div className="empty-state">Loading business…</div>
       ) : (
         <>
           <div className="biz-location-bar" role="tablist" aria-label="Business detail sections">
@@ -335,7 +335,7 @@ export default function BusinessTenantStatsPage() {
               <div className="business-profile-item">
                 <span className="business-profile-item__label">Legal name</span>
                 <strong className="business-profile-item__value">
-                  {business?.legalName?.trim() || 'â€”'}
+                  {business?.legalName?.trim() || '—'}
                 </strong>
               </div>
               <div className="business-profile-item">
@@ -347,7 +347,7 @@ export default function BusinessTenantStatsPage() {
               <div className="business-profile-item">
                 <span className="business-profile-item__label">Tenant ID</span>
                 <strong className="business-profile-item__value business-profile-item__value--code">
-                  <code>{business?.tenantId ?? 'â€”'}</code>
+                  <code>{business?.tenantId ?? '—'}</code>
                 </strong>
               </div>
               <div className="business-profile-item">
@@ -355,7 +355,7 @@ export default function BusinessTenantStatsPage() {
                 <strong className="business-profile-item__value">
                   {business?.createdAt
                     ? new Date(business.createdAt).toLocaleString()
-                    : 'â€”'}
+                    : '—'}
                 </strong>
               </div>
               <div className="business-profile-item">
@@ -363,7 +363,7 @@ export default function BusinessTenantStatsPage() {
                 <strong className="business-profile-item__value">
                   {business?.sportsOffered?.length
                     ? business.sportsOffered.map(toProperCase).join(', ')
-                    : 'â€”'}
+                    : '—'}
                 </strong>
               </div>
               <div className="business-profile-item business-profile-item--wide">
@@ -376,8 +376,8 @@ export default function BusinessTenantStatsPage() {
                         business.owner?.phone,
                       ]
                         .filter(Boolean)
-                        .join(' Â· ')
-                    : 'â€”'}
+                        .join(' · ')
+                    : '—'}
                 </strong>
               </div>
               <div className="business-profile-item business-profile-item--wide">
@@ -390,8 +390,8 @@ export default function BusinessTenantStatsPage() {
                         business.subscription.billingCycle,
                       ]
                         .filter(Boolean)
-                        .join(' Â· ') || 'â€”'
-                    : 'â€”'}
+                        .join(' · ') || '—'
+                    : '—'}
                 </strong>
               </div>
               <div className="business-profile-item business-profile-item--wide">
@@ -410,8 +410,8 @@ export default function BusinessTenantStatsPage() {
                           : null,
                       ]
                         .filter(Boolean)
-                        .join(' Â· ') || 'â€”'
-                    : 'â€”'}
+                        .join(' · ') || '—'
+                    : '—'}
                 </strong>
               </div>
             </div>
@@ -742,9 +742,9 @@ export default function BusinessTenantStatsPage() {
                   {businessLocations.map((loc) => (
                     <article key={loc.id} className="overview-metric-card">
                       <span className="overview-metric-label">{loc.name}</span>
-                      <strong className="overview-metric-value">{loc.city ?? 'â€”'}</strong>
+                      <strong className="overview-metric-value">{loc.city ?? '—'}</strong>
                       <span className="overview-metric-hint muted">
-                        {toProperCase(loc.locationType)} Â· {loc.facilityCourts?.length ?? 0} facilities
+                        {toProperCase(loc.locationType)} · {loc.facilityCourts?.length ?? 0} facilities
                       </span>
                       <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
                         <Link to={`/app/locations/${loc.id}`} className="action-link">

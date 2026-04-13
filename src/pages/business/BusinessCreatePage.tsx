@@ -250,7 +250,7 @@ export default function BusinessCreatePage() {
         </div>
 
         <button type="submit" className="btn-primary" disabled={busy}>
-          {busy ? 'Creatingâ€¦' : 'Create business'}
+          {busy ? 'Creating…' : 'Create business'}
         </button>
       </form>
     </div>

@@ -126,7 +126,7 @@ export default function BusinessEditPage() {
       </div>
       {err && <div className="err-banner">{err}</div>}
       {loading ? (
-        <div className="empty-state">Loadingâ€¦</div>
+        <div className="empty-state">Loading…</div>
       ) : !business ? (
         <div className="empty-state">Business not found.</div>
       ) : (
@@ -225,10 +225,10 @@ export default function BusinessEditPage() {
               disabled={saving || !businessName.trim()}
               onClick={() => void onSave()}
             >
-              {saving ? 'Savingâ€¦' : 'Save changes'}
+              {saving ? 'Saving…' : 'Save changes'}
             </button>
             <button type="button" className="btn-danger" disabled={deleting} onClick={() => void onDelete()}>
-              {deleting ? 'Deletingâ€¦' : 'Delete business'}
+              {deleting ? 'Deleting…' : 'Delete business'}
             </button>
           </div>
         </div>

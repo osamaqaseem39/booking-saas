@@ -231,7 +231,7 @@ export default function BookingsPage() {
         );
         const map: Record<string, string> = {};
         for (const row of rows) {
-          map[row.id] = row.label.split('â€”').slice(1).join('â€”').trim() || row.label;
+          map[row.id] = row.label.split('—').slice(1).join('—').trim() || row.label;
         }
         setCourtsMap(map);
       } catch {
@@ -336,7 +336,7 @@ export default function BookingsPage() {
       )}
       <div className="toolbar">
         <span className="muted">
-          {loading ? 'Loadingâ€¦' : `${filteredBookings.length} booking(s)`}
+          {loading ? 'Loading…' : `${filteredBookings.length} booking(s)`}
         </span>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="button" className="btn-ghost" onClick={() => void refresh()} disabled={loading}>
@@ -539,7 +539,7 @@ export default function BookingsPage() {
                 onClick={() => void checkAvailability()}
                 disabled={availabilityLoading}
               >
-                {availabilityLoading ? 'Checkingâ€¦' : 'Check availability'}
+                {availabilityLoading ? 'Checking…' : 'Check availability'}
               </button>
               {availability && (
                 <span className="muted">
@@ -564,7 +564,7 @@ export default function BookingsPage() {
                           <div className="muted">
                             {court.pricePerSlot.toFixed(2)} per slot
                             {court.slotDurationMinutes != null
-                              ? ` Â· ${court.slotDurationMinutes} min slot`
+                              ? ` · ${court.slotDurationMinutes} min slot`
                               : ''}
                           </div>
                         ) : null}
@@ -585,7 +585,7 @@ export default function BookingsPage() {
             {courtSlots && (
               <div className="detail-section">
                 <h4>
-                  Booked slots ({courtSlots.kind}) {courtSlotsLoading ? 'â€¦' : ''}
+                  Booked slots ({courtSlots.kind}) {courtSlotsLoading ? '…' : ''}
                 </h4>
                 {courtSlots.slots.length === 0 ? (
                   <div className="empty-state">No booked slots on selected date.</div>
@@ -599,7 +599,7 @@ export default function BookingsPage() {
                           </strong>
                         </div>
                         <div className="muted">
-                          {slot.status} Â· booking {slot.bookingId.slice(0, 8)}
+                          {slot.status} · booking {slot.bookingId.slice(0, 8)}
                         </div>
                       </li>
                     ))}
@@ -745,7 +745,7 @@ export default function BookingsPage() {
                         <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
                       </div>
                       <div className="muted">
-                        {formatTimeRange12h(it.startTime, it.endTime)} Â· {it.price} PKR{' '}
+                        {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
                         <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
                       </div>
                       <button

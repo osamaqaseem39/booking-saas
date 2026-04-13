@@ -117,11 +117,11 @@ export default function BillingPage() {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td>
-                    <code style={{ fontSize: '0.7rem' }}>{r.id.slice(0, 8)}â€¦</code>
+                    <code style={{ fontSize: '0.7rem' }}>{r.id.slice(0, 8)}…</code>
                   </td>
                   <td>
                     <code style={{ fontSize: '0.7rem' }}>
-                      {r.bookingId.slice(0, 8)}â€¦
+                      {r.bookingId.slice(0, 8)}…
                     </code>
                   </td>
                   <td>
@@ -152,7 +152,7 @@ export default function BillingPage() {
           </div>
           <div className="detail-row">
             <span>Booking ID</span>
-            <span>{rows.find((r) => r.id === selectedId)?.bookingId ?? 'â€”'}</span>
+            <span>{rows.find((r) => r.id === selectedId)?.bookingId ?? '—'}</span>
           </div>
         </div>
       )}

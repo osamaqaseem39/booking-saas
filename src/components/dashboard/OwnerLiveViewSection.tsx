@@ -120,7 +120,7 @@ export default function OwnerLiveViewSection() {
       </div>
 
       {error && <div className="err-banner">{error}</div>}
-      {loading && <div className="empty-state">Loading live dashboardâ€¦</div>}
+      {loading && <div className="empty-state">Loading live dashboard…</div>}
 
       {!loading && dashboard && (
         <>

@@ -299,7 +299,7 @@ export default function LocationEditPage() {
       </div>
       {err && <div className="err-banner">{err}</div>}
       {loading ? (
-        <div className="empty-state">Loadingâ€¦</div>
+        <div className="empty-state">Loading…</div>
       ) : !location ? (
         <div className="empty-state">Location not found.</div>
       ) : (
@@ -345,7 +345,7 @@ export default function LocationEditPage() {
                           {o.label}
                         </option>
                       ))}
-                      <option value="custom">Customâ€¦</option>
+                      <option value="custom">Custom…</option>
                     </select>
                   </div>
                 ) : (
@@ -417,7 +417,7 @@ export default function LocationEditPage() {
                     required
                     disabled={!country}
                   >
-                    <option value="">Selectâ€¦</option>
+                    <option value="">Select…</option>
                     {stateOptions.map((s) => (
                       <option key={s} value={s}>
                         {s}
@@ -433,7 +433,7 @@ export default function LocationEditPage() {
                     required
                     disabled={!stateProvince}
                   >
-                    <option value="">Selectâ€¦</option>
+                    <option value="">Select…</option>
                     {cityOptions.map((c) => (
                       <option key={c} value={c}>
                         {c}
@@ -450,7 +450,7 @@ export default function LocationEditPage() {
                     onChange={(e) => onCountryChange(e.target.value)}
                     required
                   >
-                    <option value="">Selectâ€¦</option>
+                    <option value="">Select…</option>
                     {countryOptions.map((c) => (
                       <option key={c} value={c}>
                         {c}
@@ -466,7 +466,7 @@ export default function LocationEditPage() {
                     required
                     disabled={!city}
                   >
-                    <option value="">Selectâ€¦</option>
+                    <option value="">Select…</option>
                     {areaOptions.map((a) => (
                       <option key={a} value={a}>
                         {a}
@@ -491,7 +491,7 @@ export default function LocationEditPage() {
                   onChange={(e) => setDetails(e.target.value)}
                   maxLength={10000}
                   rows={4}
-                  placeholder="Description, amenities, parking, dress codeâ€¦"
+                  placeholder="Description, amenities, parking, dress code…"
                   style={{ width: '100%', resize: 'vertical' }}
                 />
               </div>
@@ -645,7 +645,7 @@ export default function LocationEditPage() {
                   (locationType === 'custom' && !customType.trim())
                 }
               >
-                {busy ? 'Savingâ€¦' : 'Save changes'}
+                {busy ? 'Saving…' : 'Save changes'}
               </button>
               <button
                 type="button"
@@ -653,7 +653,7 @@ export default function LocationEditPage() {
                 disabled={deleting}
                 onClick={() => void onDelete()}
               >
-                {deleting ? 'Deletingâ€¦' : 'Delete location'}
+                {deleting ? 'Deleting…' : 'Delete location'}
               </button>
             </div>
           </form>

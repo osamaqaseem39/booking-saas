@@ -181,7 +181,7 @@ export function GamingVrSetupForm({
     return <div className="err-banner">{loadErr}</div>;
   }
   if (loading && existingStationId) {
-    return <div className="empty-state">Loading stationâ€¦</div>;
+    return <div className="empty-state">Loading station…</div>;
   }
 
   return (
@@ -227,7 +227,7 @@ export function GamingVrSetupForm({
                 rows={2}
                 value={hygieneNotes}
                 onChange={(e) => setHygieneNotes(e.target.value)}
-                placeholder="Disposable covers, UV cabinet, staff wipe-downâ€¦"
+                placeholder="Disposable covers, UV cabinet, staff wipe-down…"
               />
             </div>
           </div>
@@ -235,7 +235,7 @@ export function GamingVrSetupForm({
 
         <div className="turf-setup-form-actions">
           <button type="submit" className="btn-primary btn-primary-lg" disabled={saving}>
-            {saving ? 'Savingâ€¦' : existingStationId ? 'Save changes' : 'Create VR station'}
+            {saving ? 'Saving…' : existingStationId ? 'Save changes' : 'Create VR station'}
           </button>
         </div>
       </form>

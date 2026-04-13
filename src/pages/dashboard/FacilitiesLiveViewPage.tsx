@@ -121,7 +121,7 @@ export default function FacilitiesLiveViewPage() {
   const [quickPriceLoading, setQuickPriceLoading] = useState(false);
   const [quickBookingSubmitting, setQuickBookingSubmitting] = useState(false);
   const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
-  /** Recompute on-screen â€œnowâ€ without waiting for the next API poll */
+  /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => setClock((c) => c + 1), 15000);
@@ -510,7 +510,7 @@ export default function FacilitiesLiveViewPage() {
       </div>
 
       {loading ? (
-        <div className="empty-state">Loading facilitiesâ€¦</div>
+        <div className="empty-state">Loading facilities…</div>
       ) : (
         <div className="facilities-live-grid">
           {filteredFacilities.map((facility) => {
@@ -573,7 +573,7 @@ export default function FacilitiesLiveViewPage() {
                     <h2 className="facilities-live-box__title">{facility.name}</h2>
                     <p className="facilities-live-box__subtitle">
                       {typeLabel(facility.type)}
-                      {location?.name ? ` Â· ${location.name}` : ''}
+                      {location?.name ? ` · ${location.name}` : ''}
                     </p>
                   </div>
                   {v === 'live' && (
@@ -589,8 +589,8 @@ export default function FacilitiesLiveViewPage() {
                 </div>
 
                 <p className="facilities-live-box__biz muted">
-                  {business?.businessName ?? 'â€”'}
-                  {location?.city ? ` Â· ${location.city}` : ''}
+                  {business?.businessName ?? '—'}
+                  {location?.city ? ` · ${location.city}` : ''}
                 </p>
 
                 <div className="facilities-live-box__stats">
@@ -602,7 +602,7 @@ export default function FacilitiesLiveViewPage() {
                           <span className="facilities-live-box__emph">{snap.ongoing.label}</span>
                           <span className="muted facilities-live-box__stat-meta">
                             {' '}
-                            Â· {snap.ongoing.booking.bookingStatus}
+                            · {snap.ongoing.booking.bookingStatus}
                           </span>
                         </>
                       ) : v === 'inactive' ? (
@@ -618,20 +618,20 @@ export default function FacilitiesLiveViewPage() {
                       {snap?.next ? (
                         <span>{snap.next.label}</span>
                       ) : (
-                        <span className="muted">â€”</span>
+                        <span className="muted">—</span>
                       )}
                     </span>
                   </div>
                   <div className="facilities-live-box__stat">
                     <span className="facilities-live-box__stat-label">Booked today</span>
                     <span className="facilities-live-box__stat-value">
-                      {snap ? `${snap.hoursBookedToday} h` : 'â€”'}
+                      {snap ? `${snap.hoursBookedToday} h` : '—'}
                     </span>
                   </div>
                   <div className="facilities-live-box__stat">
                     <span className="facilities-live-box__stat-label">Last 7 days</span>
                     <span className="facilities-live-box__stat-value">
-                      {snap ? `${snap.hoursBookedWeek} h` : 'â€”'}
+                      {snap ? `${snap.hoursBookedWeek} h` : '—'}
                     </span>
                   </div>
                 </div>
@@ -674,7 +674,7 @@ export default function FacilitiesLiveViewPage() {
               {quickBookingError && <div className="err-banner">{quickBookingError}</div>}
               <div className="detail-row">
                 <span>Location</span>
-                <span>{quickBooking.location?.name ?? 'â€”'}</span>
+                <span>{quickBooking.location?.name ?? '—'}</span>
               </div>
               <div className="detail-row">
                 <span>Facility</span>

@@ -89,7 +89,7 @@ export default function FacilityEditPage() {
   }
 
   if (facilityCode === 'futsal-field' || facilityCode === 'cricket-indoor') {
-    return <p className="muted">Redirectingâ€¦</p>;
+    return <p className="muted">Redirecting…</p>;
   }
 
   if (!EDITABLE_CODES.has(facilityCode)) {
@@ -97,7 +97,7 @@ export default function FacilityEditPage() {
       <div>
         <div className="page-toolbar-row">
           <Link to="/app/Facilites" className="btn-ghost btn-compact">
-            â† Facilities
+            ← Facilities
           </Link>
         </div>
         <div className="err-banner">Unknown facility type.</div>
@@ -109,16 +109,16 @@ export default function FacilityEditPage() {
     <div>
       <div className="page-toolbar-row">
         <Link to="/app/locations" className="btn-ghost btn-compact">
-          â† Locations
+          ← Locations
         </Link>
         <Link to="/app/Facilites" className="btn-ghost btn-compact">
-          â† Facilities
+          ← Facilities
         </Link>
       </div>
       <h1 className="page-title">Edit facility</h1>
       {loadErr && <div className="err-banner">{loadErr}</div>}
       {!locationsLoadDone && !loadErr ? (
-        <p className="muted">Loading locationâ€¦</p>
+        <p className="muted">Loading location…</p>
       ) : locationsLoadDone && !location && !loadErr ? (
         <div className="err-banner">
           Location not found or not visible for your user.
@@ -126,7 +126,7 @@ export default function FacilityEditPage() {
       ) : location ? (
         <p className="muted">
           Location: <strong>{location.name}</strong>
-          {location.city ? ` Â· ${location.city}` : ''}
+          {location.city ? ` · ${location.city}` : ''}
         </p>
       ) : null}
 

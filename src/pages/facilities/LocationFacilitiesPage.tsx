@@ -57,7 +57,7 @@ function FacilitiesTableBlock({
 
   async function removeRow(r: NamedCourt) {
     const yes = window.confirm(
-      `Delete facility â€œ${r.name}â€? This cannot be undone.`,
+      `Delete facility “${r.name}”? This cannot be undone.`,
     );
     if (!yes) return;
     setDeletingId(r.id);
@@ -115,7 +115,7 @@ function FacilitiesTableBlock({
                         disabled={deletingId === r.id}
                         onClick={() => void removeRow(r)}
                       >
-                        {deletingId === r.id ? 'Deletingâ€¦' : 'Delete'}
+                        {deletingId === r.id ? 'Deleting…' : 'Delete'}
                       </button>
                     </div>
                   </td>
@@ -248,15 +248,15 @@ export default function LocationFacilitiesPage() {
     <div>
       <div className="page-toolbar-row">
         <Link to="/app/locations" className="btn-ghost btn-compact">
-          â† Locations
+          ← Locations
         </Link>
         <Link to="/app/add-facility" className="btn-ghost btn-compact">
-          â† Main facility page
+          ← Main facility page
         </Link>
       </div>
       <h1 className="page-title">Location facilities</h1>
       {loading ? (
-        <div className="empty-state">Loadingâ€¦</div>
+        <div className="empty-state">Loading…</div>
       ) : !location ? (
         <div className="err-banner">
           Location not found or not visible for your user.
@@ -265,9 +265,9 @@ export default function LocationFacilitiesPage() {
         <>
           <p className="muted">
             <strong>{location.name}</strong>
-            {location.city ? ` Â· ${location.city}` : ''}. Configure concrete
+            {location.city ? ` · ${location.city}` : ''}. Configure concrete
             courts here; each facility type uses the matching API setup
-            shape (minimal forms below â€” extend via API as needed).
+            shape (minimal forms below — extend via API as needed).
           </p>
           {err && <div className="err-banner">{err}</div>}
 
@@ -297,7 +297,7 @@ export default function LocationFacilitiesPage() {
                   type="button"
                   className="btn-primary"
                   disabled
-                  title="Enable this facility type on the location first (Locations â†’ Edit â†’ facility types)."
+                  title="Enable this facility type on the location first (Locations → Edit → facility types)."
                 >
                   {o.label}
                 </button>
@@ -387,7 +387,7 @@ export default function LocationFacilitiesPage() {
                         onClick={() => void linkSharedTurf()}
                         disabled={!selectedFutsalId || !selectedCricketId || linking}
                       >
-                        {linking ? 'Linkingâ€¦' : 'Link as one field'}
+                        {linking ? 'Linking…' : 'Link as one field'}
                       </button>
                     </div>
                   </div>
@@ -410,12 +410,12 @@ export default function LocationFacilitiesPage() {
                       >
                         {futsalCourts.map((c) => (
                           <option key={`f:${c.id}`} value={`futsal_court:${c.id}`}>
-                            Futsal â€” {c.name}
+                            Futsal — {c.name}
                           </option>
                         ))}
                         {cricketCourts.map((c) => (
                           <option key={`c:${c.id}`} value={`cricket_court:${c.id}`}>
-                            Cricket â€” {c.name}
+                            Cricket — {c.name}
                           </option>
                         ))}
                       </select>
@@ -427,7 +427,7 @@ export default function LocationFacilitiesPage() {
                         onClick={() => void unlinkSharedTurf()}
                         disabled={!unlinkTarget || unlinking}
                       >
-                        {unlinking ? 'Unlinkingâ€¦' : 'Remove link'}
+                        {unlinking ? 'Unlinking…' : 'Remove link'}
                       </button>
                     </div>
                   </div>

@@ -85,7 +85,7 @@ export default function BusinessesPage() {
   }
 
   function toProperCase(value?: string | null): string {
-    if (!value) return 'â€”';
+    if (!value) return '—';
     return value
       .replace(/[_-]+/g, ' ')
       .trim()
@@ -186,7 +186,7 @@ export default function BusinessesPage() {
             facilityStats.set(key, {
               facilityName: facility.name,
               locationName: loc.name,
-              businessName: businessNameById.get(loc.businessId) ?? 'â€”',
+              businessName: businessNameById.get(loc.businessId) ?? '—',
               bookings: 0,
             });
           }
@@ -206,7 +206,7 @@ export default function BusinessesPage() {
             facilityStats.set(key, {
               facilityName: item.courtId.slice(0, 8),
               locationName: loc.name,
-              businessName: businessNameById.get(loc.businessId) ?? 'â€”',
+              businessName: businessNameById.get(loc.businessId) ?? '—',
               bookings: 1,
             });
           }
@@ -289,7 +289,7 @@ export default function BusinessesPage() {
             {activeTypeCard === 'arena' ? 'Arena' : 'Gaming zone'} drilldown
           </h2>
           {drilldownLoading ? (
-            <p className="muted" style={{ margin: 0 }}>Loading statsâ€¦</p>
+            <p className="muted" style={{ margin: 0 }}>Loading stats…</p>
           ) : drilldownErr ? (
             <div className="err-banner">{drilldownErr}</div>
           ) : typeDrilldown ? (
@@ -402,7 +402,7 @@ export default function BusinessesPage() {
       </div>
       <div className="table-wrap" style={{ marginTop: '1rem' }}>
         {loading ? (
-          <div className="empty-state">Loadingâ€¦</div>
+          <div className="empty-state">Loading…</div>
         ) : filteredRows.length === 0 ? (
           <div className="empty-state">No businesses.</div>
         ) : (
@@ -463,7 +463,7 @@ export default function BusinessesPage() {
                         disabled={deletingId === b.id}
                         onClick={() => void onDelete(b.id)}
                       >
-                        {deletingId === b.id ? 'Deletingâ€¦' : 'Delete'}
+                        {deletingId === b.id ? 'Deleting…' : 'Delete'}
                       </button>
                     </div>
                   </td>

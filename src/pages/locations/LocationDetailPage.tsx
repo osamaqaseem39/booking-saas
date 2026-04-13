@@ -31,7 +31,7 @@ function countsFromLocation(loc: BusinessLocationRow | null): FacilityCountsUi {
 }
 
 function toTitle(value?: string | null): string {
-  if (!value) return 'â€”';
+  if (!value) return '—';
   return value
     .replace(/[_-]+/g, ' ')
     .trim()
@@ -101,14 +101,14 @@ export default function LocationDetailPage() {
     <div>
       <p className="page-toolbar">
         <Link to="/app/locations" className="btn-ghost btn-compact">
-          â† Locations
+          ← Locations
         </Link>
       </p>
       <h1 className="page-title">Location details</h1>
       {err && <div className="err-banner">{err}</div>}
 
       {loading ? (
-        <div className="empty-state">Loadingâ€¦</div>
+        <div className="empty-state">Loading…</div>
       ) : !location ? (
         <div className="err-banner">Location not found or not visible for your user.</div>
       ) : (
@@ -150,7 +150,7 @@ export default function LocationDetailPage() {
               <div className="business-profile-item">
                 <span className="business-profile-item__label">Tenant</span>
                 <strong className="business-profile-item__value business-profile-item__value--code">
-                  <code>{location.business?.tenantId ?? 'â€”'}</code>
+                  <code>{location.business?.tenantId ?? '—'}</code>
                 </strong>
               </div>
               <div className="business-profile-item">
@@ -167,18 +167,18 @@ export default function LocationDetailPage() {
               </div>
               <div className="business-profile-item">
                 <span className="business-profile-item__label">City</span>
-                <strong className="business-profile-item__value">{location.city ?? 'â€”'}</strong>
+                <strong className="business-profile-item__value">{location.city ?? '—'}</strong>
               </div>
               <div className="business-profile-item">
                 <span className="business-profile-item__label">Phone</span>
-                <strong className="business-profile-item__value">{location.phone ?? 'â€”'}</strong>
+                <strong className="business-profile-item__value">{location.phone ?? '—'}</strong>
               </div>
               <div className="business-profile-item business-profile-item--wide">
                 <span className="business-profile-item__label">Facility types</span>
                 <strong className="business-profile-item__value">
                   {location.facilityTypes?.length
                     ? location.facilityTypes.map(formatFacilityTypeLabel).join(', ')
-                    : 'â€”'}
+                    : '—'}
                 </strong>
               </div>
             </div>

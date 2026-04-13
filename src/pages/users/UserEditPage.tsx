@@ -183,12 +183,12 @@ export default function UserEditPage() {
               <div>
                 <label>Current roles</label>
                 <div>
-                  <code>{(user.roles ?? []).join(', ') || 'â€”'}</code>
+                  <code>{(user.roles ?? []).join(', ') || '—'}</code>
                 </div>
               </div>
               <div>
                 <label>Created</label>
-                <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : 'â€”'}</div>
+                <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}</div>
               </div>
               <div>
                 <label>Account</label>
@@ -213,7 +213,7 @@ export default function UserEditPage() {
                 className="btn-primary"
                 disabled={busy || !fullName.trim() || !email.trim()}
               >
-                {busy ? 'Savingâ€¦' : 'Save changes'}
+                {busy ? 'Saving…' : 'Save changes'}
               </button>
               <Link to={`/app/users/${user.id}`} className="btn-ghost">
                 View user
@@ -225,7 +225,7 @@ export default function UserEditPage() {
                   disabled={activating}
                   onClick={() => void onActivateAccount()}
                 >
-                  {activating ? 'Workingâ€¦' : 'Activate account'}
+                  {activating ? 'Working…' : 'Activate account'}
                 </button>
               ) : null}
               {user.isActive !== false ? (
@@ -235,7 +235,7 @@ export default function UserEditPage() {
                   disabled={deleting}
                   onClick={() => void onDeactivate()}
                 >
-                  {deleting ? 'Workingâ€¦' : 'Deactivate account'}
+                  {deleting ? 'Working…' : 'Deactivate account'}
                 </button>
               ) : null}
             </div>
@@ -255,7 +255,7 @@ export default function UserEditPage() {
                 </select>
               </div>
               <button type="button" className="btn-ghost" disabled={assigning} onClick={() => void onAssignRole()}>
-                {assigning ? 'Assigningâ€¦' : 'Assign role'}
+                {assigning ? 'Assigning…' : 'Assign role'}
               </button>
             </div>
           )}

@@ -219,7 +219,7 @@ export default function OwnerSignupPage() {
               className="btn-primary"
               disabled={loading || submitting}
             >
-              {submitting ? 'Creating ownerâ€¦' : 'Create owner account'}
+              {submitting ? 'Creating owner…' : 'Create owner account'}
             </button>
             <Link to="/login" className="muted">
               Back to login

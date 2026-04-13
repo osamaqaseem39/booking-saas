@@ -99,9 +99,9 @@ function makePassword(): string {
 }
 
 function courtOnlyLabel(label: string): string {
-  const parts = label.split('â€”');
+  const parts = label.split('—');
   if (parts.length < 2) return label.trim();
-  return parts.slice(1).join('â€”').trim();
+  return parts.slice(1).join('—').trim();
 }
 
 type BookingLine = {
@@ -798,7 +798,7 @@ export default function BookingCreatePage() {
     <div>
       <p className="page-toolbar">
         <Link to="/app/bookings" className="btn-ghost btn-compact">
-          â† Back to bookings
+          ← Back to bookings
         </Link>
       </p>
       <h1 className="page-title">Add booking</h1>
@@ -826,17 +826,17 @@ export default function BookingCreatePage() {
                   onChange={(e) => setOwnerBookingTenantId(e.target.value)}
                   disabled={businesses.length === 0}
                 >
-                  <option value="">Select businessâ€¦</option>
+                  <option value="">Select business…</option>
                   {businesses.map((b) => (
                     <option key={b.id} value={b.tenantId}>
                       {b.businessName}
-                      {b.tenantId ? ` Â· ${b.tenantId.slice(0, 8)}â€¦` : ''}
+                      {b.tenantId ? ` · ${b.tenantId.slice(0, 8)}…` : ''}
                     </option>
                   ))}
                 </select>
                 <p className="muted" style={{ marginTop: '0.35rem', marginBottom: 0 }}>
-                  Only this booking uses the selected tenant â€” the top bar can stay on â€œall
-                  businessesâ€.
+                  Only this booking uses the selected tenant — the top bar can stay on “all
+                  businesses”.
                 </p>
               </div>
             </>
@@ -937,13 +937,13 @@ export default function BookingCreatePage() {
                         .filter((loc) => loc.id === selectedLocationId)
                         .map((loc) => ({
                           value: loc.id,
-                          label: `${loc.name}${loc.city ? ` Â· ${loc.city}` : ''}`,
+                          label: `${loc.name}${loc.city ? ` · ${loc.city}` : ''}`,
                         }))
                     : [
                         { value: '', label: 'All locations' },
                         ...locations.map((loc) => ({
                           value: loc.id,
-                          label: `${loc.name}${loc.city ? ` Â· ${loc.city}` : ''}`,
+                          label: `${loc.name}${loc.city ? ` · ${loc.city}` : ''}`,
                         })),
                       ]
                 }
@@ -1075,7 +1075,7 @@ export default function BookingCreatePage() {
                         value={ln.facilityKey}
                         onChange={(next) => applyFacility(idx, next)}
                         options={[
-                          { value: '', label: 'Selectâ€¦' },
+                          { value: '', label: 'Select…' },
                           ...courtOpts.map((o) => ({
                             value: `${o.kind}:${o.id}`,
                             label: courtOnlyLabel(o.label),
@@ -1325,7 +1325,7 @@ export default function BookingCreatePage() {
             onClick={() => void submitCreate()}
             disabled={submitting || !bookingTenant}
           >
-            {submitting ? 'Creatingâ€¦' : 'Create booking'}
+            {submitting ? 'Creating…' : 'Create booking'}
           </button>
         </div>
       </section>

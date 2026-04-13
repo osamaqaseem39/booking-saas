@@ -104,10 +104,10 @@ export function GamingStationSharedSections({
               rows={3}
               value={shared.imageLines}
               onChange={(e) => patch({ imageLines: e.target.value })}
-              placeholder="https://â€¦"
+              placeholder="https://…"
             />
             <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.85rem' }}>
-              Same pattern as arena courts â€” paste links until media upload is wired.
+              Same pattern as arena courts — paste links until media upload is wired.
             </p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export function GamingStationSharedSections({
           </div>
           <div className="form-row-2">
             <div>
-              <label>Peak â€” weekday evening</label>
+              <label>Peak — weekday evening</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -138,7 +138,7 @@ export function GamingStationSharedSections({
               />
             </div>
             <div>
-              <label>Peak â€” weekend</label>
+              <label>Peak — weekend</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -153,7 +153,7 @@ export function GamingStationSharedSections({
             <input
               value={shared.bundleNote}
               onChange={(e) => patch({ bundleNote: e.target.value })}
-              placeholder="e.g. 3h bundle, student rateâ€¦"
+              placeholder="e.g. 3h bundle, student rate…"
             />
           </div>
         </div>

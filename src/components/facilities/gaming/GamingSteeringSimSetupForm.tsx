@@ -190,7 +190,7 @@ export function GamingSteeringSimSetupForm({
     return <div className="err-banner">{loadErr}</div>;
   }
   if (loading && existingStationId) {
-    return <div className="empty-state">Loading stationâ€¦</div>;
+    return <div className="empty-state">Loading station…</div>;
   }
 
   return (
@@ -242,7 +242,7 @@ export function GamingSteeringSimSetupForm({
                 rows={2}
                 value={cockpitNotes}
                 onChange={(e) => setCockpitNotes(e.target.value)}
-                placeholder="iRacing, F1, Forza, wheel torque limitsâ€¦"
+                placeholder="iRacing, F1, Forza, wheel torque limits…"
               />
             </div>
           </div>
@@ -250,7 +250,7 @@ export function GamingSteeringSimSetupForm({
 
         <div className="turf-setup-form-actions">
           <button type="submit" className="btn-primary btn-primary-lg" disabled={saving}>
-            {saving ? 'Savingâ€¦' : existingStationId ? 'Save changes' : 'Create simulator'}
+            {saving ? 'Saving…' : existingStationId ? 'Save changes' : 'Create simulator'}
           </button>
         </div>
       </form>

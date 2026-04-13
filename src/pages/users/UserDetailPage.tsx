@@ -170,13 +170,13 @@ export default function UserDetailPage() {
     <div>
       <p className="page-toolbar">
         <Link to="/app/users" className="btn-ghost btn-compact">
-          â† Users
+          ← Users
         </Link>
       </p>
       <h1 className="page-title">User details</h1>
       {err && <div className="err-banner">{err}</div>}
       {loading ? (
-        <div className="empty-state">Loadingâ€¦</div>
+        <div className="empty-state">Loading…</div>
       ) : !user ? (
         <div className="empty-state">User not found.</div>
       ) : (
@@ -267,12 +267,12 @@ export default function UserDetailPage() {
                 </div>
                 <div>
                   <label>Phone</label>
-                  <div>{user.phone || 'â€”'}</div>
+                  <div>{user.phone || '—'}</div>
                 </div>
                 <div>
                   <label>Roles</label>
                   <div>
-                    <code>{(user.roles ?? []).join(', ') || 'â€”'}</code>
+                    <code>{(user.roles ?? []).join(', ') || '—'}</code>
                   </div>
                 </div>
                 <div>
@@ -283,7 +283,7 @@ export default function UserDetailPage() {
                 </div>
                 <div>
                   <label>Created</label>
-                  <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : 'â€”'}</div>
+                  <div>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}</div>
                 </div>
                 <div>
                   <label>Account</label>
@@ -344,7 +344,7 @@ export default function UserDetailPage() {
                   disabled={activating}
                   onClick={() => void onActivateAccount()}
                 >
-                  {activating ? 'Workingâ€¦' : 'Activate account'}
+                  {activating ? 'Working…' : 'Activate account'}
                 </button>
               ) : null}
               {user.isActive !== false ? (
@@ -354,7 +354,7 @@ export default function UserDetailPage() {
                   disabled={deleting}
                   onClick={() => void onDeactivate()}
                 >
-                  {deleting ? 'Workingâ€¦' : 'Deactivate account'}
+                  {deleting ? 'Working…' : 'Deactivate account'}
                 </button>
               ) : null}
             </div>

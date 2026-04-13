@@ -74,7 +74,7 @@ export default function LocationFacilitySetupPage() {
       <div>
         <div className="page-toolbar-row">
           <Link to="/app/Facilites" className="btn-ghost btn-compact">
-            â† Main facility page
+            ← Main facility page
           </Link>
         </div>
         <div className="err-banner">Unknown facility type.</div>
@@ -96,24 +96,24 @@ export default function LocationFacilitySetupPage() {
     <div>
       <div className="page-toolbar-row">
         <Link to="/app/locations" className="btn-ghost btn-compact">
-          â† Locations
+          ← Locations
         </Link>
         <Link to="/app/Facilites" className="btn-ghost btn-compact">
-          â† Main facility page
+          ← Main facility page
         </Link>
       </div>
       <h1 className="page-title">New {label.label}</h1>
       {!location ? (
-        <p className="muted">Loading locationâ€¦</p>
+        <p className="muted">Loading location…</p>
       ) : !typeAllowed ? (
         <div className="err-banner">
-          This location does not include â€œ{facilityCode}â€. Edit the locationâ€™s
+          This location does not include “{facilityCode}”. Edit the location’s
           facility types on the Locations page, then try again.
         </div>
       ) : GAMING_CODES_SET.has(facilityCode) && isGamingSetupCode(facilityCode) ? (
         <div className="turf-setup-page">
           <p className="muted turf-setup-page-intro">
-            Location: <strong>{location.name}</strong>. {label.label} station â€”
+            Location: <strong>{location.name}</strong>. {label.label} station —
             pricing and slots follow the same structure as arena facilities.
           </p>
           <GamingFacilitySetupForm

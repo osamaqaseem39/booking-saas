@@ -147,13 +147,13 @@ export default function BookingEditPage() {
     <div>
       <p className="page-toolbar">
         <Link to="/app/bookings" className="btn-ghost btn-compact">
-          â† Back to bookings
+          ← Back to bookings
         </Link>
       </p>
       <h1 className="page-title">Edit booking</h1>
       {error && <div className="err-banner">{error}</div>}
       {loading ? (
-        <div className="empty-state">Loadingâ€¦</div>
+        <div className="empty-state">Loading…</div>
       ) : !booking ? (
         <div className="empty-state">Booking not found.</div>
       ) : (
@@ -366,7 +366,7 @@ export default function BookingEditPage() {
               </div>
               <div className="page-actions-row">
                 <button type="button" className="btn-primary" disabled={saving} onClick={() => void onSave()}>
-                  {saving ? 'Savingâ€¦' : 'Save changes'}
+                  {saving ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
             </div>

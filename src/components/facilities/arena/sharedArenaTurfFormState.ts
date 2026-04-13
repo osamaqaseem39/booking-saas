@@ -310,7 +310,7 @@ export function sharedTurfFormStateToPayload(
   };
 }
 
-/** Same shared keys on cricket body â€” payload shape is identical. */
+/** Same shared keys on cricket body — payload shape is identical. */
 export function sharedTurfFormStateToCricketPayload(
   s: SharedArenaTurfFormState,
 ): Pick<CreateCricketCourtBody, keyof SharedPayload> {

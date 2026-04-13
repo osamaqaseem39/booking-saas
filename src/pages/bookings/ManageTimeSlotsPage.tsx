@@ -113,7 +113,7 @@ export default function ManageTimeSlotsPage() {
     <>
       <p className="page-toolbar">
         <Link to="/app/bookings" className="btn-ghost btn-compact">
-          â† Bookings
+          ← Bookings
         </Link>
       </p>
       <h1 className="page-title">Manage time slots</h1>
@@ -188,7 +188,7 @@ export default function ManageTimeSlotsPage() {
       </section>
 
       <section className="detail-card" style={{ maxWidth: '720px', marginTop: '1rem' }}>
-        {gridLoading && <p className="muted">Loading slot gridâ€¦</p>}
+        {gridLoading && <p className="muted">Loading slot grid…</p>}
         {!gridLoading && grid?.locationClosed && (
           <p className="muted">
             Working-hours overlay marks this date as closed. This is informational only; actual

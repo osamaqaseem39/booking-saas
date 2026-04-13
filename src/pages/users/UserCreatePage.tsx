@@ -141,7 +141,7 @@ export default function UserCreatePage() {
             (canAssign && selectedRoles.length === 0)
           }
         >
-          {busy ? 'Creatingâ€¦' : 'Create user'}
+          {busy ? 'Creating…' : 'Create user'}
         </button>
       </form>
     </div>

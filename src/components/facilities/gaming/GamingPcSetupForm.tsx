@@ -194,7 +194,7 @@ export function GamingPcSetupForm({
     return <div className="err-banner">{loadErr}</div>;
   }
   if (loading && existingStationId) {
-    return <div className="empty-state">Loading stationâ€¦</div>;
+    return <div className="empty-state">Loading station…</div>;
   }
 
   return (
@@ -244,7 +244,7 @@ export function GamingPcSetupForm({
                 rows={2}
                 value={gameLibraryNote}
                 onChange={(e) => setGameLibraryNote(e.target.value)}
-                placeholder="Steam / Epic logins, installed titles, restrictionsâ€¦"
+                placeholder="Steam / Epic logins, installed titles, restrictions…"
               />
             </div>
           </div>
@@ -252,7 +252,7 @@ export function GamingPcSetupForm({
 
         <div className="turf-setup-form-actions">
           <button type="submit" className="btn-primary btn-primary-lg" disabled={saving}>
-            {saving ? 'Savingâ€¦' : existingStationId ? 'Save changes' : 'Create PC station'}
+            {saving ? 'Saving…' : existingStationId ? 'Save changes' : 'Create PC station'}
           </button>
         </div>
       </form>

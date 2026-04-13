@@ -384,7 +384,7 @@ export function PadelCourtSetupForm({
     return <div className="err-banner">{initialLoadError}</div>;
   }
   if (loadingDetail && existingCourtId) {
-    return <div className="empty-state">Loading courtâ€¦</div>;
+    return <div className="empty-state">Loading court…</div>;
   }
 
   return (
@@ -464,7 +464,7 @@ export function PadelCourtSetupForm({
               rows={3}
               value={imageLines}
               onChange={(e) => setImageLines(e.target.value)}
-              placeholder="https://â€¦"
+              placeholder="https://…"
             />
             <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.85rem' }}>
               Paste image links; file upload can be added later if your storage
@@ -563,7 +563,7 @@ export function PadelCourtSetupForm({
       <div className="turf-setup-card">
         <h4>3. Dimensions (meters)</h4>
         <p className="muted" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>
-          Standard padel is ~20m Ã— ~10m; adjust if your court differs.
+          Standard padel is ~20m × ~10m; adjust if your court differs.
         </p>
         <div className="form-row-2">
           <div>
@@ -601,7 +601,7 @@ export function PadelCourtSetupForm({
               )
             }
           >
-            <option value="">â€”</option>
+            <option value="">—</option>
             <option value="synthetic_turf">Synthetic turf</option>
             <option value="acrylic">Acrylic</option>
           </select>
@@ -651,7 +651,7 @@ export function PadelCourtSetupForm({
           </div>
           <div className="form-row-2">
             <div>
-              <label>Peak â€” weekday evening</label>
+              <label>Peak — weekday evening</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -661,7 +661,7 @@ export function PadelCourtSetupForm({
               />
             </div>
             <div>
-              <label>Peak â€” weekend</label>
+              <label>Peak — weekend</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -697,7 +697,7 @@ export function PadelCourtSetupForm({
             >
               <option value="60">60 minutes</option>
               <option value="90">90 minutes</option>
-              <option value="">â€”</option>
+              <option value="">—</option>
             </select>
           </div>
           <div>
@@ -787,7 +787,7 @@ export function PadelCourtSetupForm({
               rows={3}
               value={gameRules}
               onChange={(e) => setGameRules(e.target.value)}
-              placeholder="Dress code, footwear, booking etiquetteâ€¦"
+              placeholder="Dress code, footwear, booking etiquette…"
             />
           </div>
           <div>
@@ -796,7 +796,7 @@ export function PadelCourtSetupForm({
               rows={3}
               value={cancellationPolicy}
               onChange={(e) => setCancellationPolicy(e.target.value)}
-              placeholder="Refund windows, no-show policyâ€¦"
+              placeholder="Refund windows, no-show policy…"
             />
           </div>
         </div>
@@ -809,7 +809,7 @@ export function PadelCourtSetupForm({
           disabled={saving || !name.trim() || loadingDetail}
         >
           {saving
-            ? 'Savingâ€¦'
+            ? 'Saving…'
             : existingCourtId
               ? 'Save changes'
               : 'Create padel court'}
