@@ -846,6 +846,41 @@ export async function getCourtSlots(params: {
 /** Backward-compatible alias. */
 export const getCourtBookedSlots = getCourtSlots;
 
+/** Idempotent: insert default 30-minute slot rows for the date (linked twins included). */
+export async function generateCourtFacilityDaySlots(params: {
+  courtKind: CourtKind;
+  courtId: string;
+  date: string;
+}): Promise<{ ok: true; upserted: number }> {
+  return request<{ ok: true; upserted: number }>(
+    `/bookings/courts/${params.courtKind}/${params.courtId}/facility-slots/generate`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ date: params.date }),
+    },
+  );
+}
+
+export async function patchCourtFacilitySlot(params: {
+  courtKind: CourtKind;
+  courtId: string;
+  date: string;
+  startTime: string;
+  status: 'available' | 'blocked';
+}): Promise<{ ok: true }> {
+  return request<{ ok: true }>(
+    `/bookings/courts/${params.courtKind}/${params.courtId}/facility-slots`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        date: params.date,
+        startTime: params.startTime,
+        status: params.status,
+      }),
+    },
+  );
+}
+
 /** 30-minute segments for one facility/court for a day (or optional time window). */
 export async function getCourtSlotGrid(params: {
   courtKind: CourtKind;

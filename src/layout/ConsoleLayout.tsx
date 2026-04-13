@@ -152,6 +152,7 @@ export default function ConsoleLayout() {
     if (to === '/app/bookings') return '📅';
     if (to === '/app/bookings/new') return '➕';
     if (to === '/app/time-slots') return '🕒';
+    if (to === '/app/facility-slots') return '📋';
     if (to === '/app/facilities-live') return '📡';
     if (to === '/app/billing') return '💳';
     if (to === '/app/health') return '🛡️';

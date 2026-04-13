@@ -145,6 +145,11 @@ export interface CourtSlotsRecord {
     | {
         startTime: string;
         endTime: string;
+        availability: 'blocked';
+      }
+    | {
+        startTime: string;
+        endTime: string;
         availability: 'booked';
         bookingId: string;
         itemId: string;

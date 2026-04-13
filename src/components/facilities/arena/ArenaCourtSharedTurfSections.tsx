@@ -358,8 +358,8 @@ export function ArenaCourtSharedTurfSections({
             Use the dedicated slot form to mark each slot as available or booked.
           </p>
           <div>
-            <Link to="/app/time-slots" className="btn-ghost btn-compact">
-              Open slot assignment form
+            <Link to="/app/facility-slots" className="btn-ghost btn-compact">
+              Open facility slots form
             </Link>
           </div>
         </div>

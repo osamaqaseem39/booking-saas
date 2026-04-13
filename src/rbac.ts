@@ -58,6 +58,11 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    to: '/app/facility-slots',
+    label: 'Facility slots',
+    anyOf: ['platform-owner', 'business-admin', 'business-staff'],
+  },
+  {
     to: '/app/facilities-live',
     label: 'Facilities live',
     anyOf: ['business-admin'],
