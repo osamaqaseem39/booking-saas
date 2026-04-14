@@ -24,7 +24,6 @@ import LocationFacilitiesPage from './pages/facilities/LocationFacilitiesPage';
 import BookingsPage from './pages/bookings/BookingsPage';
 import BookingCreatePage from './pages/bookings/BookingCreatePage';
 import BookingEditPage from './pages/bookings/BookingEditPage';
-import FacilitySlotsPage from './pages/bookings/FacilitySlotsPage';
 import ManageTimeSlotsPage from './pages/bookings/ManageTimeSlotsPage';
 import UsersPage from './pages/users/UsersPage';
 import UserCreatePage from './pages/users/UserCreatePage';
@@ -236,14 +235,6 @@ export default function App() {
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
                   <ManageTimeSlotsPage />
-                </RequireRoles>
-              }
-            />
-            <Route
-              path="facility-slots"
-              element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
-                  <FacilitySlotsPage />
                 </RequireRoles>
               }
             />

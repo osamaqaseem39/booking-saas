@@ -25,7 +25,7 @@ export interface NavItem {
 const BUSINESS_ADMIN_FOOTER_ORDER = [
   '/app/locations',
   '/app/Facilites',
-  '/app/facility-slots',
+  '/app/time-slots',
   '/app/users',
 ] as const;
 
@@ -69,8 +69,8 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
-    to: '/app/facility-slots',
-    label: 'Daily slots',
+    to: '/app/time-slots',
+    label: 'Manage booking slots',
     anyOf: ['platform-owner', 'business-admin', 'business-staff'],
   },
   {

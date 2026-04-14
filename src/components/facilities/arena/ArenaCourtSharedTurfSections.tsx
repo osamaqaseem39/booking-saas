@@ -413,14 +413,9 @@ export function ArenaCourtSharedTurfSections({
             </label>
           </div>
           <p className="muted" style={{ margin: 0 }}>
-            Day-by-day availability (generate slots, mark blocked) is managed
-            per facility on the Daily slots screen.
+            Manage reusable time-slot templates on{' '}
+            <Link to="/app/time-slots">Manage time slots</Link>.
           </p>
-          <div>
-            <Link to="/app/facility-slots" className="btn-ghost btn-compact">
-              Open daily slots
-            </Link>
-          </div>
         </div>
       </div>
 
