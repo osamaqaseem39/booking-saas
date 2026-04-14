@@ -131,19 +131,6 @@ function defaultLine(): BookingLine {
   };
 }
 
-function hourlyStartsFromFreeSegments(starts: string[]): string[] {
-  const set = new Set(starts);
-  const out: string[] = [];
-  for (const s of starts) {
-    const m = timeToMinutes(s);
-    if (m % 60 !== 0) continue;
-    if (m + 60 > 24 * 60) continue;
-    if (!set.has(minutesToTime(m + 30))) continue;
-    out.push(s);
-  }
-  return out;
-}
-
 type Weekday =
   | 'monday'
   | 'tuesday'
@@ -1025,7 +1012,9 @@ export default function BookingCreatePage() {
               const src = lineSlotSource[idx];
               const serverStarts =
                 src?.source === 'api'
-                  ? hourlyStartsFromFreeSegments(src.starts)
+                  ? [...src.starts].sort(
+                      (a, b) => timeToMinutes(a) - timeToMinutes(b),
+                    )
                   : [];
               /**
                * API slot-grid already applies facility template filtering.
