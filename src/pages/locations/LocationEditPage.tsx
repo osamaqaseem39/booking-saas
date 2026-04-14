@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   deleteBusinessLocation,
@@ -90,7 +90,9 @@ export default function LocationEditPage() {
       setLoading(true);
       setErr(null);
       try {
-        const locs = await listBusinessLocations();
+        const locs = await listBusinessLocations({
+          ignoreActiveTenant: isPlatformOwner,
+        });
         setRows(locs);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load location');
@@ -98,7 +100,7 @@ export default function LocationEditPage() {
         setLoading(false);
       }
     })();
-  }, [locationId]);
+  }, [isPlatformOwner, locationId]);
 
   useEffect(() => {
     if (!location) return;

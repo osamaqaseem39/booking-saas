@@ -1,7 +1,8 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { listBusinessLocations } from '../../api/saasClient';
 import { formatFacilityTypeLabel } from '../../constants/locationFacilityTypes';
+import { useSession } from '../../context/SessionContext';
 import type { BusinessLocationRow } from '../../types/domain';
 
 type FacilityCountsUi = {
@@ -41,6 +42,8 @@ function toTitle(value?: string | null): string {
 }
 
 export default function LocationDetailPage() {
+  const { session } = useSession();
+  const isOwner = session?.roles?.includes('platform-owner') ?? false;
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -85,7 +88,9 @@ export default function LocationDetailPage() {
       setLoading(true);
       setErr(null);
       try {
-        const locs = await listBusinessLocations();
+        const locs = await listBusinessLocations({
+          ignoreActiveTenant: isOwner,
+        });
         setRows(locs);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load location details');
@@ -93,7 +98,7 @@ export default function LocationDetailPage() {
         setLoading(false);
       }
     })();
-  }, [locationId]);
+  }, [isOwner, locationId]);
 
   if (!locationId.trim()) return <p className="muted">Missing location id.</p>;
 

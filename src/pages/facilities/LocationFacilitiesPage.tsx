@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   deleteFacilityByCode,
@@ -25,6 +25,7 @@ import {
   type GamingStationRecord,
 } from '../../utils/gamingStationLocalStore';
 import type { BusinessLocationRow, NamedCourt } from '../../types/domain';
+import { useSession } from '../../context/SessionContext';
 
 function setupPath(locationId: string, facilityCode: string) {
   return `/app/locations/${locationId}/facilities/setup/${facilityCode}`;
@@ -130,6 +131,8 @@ function FacilitiesTableBlock({
 }
 
 export default function LocationFacilitiesPage() {
+  const { session } = useSession();
+  const isOwner = session?.roles?.includes('platform-owner') ?? false;
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
@@ -156,7 +159,7 @@ export default function LocationFacilitiesPage() {
       setErr(null);
       try {
         const [locs, fc, cc, pa] = await Promise.all([
-          listBusinessLocations(),
+          listBusinessLocations({ ignoreActiveTenant: isOwner }),
           listFutsalCourts(locationId),
           listCricketCourts(locationId),
           listPadelCourts(locationId),
@@ -181,7 +184,7 @@ export default function LocationFacilitiesPage() {
 
   useEffect(() => {
     load();
-  }, [locationId]);
+  }, [isOwner, locationId]);
 
   useEffect(() => {
     if (!futsalCourts.some((c) => c.id === selectedFutsalId)) {

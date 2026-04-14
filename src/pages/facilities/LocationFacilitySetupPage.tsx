@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listBusinessLocations } from '../../api/saasClient';
 import { CricketCourtSetupForm } from '../../components/facilities/arena/CricketCourtSetupForm';
@@ -17,6 +17,7 @@ import {
   isCourtSetupAllowedForLocation,
 } from '../../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../../types/domain';
+import { useSession } from '../../context/SessionContext';
 
 const ARENA_SETUP_CODES = new Set<string>([
   FUTSAL_COURT_SETUP_CODE,
@@ -27,6 +28,8 @@ const ARENA_SETUP_CODES = new Set<string>([
 const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
 
 export default function LocationFacilitySetupPage() {
+  const { session } = useSession();
+  const isOwner = session?.roles?.includes('platform-owner') ?? false;
   const { locationId = '', facilityCode = '' } = useParams<{
     locationId: string;
     facilityCode: string;
@@ -58,13 +61,15 @@ export default function LocationFacilitySetupPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const locs = await listBusinessLocations();
+        const locs = await listBusinessLocations({
+          ignoreActiveTenant: isOwner,
+        });
         setLocations(locs);
       } catch {
         setLocations([]);
       }
     })();
-  }, []);
+  }, [isOwner]);
 
   const validCode =
     ARENA_SETUP_CODES.has(facilityCode) || GAMING_CODES_SET.has(facilityCode);
