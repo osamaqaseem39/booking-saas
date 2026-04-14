@@ -2,7 +2,6 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   createCricketCourt,
   createFutsalCourt,
-  createTurfTwinLink,
   getCricketCourt,
   getFutsalCourt,
   listTimeSlotTemplates,
@@ -41,10 +40,9 @@ export function ArenaTurfCourtSetupForm({
 }) {
   const includesFutsal = courtKind === 'futsal' || courtKind === 'both';
   const includesCricket = courtKind === 'cricket' || courtKind === 'both';
-  const isSingleKind = includesFutsal !== includesCricket;
   const ownKindLabel =
     courtKind === 'both'
-      ? 'field'
+      ? 'futsal pitch'
       : includesFutsal
         ? 'futsal pitch'
         : 'cricket pitch';
@@ -208,38 +206,7 @@ export function ArenaTurfCourtSetupForm({
     setSaving(true);
     setErr(null);
     try {
-      if (!existingCourtId && courtKind === 'both') {
-        const futsalBody: CreateFutsalCourtBody = {
-          businessLocationId: effectiveLocationId,
-          name: shared.name.trim(),
-          courtStatus,
-          arenaLabel: arena?.name?.trim() || undefined,
-          ...sharedTurfFormStateToPayload(shared),
-          ...templatePayload,
-          futsalFormat: futsalFormat || undefined,
-          futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
-          futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
-          futsalLineMarkings: futsalLineMarkings || undefined,
-        };
-        const cricketBody: CreateCricketCourtBody = {
-          businessLocationId: effectiveLocationId,
-          name: shared.name.trim(),
-          courtStatus,
-          arenaLabel: arena?.name?.trim() || undefined,
-          ...sharedTurfFormStateToCricketPayload(shared),
-          ...templatePayload,
-          cricketFormat: cricketFormat || undefined,
-          cricketStumpsAvailable: cricketStumpsAvailable || undefined,
-          cricketBowlingMachine: cricketBowlingMachine || undefined,
-          cricketPracticeMode: cricketPracticeMode || undefined,
-        };
-        const createdFutsal = await createFutsalCourt(futsalBody);
-        const createdCricket = await createCricketCourt(cricketBody);
-        await createTurfTwinLink({
-          futsalCourtId: createdFutsal.id,
-          cricketCourtId: createdCricket.id,
-        });
-      } else if (includesFutsal) {
+      if (includesFutsal) {
         const body: CreateFutsalCourtBody = {
           businessLocationId: effectiveLocationId,
           name: shared.name.trim(),
@@ -378,14 +345,6 @@ export function ArenaTurfCourtSetupForm({
           timeSlotTemplateOptions={timeSlotTemplateOptions}
           gameSection={gameSection}
         />
-        {!isSingleKind ? (
-          <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
-            <p className="muted" style={{ margin: 0 }}>
-              Both sports are enabled. This submission creates futsal + cricket
-              together as one linked field.
-            </p>
-          </div>
-        )}
         <div className="turf-setup-form-actions">
           <button type="submit" className="btn-primary" disabled={saving || !shared.name.trim()}>
             {saving ? 'Saving…' : existingCourtId ? 'Save changes' : `Create ${ownKindLabel}`}

@@ -28,7 +28,7 @@ const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
 type ArenaTurfKind = 'futsal' | 'cricket' | 'both';
 
 function arenaKindLabel(kind: ArenaTurfKind): string {
-  if (kind === 'both') return 'Field (futsal + cricket)';
+  if (kind === 'both') return 'Futsal field';
   return kind === 'futsal' ? 'Futsal field' : 'Cricket field';
 }
 
@@ -60,8 +60,6 @@ export default function LocationFacilitySetupPage() {
     location,
     CRICKET_COURT_SETUP_CODE,
   );
-  const hasBothArenaSports = hasFutsalForLocation && hasCricketForLocation;
-
   const label = useMemo(() => {
     if (facilityCode === FUTSAL_COURT_SETUP_CODE) {
       return { label: 'Futsal pitch' };
@@ -99,10 +97,6 @@ export default function LocationFacilitySetupPage() {
       );
       return;
     }
-    if (hasBothArenaSports) {
-      setSelectedArenaKind('futsal');
-      return;
-    }
     if (hasCricketForLocation) {
       setSelectedArenaKind('cricket');
       return;
@@ -116,7 +110,6 @@ export default function LocationFacilitySetupPage() {
     );
   }, [
     facilityCode,
-    hasBothArenaSports,
     hasCricketForLocation,
     hasFutsalForLocation,
     isArenaTurfRoute,
@@ -191,55 +184,6 @@ export default function LocationFacilitySetupPage() {
             {arenaKindLabel(selectedArenaKind)}{' '}
             setup.
           </p>
-          {hasBothArenaSports ? (
-            <div className="turf-setup-card" style={{ marginBottom: '0.75rem' }}>
-              <h4 style={{ marginBottom: '0.5rem' }}>Select sports for this field</h4>
-              <div className="turf-setup-checkrow">
-                <label className="turf-setup-inline">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedArenaKind === 'futsal' ||
-                      selectedArenaKind === 'both'
-                    }
-                    onChange={(e) => {
-                      const futsalOn = e.target.checked;
-                      const cricketOn =
-                        selectedArenaKind === 'cricket' ||
-                        selectedArenaKind === 'both';
-                      if (futsalOn && cricketOn) setSelectedArenaKind('both');
-                      else if (futsalOn) setSelectedArenaKind('futsal');
-                      else if (cricketOn) setSelectedArenaKind('cricket');
-                    }}
-                  />
-                  Futsal
-                </label>
-                <label className="turf-setup-inline">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedArenaKind === 'cricket' ||
-                      selectedArenaKind === 'both'
-                    }
-                    onChange={(e) => {
-                      const cricketOn = e.target.checked;
-                      const futsalOn =
-                        selectedArenaKind === 'futsal' ||
-                        selectedArenaKind === 'both';
-                      if (futsalOn && cricketOn) setSelectedArenaKind('both');
-                      else if (futsalOn) setSelectedArenaKind('futsal');
-                      else if (cricketOn) setSelectedArenaKind('cricket');
-                    }}
-                  />
-                  Cricket
-                </label>
-              </div>
-              <p className="muted" style={{ marginTop: '0.5rem' }}>
-                If both are enabled, this creates one shared field with linked
-                futsal and cricket records.
-              </p>
-            </div>
-          ) : null}
           <ArenaTurfCourtSetupForm
             courtKind={selectedArenaKind}
             locationId={locationId}

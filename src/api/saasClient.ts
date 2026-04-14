@@ -1140,7 +1140,7 @@ export async function createTurfTwinLink(
   message: string;
   link: { futsalCourtId: string; cricketCourtId: string };
 }> {
-  return request('/arena/turf-twin-links/link', {
+  return request('/arena/turf-twin-links', {
     method: 'POST',
     body: JSON.stringify(body),
   });
