@@ -178,7 +178,7 @@ export default function ManageTimeSlotsPage() {
       return;
     }
     if (!slotStarts.length) {
-      setTplErr('Add at least one start time (HH:mm, 30-minute aligned), separated by commas or new lines.');
+      setTplErr('Add at least one start time (HH:mm, on the hour), separated by commas or new lines.');
       return;
     }
     setTplSaving(true);
@@ -219,7 +219,7 @@ export default function ManageTimeSlotsPage() {
       </p>
       <h1 className="page-title">Manage time slots</h1>
       <p className="muted" style={{ maxWidth: '640px', marginBottom: '1.25rem' }}>
-        Turn booking on or off per 30-minute window for a facility. Booked slots cannot be toggled
+        Turn booking on or off per hourly window for a facility. Booked slots cannot be toggled
         here; change or cancel the booking instead.
       </p>
       {selectedLocationId !== 'all' && (
@@ -237,7 +237,7 @@ export default function ManageTimeSlotsPage() {
       <section className="detail-card" style={{ maxWidth: '720px' }}>
         <h3 style={{ marginTop: 0, fontSize: '1.05rem' }}>Time slot templates</h3>
         <p className="muted" style={{ marginBottom: '1rem' }}>
-          Templates are reusable lists of half-hour start times. Assign one on each facility under
+          Templates are reusable lists of hourly start times. Assign one on each facility under
           slot timing, then this page shows those windows first (plus any bookings outside the
           template).
         </p>
@@ -293,13 +293,13 @@ export default function ManageTimeSlotsPage() {
           </label>
           <label>
             <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-              Slot start times (HH:mm, 30-minute steps — one per line or comma-separated)
+              Slot start times (HH:mm, on the hour — one per line or comma-separated)
             </span>
             <textarea
               rows={4}
               value={newTplTimes}
               onChange={(e) => setNewTplTimes(e.target.value)}
-              placeholder={'16:00\n16:30\n17:00'}
+              placeholder={'16:00\n17:00\n18:00'}
             />
           </label>
           <button

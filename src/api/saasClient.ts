@@ -900,7 +900,7 @@ export async function getCourtSlots(params: {
 /** Backward-compatible alias. */
 export const getCourtBookedSlots = getCourtSlots;
 
-/** Idempotent: insert default 30-minute slot rows for the date (linked twins included). */
+/** Idempotent: insert default hourly slot rows for the date (linked twins included). */
 export async function generateCourtFacilityDaySlots(params: {
   courtKind: CourtKind;
   courtId: string;
@@ -935,7 +935,7 @@ export async function patchCourtFacilitySlot(params: {
   );
 }
 
-/** 30-minute segments for one facility/court for a day (or optional time window). */
+/** Hourly segments for one facility/court for a day (or optional time window). */
 export async function getCourtSlotGrid(params: {
   courtKind: CourtKind;
   courtId: string;
@@ -973,7 +973,7 @@ export async function getCourtSlotGrid(params: {
   return request<CourtSlotGridRecord>(path, { method: 'GET' });
 }
 
-/** Turn booking on/off for one 30-minute segment (`blocked: true` = no new bookings). */
+/** Turn booking on/off for one hourly segment (`blocked: true` = no new bookings). */
 export async function setCourtSlotBlock(params: {
   courtKind: CourtKind;
   courtId: string;
@@ -1301,7 +1301,7 @@ export type CreatePadelCourtBody = {
   pricePerSlot?: number;
   peakPricing?: { weekdayEvening?: number; weekend?: number };
   membershipPrice?: number;
-  slotDurationMinutes?: 60 | 90;
+  slotDurationMinutes?: 60;
   bufferBetweenSlotsMinutes?: number;
   extras?: {
     racketRental?: boolean;

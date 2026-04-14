@@ -33,11 +33,11 @@ export type SharedArenaTurfFormState = {
   maxPlayers: string;
   safetyInstructions: string;
   cancellationPolicy: string;
-  /** Booking slot length sent with the facility (API: min 60, step 30). */
-  slotDuration: '' | '60' | '90' | '120';
+  /** Booking slot length sent with the facility (API: 60 minutes only). */
+  slotDuration: '' | '60';
   bufferMinutes: string;
   allowParallelBooking: boolean;
-  /** Optional tenant time-slot template (30-minute starts). Empty = none. */
+  /** Optional tenant time-slot template (hourly starts). Empty = none. */
   timeSlotTemplateId: string;
 };
 
@@ -188,13 +188,11 @@ export function sharedDetailToFormState(
     safetyInstructions: d.rules?.safetyInstructions ?? '',
     cancellationPolicy: d.rules?.cancellationPolicy ?? '',
     slotDuration:
-      d.slotDurationMinutes === 60
+      d.slotDurationMinutes === 60 ||
+      d.slotDurationMinutes === 90 ||
+      d.slotDurationMinutes === 120
         ? '60'
-        : d.slotDurationMinutes === 90
-          ? '90'
-          : d.slotDurationMinutes === 120
-            ? '120'
-            : '',
+        : '',
     bufferMinutes: strFromApi(d.bufferBetweenSlotsMinutes),
     allowParallelBooking: d.allowParallelBooking === true,
     timeSlotTemplateId:
@@ -281,14 +279,7 @@ export function sharedTurfFormStateToPayload(
   if (s.cancellationPolicy.trim())
     rules.cancellationPolicy = s.cancellationPolicy.trim();
 
-  const slotDurationMinutes =
-    s.slotDuration === '60'
-      ? 60
-      : s.slotDuration === '90'
-        ? 90
-        : s.slotDuration === '120'
-          ? 120
-          : undefined;
+  const slotDurationMinutes = s.slotDuration === '60' ? 60 : undefined;
   const bufferBetweenSlotsMinutes = parseIntOpt(s.bufferMinutes);
 
   return {

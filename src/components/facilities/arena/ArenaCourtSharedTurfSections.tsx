@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { BusinessLocationRow } from '../../../types/domain';
+import ImageGallery from '../../locations/ImageGallery';
 import type { SharedArenaTurfFormState } from './sharedArenaTurfFormState';
 
 type Props = {
@@ -34,6 +35,10 @@ export function ArenaCourtSharedTurfSections({
 }: Props) {
   const patch = (p: Partial<SharedArenaTurfFormState>) =>
     setShared((prev) => ({ ...prev, ...p }));
+  const imageUrls = shared.imageLines
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   return (
     <>
@@ -78,15 +83,11 @@ export function ArenaCourtSharedTurfSections({
               <option value="draft">Draft (not bookable)</option>
             </select>
           </div>
-          <div>
-            <label>Image URLs (one per line)</label>
-            <textarea
-              rows={3}
-              value={shared.imageLines}
-              onChange={(e) => patch({ imageLines: e.target.value })}
-              placeholder="https://…"
-            />
-          </div>
+          <ImageGallery
+            label="Facility images"
+            value={imageUrls}
+            onChange={(urls) => patch({ imageLines: urls.join('\n') })}
+          />
         </div>
       </div>
 
@@ -370,7 +371,7 @@ export function ArenaCourtSharedTurfSections({
               ))}
             </select>
             <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
-              Create named lists of half-hour starts on{' '}
+              Create named lists of hourly starts on{' '}
               <Link to="/app/time-slots">Manage time slots</Link>, then pick one here so the
               grid focuses on those windows.
             </p>
@@ -387,8 +388,6 @@ export function ArenaCourtSharedTurfSections({
             >
               <option value="">Default (server)</option>
               <option value="60">60 minutes</option>
-              <option value="90">90 minutes</option>
-              <option value="120">120 minutes</option>
             </select>
           </div>
           <div>

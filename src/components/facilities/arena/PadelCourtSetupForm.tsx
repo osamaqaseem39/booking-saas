@@ -57,7 +57,7 @@ function buildPayload(
     peakWeekdayEvening: string;
     peakWeekend: string;
     membershipPrice: string;
-    slotDuration: '60' | '90' | '';
+    slotDuration: '60' | '';
     bufferMinutes: string;
     extraRacket: boolean;
     extraBall: boolean;
@@ -114,8 +114,7 @@ function buildPayload(
     maxPlayers: maxP ?? 4,
     pricePerSlot: parseNum(p.pricePerSlot),
     membershipPrice: parseNum(p.membershipPrice),
-    slotDurationMinutes:
-      p.slotDuration === '60' ? 60 : p.slotDuration === '90' ? 90 : undefined,
+    slotDurationMinutes: p.slotDuration === '60' ? 60 : undefined,
     bufferBetweenSlotsMinutes: parseIntOpt(p.bufferMinutes),
   };
 
@@ -210,7 +209,7 @@ export function PadelCourtSetupForm({
   const [peakWeekend, setPeakWeekend] = useState('');
   const [membershipPrice, setMembershipPrice] = useState('');
 
-  const [slotDuration, setSlotDuration] = useState<'60' | '90' | ''>('60');
+  const [slotDuration, setSlotDuration] = useState<'60' | ''>('60');
   const [bufferMinutes, setBufferMinutes] = useState('');
   const [timeSlotTemplateId, setTimeSlotTemplateId] = useState('');
   const [timeSlotTemplateOptions, setTimeSlotTemplateOptions] = useState<
@@ -308,7 +307,7 @@ export function PadelCourtSetupForm({
         }
         setMembershipPrice(strFromApi(d.membershipPrice));
         const sd = d.slotDurationMinutes;
-        setSlotDuration(sd === 60 ? '60' : sd === 90 ? '90' : '');
+        setSlotDuration(sd === 60 || sd === 90 ? '60' : '');
         setBufferMinutes(strFromApi(d.bufferBetweenSlotsMinutes));
 
         const ex = d.extras;
@@ -738,7 +737,7 @@ export function PadelCourtSetupForm({
               ))}
             </select>
             <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
-              Create named lists of half-hour starts on the{' '}
+              Create named lists of hourly starts on the{' '}
               <Link to="/app/time-slots">Manage time slots</Link> page, then pick one here.
             </p>
           </div>
@@ -747,11 +746,10 @@ export function PadelCourtSetupForm({
             <select
               value={slotDuration}
               onChange={(e) =>
-                setSlotDuration(e.target.value as '60' | '90' | '')
+                setSlotDuration(e.target.value as '60' | '')
               }
             >
               <option value="60">60 minutes</option>
-              <option value="90">90 minutes</option>
               <option value="">—</option>
             </select>
           </div>

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { deleteBusiness, listBusinesses, listBusinessLocations, listBookingsForTenant } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
@@ -54,7 +54,7 @@ export default function BusinessesPage() {
     try {
       const [businessRows, locationRows] = await Promise.all([
         listBusinesses(),
-        listBusinessLocations(),
+        listBusinessLocations({ ignoreActiveTenant: true }),
       ]);
       setRows(businessRows);
       setAllLocations(locationRows);

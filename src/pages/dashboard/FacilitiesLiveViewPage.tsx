@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import {
   createBooking,
@@ -357,7 +357,7 @@ export default function FacilitiesLiveViewPage() {
         startTime,
         minStartIso: minStart.toISOString(),
       });
-      setQuickBookingError('Bookings must be at least 30 minutes in the future.');
+      setQuickBookingError('Bookings must be at least 1 hour in the future.');
       return;
     }
     if (quickPrice == null) {

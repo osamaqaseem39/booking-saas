@@ -188,7 +188,7 @@ export interface CourtSlotGridRecord {
   date: string;
   kind: CourtKind;
   courtId: string;
-  segmentMinutes: 30;
+  segmentMinutes: 60;
   gridStartTime: string;
   gridEndTime: string;
   workingHoursApplied?: boolean;

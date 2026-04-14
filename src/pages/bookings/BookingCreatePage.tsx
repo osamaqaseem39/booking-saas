@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   createBooking,
@@ -679,7 +679,7 @@ export default function BookingCreatePage() {
           startTime,
           minStartIso: minStart.toISOString(),
         });
-        setError('Bookings must be at least 30 minutes in the future.');
+        setError('Bookings must be at least 1 hour in the future.');
         return;
       }
       const slotSource = lineSlotSource[idx];

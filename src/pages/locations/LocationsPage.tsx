@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   deleteBusinessLocation,
@@ -32,7 +32,9 @@ export default function LocationsPage() {
       setLoading(true);
       setErr(null);
       try {
-        const locs = await listBusinessLocations();
+        const locs = await listBusinessLocations({
+          ignoreActiveTenant: !!isOwner,
+        });
         setRows(locs);
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
@@ -44,7 +46,7 @@ export default function LocationsPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [isOwner]);
 
   async function onDelete(locationId: string) {
     const yes = window.confirm('Delete this location? This cannot be undone.');

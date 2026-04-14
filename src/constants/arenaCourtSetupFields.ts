@@ -173,7 +173,7 @@ export const ARENA_SLOT_FIELDS: ArenaCourtFieldDef[] = [
   {
     apiKey: 'slotDurationMinutes',
     label: 'Slot duration (minutes)',
-    notes: '≥ 60, multiple of 30',
+    notes: '60 only (hourly slots)',
   },
   {
     apiKey: 'bufferBetweenSlotsMinutes',

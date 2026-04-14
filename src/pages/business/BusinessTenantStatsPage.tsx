@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   getBusinessDashboardView,
@@ -263,7 +263,7 @@ export default function BusinessTenantStatsPage() {
         }
 
         const [locations, bookingRows, invoiceRows, dashboardView] = await Promise.all([
-          listBusinessLocations(),
+          listBusinessLocations({ ignoreActiveTenant: true }),
           listBookingsForTenant(selected.tenantId),
           listInvoicesForTenant(selected.tenantId),
           getBusinessDashboardView().catch(() => null),

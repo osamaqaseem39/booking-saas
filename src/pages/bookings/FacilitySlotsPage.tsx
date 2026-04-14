@@ -140,7 +140,7 @@ export default function FacilitySlotsPage() {
       </p>
       <h1 className="page-title">Daily slots</h1>
       <p className="muted" style={{ maxWidth: '720px', marginBottom: '1.25rem' }}>
-        Per-court rows for a single calendar day (30-minute steps). Generate the day in the database,
+        Per-court rows for a single calendar day (hourly steps). Generate the day in the database,
         then mark segments blocked or open. Booked times follow live bookings and cannot be toggled
         here. For recurring grid rules and templates, use Manage time slots.
       </p>
