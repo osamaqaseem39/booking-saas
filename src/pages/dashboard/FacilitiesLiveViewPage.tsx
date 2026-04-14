@@ -4,7 +4,6 @@ import {
   createBooking,
   createIamUser,
   getBookingAvailability,
-  getCourtSlots,
   getCourtSlotGrid,
   getBusinessDashboardView,
   listIamUsers,
@@ -324,14 +323,16 @@ export default function FacilitiesLiveViewPage() {
     setQuickSlotsLoading(true);
     try {
       const courtKind = facilityTypeToCourtKind(state.facility.type);
-      const slotsRes = await getCourtSlots({
+      const gridRes = await getCourtSlotGrid({
         courtKind,
         courtId: state.facility.id,
         date: state.date,
+        useWorkingHours: false,
+        availableOnly: true,
       });
-      const availableSlots = slotsRes.slots
-        .filter((s) => s.availability === 'available')
-        .map((s) => ({ startTime: s.startTime, endTime: s.endTime }));
+      const availableSlots = gridRes.segments
+        .filter((segment) => segment.state === 'free')
+        .map((segment) => ({ startTime: segment.startTime, endTime: segment.endTime }));
       const deduped = availableSlots.filter((slot, index, arr) => {
         const m = timeToMinutes(slot.startTime);
         return m <= 23 * 60;
