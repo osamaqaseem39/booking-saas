@@ -93,7 +93,7 @@ export default function ManageTimeSlotsPage() {
   const displaySegments = useMemo(() => {
     if (!grid) return [];
     const starts = activeTemplate?.slotStarts;
-    if (!starts?.length) return grid.segments;
+    if (!starts?.length) return [];
     const set = new Set(starts);
     return grid.segments.filter(
       (s) => set.has(s.startTime) || s.state === 'booked',
@@ -508,6 +508,12 @@ export default function ManageTimeSlotsPage() {
       </section>
 
       <section className="detail-card" style={{ maxWidth: '720px', marginTop: '1rem' }}>
+        {!activeTemplate && (
+          <p className="muted" style={{ marginBottom: '0.75rem' }}>
+            No time slot template is assigned to this facility yet. Only template-defined slots are
+            shown here.
+          </p>
+        )}
         {activeTemplate && (
           <p className="muted" style={{ marginBottom: '0.75rem' }}>
             Facility uses template <strong>{activeTemplate.name}</strong>. Showing template starts
