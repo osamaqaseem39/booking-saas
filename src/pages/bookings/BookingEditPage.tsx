@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getBooking, updateBooking } from '../../api/saasClient';
+import { editBookingFacilitySlots, getBooking, updateBooking } from '../../api/saasClient';
 import type { BookingRecord, BookingStatus, PaymentMethod, PaymentStatus } from '../../types/booking';
 import { formatTimeRange12h } from '../../utils/timeDisplay';
 
@@ -127,11 +127,20 @@ export default function BookingEditPage() {
     setSaving(true);
     setError(null);
     try {
+      const previousStatus = booking?.bookingStatus;
       const updated = await updateBooking(bookingId, {
         bookingStatus,
         payment: { paymentStatus, paymentMethod },
         cancellationReason: cancellationReason.trim() || undefined,
       });
+      if (
+        previousStatus !== undefined &&
+        updated.bookingStatus !== previousStatus
+      ) {
+        await editBookingFacilitySlots(updated.bookingId, {
+          blocked: updated.bookingStatus === 'confirmed',
+        });
+      }
       setBooking(updated);
       navigate('/app/bookings', { replace: true });
     } catch (e) {

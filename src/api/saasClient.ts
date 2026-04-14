@@ -864,6 +864,19 @@ export async function updateBooking(
   });
 }
 
+export async function editBookingFacilitySlots(
+  bookingId: string,
+  body: { blocked: boolean },
+): Promise<{ ok: true; bookingId: string; blocked: boolean }> {
+  return request<{ ok: true; bookingId: string; blocked: boolean }>(
+    `/bookings/${bookingId}/facility-slots`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
 export async function getBookingAvailability(params: {
   date: string;
   startTime: string;

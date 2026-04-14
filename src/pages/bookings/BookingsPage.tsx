@@ -1,6 +1,7 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
+  editBookingFacilitySlots,
   getBookingAvailability,
   getCourtBookedSlots,
   listBookings,
@@ -262,6 +263,23 @@ export default function BookingsPage() {
     setError(null);
     try {
       const updated = await updateBooking(selectedId, patch);
+      setBookings((prev) =>
+        prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+
+  async function patchBookingStatus(bookingId: string, nextStatus: BookingStatus) {
+    setError(null);
+    try {
+      const updated = await updateBooking(bookingId, {
+        bookingStatus: nextStatus,
+      });
+      await editBookingFacilitySlots(bookingId, {
+        blocked: nextStatus === 'confirmed',
+      });
       setBookings((prev) =>
         prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
       );
@@ -771,9 +789,10 @@ export default function BookingsPage() {
                     <select
                       value={selected.bookingStatus}
                       onChange={(e) =>
-                        void patchBooking({
-                          bookingStatus: e.target.value as BookingStatus,
-                        })
+                        void patchBookingStatus(
+                          selected.bookingId,
+                          e.target.value as BookingStatus,
+                        )
                       }
                     >
                       {(
