@@ -7,20 +7,13 @@ import {
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
-import { formatTimeRange12h } from '../../utils/timeDisplay';
+import { formatTime12h, formatTimeRange12h } from '../../utils/timeDisplay';
 
 function toMinutes(time: string): number {
   const [hRaw, mRaw] = time.split(':');
   const h = Number(hRaw);
   const m = Number(mRaw);
   return h * 60 + m;
-}
-
-function addMinutes(time: string, minutes: number): string {
-  const total = toMinutes(time) + minutes;
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export default function ManageTimeSlotsPage() {
@@ -106,6 +99,7 @@ export default function ManageTimeSlotsPage() {
                   <th>Template name</th>
                   <th>Total slots</th>
                   <th>Preview</th>
+                  <th>Statuses</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -113,13 +107,33 @@ export default function ManageTimeSlotsPage() {
                 {templates.map((t) => (
                   <tr key={t.id}>
                     <td>{t.name}</td>
-                    <td>{t.slotStarts.length}</td>
+                    <td>{t.slotLines?.length ?? t.slotStarts.length}</td>
                     <td>
-                      {t.slotStarts
-                        .slice(0, 3)
-                        .map((start) => formatTimeRange12h(start, addMinutes(start, 60)))
-                        .join(' · ')}
-                      {t.slotStarts.length > 3 ? ` · +${t.slotStarts.length - 3} more` : ''}
+                      {(t.slotLines && t.slotLines.length > 0
+                        ? t.slotLines
+                            .slice()
+                            .sort((a, b) => a.sortOrder - b.sortOrder)
+                            .slice(0, 3)
+                            .map((line) => formatTimeRange12h(line.startTime, line.endTime))
+                        : t.slotStarts
+                            .slice(0, 3)
+                            .sort((a, b) => toMinutes(a) - toMinutes(b))
+                            .map((start) => formatTime12h(start))
+                      ).join(' · ')}
+                      {(t.slotLines?.length ?? t.slotStarts.length) > 3
+                        ? ` · +${(t.slotLines?.length ?? t.slotStarts.length) - 3} more`
+                        : ''}
+                    </td>
+                    <td>
+                      {t.slotLines && t.slotLines.length > 0 ? (
+                        <>
+                          {t.slotLines.filter((line) => line.status === 'available').length}{' '}
+                          available ·{' '}
+                          {t.slotLines.filter((line) => line.status === 'blocked').length} blocked
+                        </>
+                      ) : (
+                        <span className="muted">Default available</span>
+                      )}
                     </td>
                     <td>
                       <Link

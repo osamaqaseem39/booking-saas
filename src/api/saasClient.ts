@@ -1463,6 +1463,7 @@ export type TimeSlotTemplateRecord = {
     id: string;
     startTime: string;
     endTime: string;
+    status: 'available' | 'blocked';
     sortOrder: number;
   }>;
   slotStarts: string[];
@@ -1486,7 +1487,11 @@ export async function createTimeSlotTemplate(
   body: {
     name: string;
     slotStarts?: string[];
-    slotLines?: Array<{ startTime: string; endTime: string }>;
+    slotLines?: Array<{
+      startTime: string;
+      endTime: string;
+      status?: 'available' | 'blocked';
+    }>;
   },
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord> {
@@ -1506,7 +1511,11 @@ export async function updateTimeSlotTemplate(
   body: Partial<{
     name: string;
     slotStarts: string[];
-    slotLines: Array<{ startTime: string; endTime: string }>;
+    slotLines: Array<{
+      startTime: string;
+      endTime: string;
+      status?: 'available' | 'blocked';
+    }>;
   }>,
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord> {

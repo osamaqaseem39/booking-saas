@@ -124,17 +124,11 @@ export default function AddTimeSlotTemplatePage() {
     setTplSaving(true);
     setTplErr(null);
     try {
-      const payload = {
-        name,
-        slotStarts,
-        slotLines: newTplLines.map((line) => ({
-          startTime: line.startTime,
-          endTime: line.endTime,
-        })),
-      };
       if (isEdit && templateId) {
+        const payload = { name, slotStarts };
         await updateTimeSlotTemplate(templateId, payload, tenantId);
       } else {
+        const payload = { name, slotStarts };
         await createTimeSlotTemplate(payload, tenantId);
       }
       navigate('/app/time-slots');
