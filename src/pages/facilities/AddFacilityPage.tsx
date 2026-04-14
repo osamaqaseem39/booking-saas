@@ -241,14 +241,41 @@ export default function AddFacilityPage() {
     }));
   }, [gamingStations, isGamingLocation, locationId, routeLocation.pathname]);
 
+  const visibleArenaCourts = useMemo(() => {
+    const futsalById = new Map(futsalCourts.map((row) => [row.id, row]));
+    const cricketById = new Map(cricketCourts.map((row) => [row.id, row]));
+
+    const futsalVisible = futsalCourts.filter((row) => {
+      const twinId = row.linkedTwinCourtId?.trim();
+      if (!twinId || row.linkedTwinCourtKind !== 'cricket_court') return true;
+      const twin = cricketById.get(twinId);
+      if (!twin) return true;
+      const hasBackLink = (twin.linkedTwinCourtId ?? '').trim() === row.id;
+      if (!hasBackLink) return false;
+      return row.id.localeCompare(twinId) <= 0;
+    });
+
+    const cricketVisible = cricketCourts.filter((row) => {
+      const twinId = row.linkedTwinCourtId?.trim();
+      if (!twinId || row.linkedTwinCourtKind !== 'futsal_court') return true;
+      const twin = futsalById.get(twinId);
+      if (!twin) return true;
+      const hasBackLink = (twin.linkedTwinCourtId ?? '').trim() === row.id;
+      if (!hasBackLink) return false;
+      return row.id.localeCompare(twinId) <= 0;
+    });
+
+    return { futsalVisible, cricketVisible };
+  }, [futsalCourts, cricketCourts]);
+
   const allFacilities = useMemo(
     () => [
-      ...futsalCourts.map((r) => ({
+      ...visibleArenaCourts.futsalVisible.map((r) => ({
         ...r,
         type: 'Futsal pitch',
         code: 'futsal-court' as const,
       })),
-      ...cricketCourts.map((r) => ({
+      ...visibleArenaCourts.cricketVisible.map((r) => ({
         ...r,
         type: 'Cricket pitch',
         code: 'cricket-court' as const,
@@ -256,7 +283,7 @@ export default function AddFacilityPage() {
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
       ...gamingRows,
     ],
-    [cricketCourts, futsalCourts, padel, gamingRows],
+    [visibleArenaCourts, padel, gamingRows],
   );
 
   const gamingFacilityCards = useMemo(() => {
@@ -301,15 +328,23 @@ export default function AddFacilityPage() {
   const availableFacilityCards = useMemo(
     () =>
       [
-        { key: 'futsalCourts', label: 'Futsal pitches', count: futsalCourts.length },
+        {
+          key: 'futsalCourts',
+          label: 'Futsal pitches',
+          count: visibleArenaCourts.futsalVisible.length,
+        },
         {
           key: 'cricketCourts',
           label: 'Cricket pitches',
-          count: cricketCourts.length,
+          count: visibleArenaCourts.cricketVisible.length,
         },
         { key: 'padel', label: 'Padel courts', count: padel.length },
       ].filter((item) => item.count > 0),
-    [cricketCourts.length, futsalCourts.length, padel.length],
+    [
+      visibleArenaCourts.cricketVisible.length,
+      visibleArenaCourts.futsalVisible.length,
+      padel.length,
+    ],
   );
 
   async function deleteFacilityRow(row: {

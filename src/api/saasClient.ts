@@ -966,11 +966,71 @@ export async function getCourtSlotGrid(params: {
   if (useWorkingHours) q.set('useWorkingHours', 'true');
   if (availableOnly) q.set('availableOnly', 'true');
   const path = `/bookings/courts/${courtKind}/${courtId}/slot-grid?${q.toString()}`;
+  const normalizeGrid = (raw: unknown): CourtSlotGridRecord => {
+    const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const rawSegments = Array.isArray(row.segments) ? row.segments : null;
+    const rawSlots = Array.isArray(row.slots) ? row.slots : null;
+    const segments =
+      rawSegments ??
+      (rawSlots
+        ? rawSlots
+            .map((s) => {
+              if (!s || typeof s !== 'object') return null;
+              const slot = s as Record<string, unknown>;
+              const startTime = typeof slot.startTime === 'string' ? slot.startTime : '';
+              const endTime = typeof slot.endTime === 'string' ? slot.endTime : '';
+              const availability = typeof slot.availability === 'string' ? slot.availability : '';
+              if (!startTime || !endTime) return null;
+              if (availability === 'available') {
+                return { startTime, endTime, state: 'free' as const };
+              }
+              if (availability === 'blocked') {
+                return { startTime, endTime, state: 'blocked' as const };
+              }
+              if (availability === 'booked') {
+                return {
+                  startTime,
+                  endTime,
+                  state: 'booked' as const,
+                  bookingId:
+                    typeof slot.bookingId === 'string' ? slot.bookingId : '',
+                  itemId: typeof slot.itemId === 'string' ? slot.itemId : '',
+                  status:
+                    typeof slot.status === 'string' ? slot.status : 'reserved',
+                };
+              }
+              return null;
+            })
+            .filter(Boolean)
+        : []);
+    return {
+      date: typeof row.date === 'string' ? row.date : date,
+      kind: (typeof row.kind === 'string' ? row.kind : courtKind) as CourtKind,
+      courtId: typeof row.courtId === 'string' ? row.courtId : courtId,
+      segmentMinutes:
+        typeof row.segmentMinutes === 'number' ? (row.segmentMinutes as 60) : 60,
+      gridStartTime:
+        typeof row.gridStartTime === 'string'
+          ? row.gridStartTime
+          : startTime ?? '00:00',
+      gridEndTime:
+        typeof row.gridEndTime === 'string' ? row.gridEndTime : endTime ?? '24:00',
+      workingHoursApplied:
+        typeof row.workingHoursApplied === 'boolean'
+          ? row.workingHoursApplied
+          : undefined,
+      locationClosed:
+        typeof row.locationClosed === 'boolean' ? row.locationClosed : undefined,
+      availableOnly:
+        typeof row.availableOnly === 'boolean' ? row.availableOnly : undefined,
+      segments: segments as CourtSlotGridRecord['segments'],
+    };
+  };
   const tid = (tenantOverride ?? getTenantId()).trim();
   if (tid) {
-    return requestForTenant<CourtSlotGridRecord>(tid, path, { method: 'GET' });
+    return normalizeGrid(await requestForTenant<unknown>(tid, path, { method: 'GET' }));
   }
-  return request<CourtSlotGridRecord>(path, { method: 'GET' });
+  return normalizeGrid(await request<unknown>(path, { method: 'GET' }));
 }
 
 /** Turn booking on/off for one hourly segment (`blocked: true` = no new bookings). */
@@ -1032,29 +1092,41 @@ function appendBusinessLocationQuery(
 
 export async function listFutsalCourts(
   businessLocationId?: string,
+  tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
-  return request<NamedCourt[]>(
-    appendBusinessLocationQuery('/arena/futsal-courts', businessLocationId),
-    { method: 'GET' },
-  );
+  const path = appendBusinessLocationQuery('/arena/futsal-courts', businessLocationId);
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
+  }
+  return request<NamedCourt[]>(path, { method: 'GET' });
 }
 
 export async function listCricketCourts(
   businessLocationId?: string,
+  tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
-  return request<NamedCourt[]>(
-    appendBusinessLocationQuery('/arena/cricket-courts', businessLocationId),
-    { method: 'GET' },
-  );
+  const path = appendBusinessLocationQuery('/arena/cricket-courts', businessLocationId);
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
+  }
+  return request<NamedCourt[]>(path, { method: 'GET' });
 }
 
 export async function listPadelCourts(
   businessLocationId?: string,
+  tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
   const q = businessLocationId?.trim()
     ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
     : '';
-  return request<NamedCourt[]>(`/arena/padel-court${q}`, { method: 'GET' });
+  const path = `/arena/padel-court${q}`;
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
+  }
+  return request<NamedCourt[]>(path, { method: 'GET' });
 }
 
 export type CreateTurfTwinLinkBody = {
@@ -1176,10 +1248,16 @@ export async function updateFutsalCourt(
 
 export async function deleteFutsalCourt(
   id: string,
+  tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
-  return request<{ deleted: true; id: string }>(`/arena/futsal-courts/${id}`, {
-    method: 'DELETE',
-  });
+  const path = `/arena/futsal-courts/${id}`;
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<{ deleted: true; id: string }>(tid, path, {
+      method: 'DELETE',
+    });
+  }
+  return request<{ deleted: true; id: string }>(path, { method: 'DELETE' });
 }
 
 /** Matches API `CreateCricketCourtDto`. */
@@ -1269,13 +1347,16 @@ export async function updateCricketCourt(
 
 export async function deleteCricketCourt(
   id: string,
+  tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
-  return request<{ deleted: true; id: string }>(
-    `/arena/cricket-courts/${id}`,
-    {
+  const path = `/arena/cricket-courts/${id}`;
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<{ deleted: true; id: string }>(tid, path, {
       method: 'DELETE',
-    },
-  );
+    });
+  }
+  return request<{ deleted: true; id: string }>(path, { method: 'DELETE' });
 }
 
 /** Matches API `CreatePadelCourtDto` (optional fields omitted when unset). */
@@ -1363,10 +1444,16 @@ export async function updatePadelCourt(
 
 export async function deletePadelCourt(
   id: string,
+  tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
-  return request<{ deleted: true; id: string }>(`/arena/padel-court/${id}`, {
-    method: 'DELETE',
-  });
+  const path = `/arena/padel-court/${id}`;
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<{ deleted: true; id: string }>(tid, path, {
+      method: 'DELETE',
+    });
+  }
+  return request<{ deleted: true; id: string }>(path, { method: 'DELETE' });
 }
 
 export type TimeSlotTemplateRecord = {

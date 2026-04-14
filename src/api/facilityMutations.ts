@@ -19,6 +19,7 @@ export async function deleteFacilityByCode(
   code: FacilityRowCode,
   id: string,
   businessLocationId?: string,
+  tenantIdOverride?: string,
 ): Promise<void> {
   if (isGamingSetupCode(code)) {
     const loc = businessLocationId?.trim();
@@ -29,15 +30,15 @@ export async function deleteFacilityByCode(
     return;
   }
   if (code === 'futsal-court') {
-    await deleteFutsalCourt(id);
+    await deleteFutsalCourt(id, tenantIdOverride);
     return;
   }
   if (code === 'cricket-court') {
-    await deleteCricketCourt(id);
+    await deleteCricketCourt(id, tenantIdOverride);
     return;
   }
   if (code === 'padel-court') {
-    await deletePadelCourt(id);
+    await deletePadelCourt(id, tenantIdOverride);
     return;
   }
   throw new Error('Unknown facility type');

@@ -111,6 +111,9 @@ export interface NamedCourt {
   name: string;
   tenantId?: string;
   businessLocationId?: string | null;
+  /** Optional shared-turf pairing (futsal <-> cricket). */
+  linkedTwinCourtKind?: 'futsal_court' | 'cricket_court';
+  linkedTwinCourtId?: string | null;
   /** Facility-level lifecycle status where available (e.g. active, maintenance). */
   courtStatus?: string;
   /** Facility active flag where available. */

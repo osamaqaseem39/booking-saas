@@ -46,6 +46,7 @@ function FacilitiesTableBlock({
   locationId,
   onReload,
   setPageErr,
+  tenantIdOverride,
 }: {
   title: string;
   rows: NamedCourt[];
@@ -53,6 +54,7 @@ function FacilitiesTableBlock({
   locationId: string;
   onReload: () => void;
   setPageErr: (msg: string | null) => void;
+  tenantIdOverride?: string;
 }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -64,7 +66,7 @@ function FacilitiesTableBlock({
     setDeletingId(r.id);
     setPageErr(null);
     try {
-      await deleteFacilityByCode(facilityCode, r.id, locationId);
+      await deleteFacilityByCode(facilityCode, r.id, locationId, tenantIdOverride);
       onReload();
     } catch (e) {
       setPageErr(e instanceof Error ? e.message : 'Failed to delete facility');
@@ -151,6 +153,7 @@ export default function LocationFacilitiesPage() {
     () => locations.find((l) => l.id === locationId),
     [locations, locationId],
   );
+  const tenantIdOverride = isOwner ? location?.business?.tenantId ?? '' : '';
 
   const load = () => {
     void (async () => {
@@ -158,11 +161,15 @@ export default function LocationFacilitiesPage() {
       setLoading(true);
       setErr(null);
       try {
-        const [locs, fc, cc, pa] = await Promise.all([
-          listBusinessLocations({ ignoreActiveTenant: isOwner }),
-          listFutsalCourts(locationId),
-          listCricketCourts(locationId),
-          listPadelCourts(locationId),
+        const locs = await listBusinessLocations({ ignoreActiveTenant: isOwner });
+        const currentLocation = locs.find((l) => l.id === locationId);
+        const currentTenantId = isOwner
+          ? currentLocation?.business?.tenantId ?? ''
+          : '';
+        const [fc, cc, pa] = await Promise.all([
+          listFutsalCourts(locationId, currentTenantId),
+          listCricketCourts(locationId, currentTenantId),
+          listPadelCourts(locationId, currentTenantId),
         ]);
         setLocations(locs);
         setFutsalCourts(fc);
@@ -327,6 +334,7 @@ export default function LocationFacilitiesPage() {
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}
+                tenantIdOverride={tenantIdOverride}
               />
             ))
           ) : (
@@ -443,6 +451,7 @@ export default function LocationFacilitiesPage() {
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}
+                tenantIdOverride={tenantIdOverride}
               />
               <FacilitiesTableBlock
                 title="Cricket pitches"
@@ -451,6 +460,7 @@ export default function LocationFacilitiesPage() {
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}
+                tenantIdOverride={tenantIdOverride}
               />
               <FacilitiesTableBlock
                 title="Padel courts"
@@ -459,6 +469,7 @@ export default function LocationFacilitiesPage() {
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}
+                tenantIdOverride={tenantIdOverride}
               />
             </>
           )}

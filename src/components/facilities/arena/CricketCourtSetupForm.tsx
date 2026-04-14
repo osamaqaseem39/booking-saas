@@ -1,10 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import {
+  createTurfTwinLink,
   createCricketCourt,
   getFutsalCourt,
   getCricketCourt,
   listFutsalCourts,
   listTimeSlotTemplates,
+  removeTurfTwinLink,
   updateCricketCourt,
   type CreateCricketCourtBody,
   type CricketCourtDetail,
@@ -47,6 +49,7 @@ export function CricketCourtSetupForm({
   >('');
   const [sameFieldAsFutsal, setSameFieldAsFutsal] = useState(false);
   const [selectedFutsalTwinId, setSelectedFutsalTwinId] = useState('');
+  const [initialFutsalTwinId, setInitialFutsalTwinId] = useState('');
   const [futsalTwinOptions, setFutsalTwinOptions] = useState<NamedCourt[]>([]);
   const [timeSlotTemplateOptions, setTimeSlotTemplateOptions] = useState<
     { id: string; name: string }[]
@@ -70,6 +73,7 @@ export function CricketCourtSetupForm({
       setCricketPracticeMode('');
       setSameFieldAsFutsal(false);
       setSelectedFutsalTwinId('');
+      setInitialFutsalTwinId('');
       setFutsalTwinOptions([]);
       return;
     }
@@ -103,6 +107,13 @@ export function CricketCourtSetupForm({
         setCricketPracticeMode(
           pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
         );
+        const linkedFutsalId =
+          d.linkedTwinCourtKind === 'futsal_court'
+            ? (d.linkedTwinCourtId ?? '').trim()
+            : '';
+        setInitialFutsalTwinId(linkedFutsalId);
+        setSameFieldAsFutsal(Boolean(linkedFutsalId));
+        setSelectedFutsalTwinId(linkedFutsalId);
       } catch (e) {
         if (!cancelled) {
           setInitialLoadError(
@@ -125,7 +136,7 @@ export function CricketCourtSetupForm({
   }, [locationId, existingCourtId]);
 
   useEffect(() => {
-    if (existingCourtId || !arenaLocationId) {
+    if (!arenaLocationId) {
       setFutsalTwinOptions([]);
       return;
     }
@@ -142,7 +153,7 @@ export function CricketCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [arenaLocationId, existingCourtId]);
+  }, [arenaLocationId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,6 +214,7 @@ export function CricketCourtSetupForm({
       : existingCourtId
         ? { timeSlotTemplateId: null as null }
         : {};
+    const shouldLinkFutsal = sameFieldAsFutsal && !!selectedFutsalTwinId.trim();
     const body: CreateCricketCourtBody = {
       businessLocationId: effectiveLocationId,
       name: shared.name.trim(),
@@ -215,11 +227,11 @@ export function CricketCourtSetupForm({
       cricketBowlingMachine: cricketBowlingMachine || undefined,
       cricketPracticeMode: cricketPracticeMode || undefined,
       linkedTwinCourtKind:
-        !existingCourtId && sameFieldAsFutsal && selectedFutsalTwinId
+        !existingCourtId && shouldLinkFutsal
           ? 'futsal_court'
           : undefined,
       linkedTwinCourtId:
-        !existingCourtId && sameFieldAsFutsal && selectedFutsalTwinId
+        !existingCourtId && shouldLinkFutsal
           ? selectedFutsalTwinId
           : undefined,
     };
@@ -229,6 +241,26 @@ export function CricketCourtSetupForm({
       if (existingCourtId) {
         const { businessLocationId: _b, ...patch } = body;
         await updateCricketCourt(existingCourtId, patch);
+        if (initialFutsalTwinId && !shouldLinkFutsal) {
+          await removeTurfTwinLink({
+            courtKind: 'cricket_court',
+            courtId: existingCourtId,
+          });
+        } else if (
+          shouldLinkFutsal &&
+          selectedFutsalTwinId !== initialFutsalTwinId
+        ) {
+          if (initialFutsalTwinId) {
+            await removeTurfTwinLink({
+              courtKind: 'cricket_court',
+              courtId: existingCourtId,
+            });
+          }
+          await createTurfTwinLink({
+            futsalCourtId: selectedFutsalTwinId,
+            cricketCourtId: existingCourtId,
+          });
+        }
       } else {
         await createCricketCourt(body);
       }
@@ -317,42 +349,41 @@ export function CricketCourtSetupForm({
           timeSlotTemplateOptions={timeSlotTemplateOptions}
           gameSection={gameSection}
         />
-        {!existingCourtId ? (
-          <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
-            <label className="turf-setup-inline">
-              <input
-                type="checkbox"
-                checked={sameFieldAsFutsal}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setSameFieldAsFutsal(checked);
-                  if (!checked) setSelectedFutsalTwinId('');
-                }}
-              />
-              Same physical field as an existing futsal pitch (shared booking calendar)
-            </label>
-            {sameFieldAsFutsal ? (
-              <div style={{ marginTop: '0.75rem' }}>
-                <label>Futsal pitch to link *</label>
-                <select
-                  value={selectedFutsalTwinId}
-                  onChange={(e) => setSelectedFutsalTwinId(e.target.value)}
-                >
-                  <option value="">Select futsal pitch…</option>
-                  {futsalTwinOptions.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="muted" style={{ marginTop: '0.35rem' }}>
-                  Shared turf details are auto-filled from the selected futsal
-                  pitch, and both sides are treated as one field for availability.
-                </p>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
+          <label className="turf-setup-inline">
+            <input
+              type="checkbox"
+              checked={sameFieldAsFutsal}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setSameFieldAsFutsal(checked);
+                if (!checked) setSelectedFutsalTwinId('');
+              }}
+            />
+            Same physical field as an existing futsal pitch (shared booking calendar)
+          </label>
+          {sameFieldAsFutsal ? (
+            <div style={{ marginTop: '0.75rem' }}>
+              <label>Futsal pitch to link *</label>
+              <select
+                value={selectedFutsalTwinId}
+                onChange={(e) => setSelectedFutsalTwinId(e.target.value)}
+              >
+                <option value="">Select futsal pitch…</option>
+                {futsalTwinOptions.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.name}
+                  </option>
+                ))}
+              </select>
+              <p className="muted" style={{ marginTop: '0.35rem' }}>
+                {existingCourtId
+                  ? 'Save changes to apply updated shared-field linking.'
+                  : 'Shared turf details are auto-filled from the selected futsal pitch, and both sides are treated as one field for availability.'}
+              </p>
+            </div>
+          ) : null}
+        </div>
         <div className="turf-setup-form-actions">
           <button
             type="submit"
