@@ -745,92 +745,6 @@ export default function FacilitiesLiveViewPage() {
                 <span>Facility</span>
                 <span>{quickBooking.facility.name}</span>
               </div>
-              <div className="form-row-2">
-                <div>
-                  <label>Date</label>
-                  <input
-                    type="date"
-                    value={quickBooking.date}
-                    min={localDateYmd()}
-                    onChange={(e) =>
-                      setQuickBooking((cur) =>
-                        cur ? { ...cur, date: e.target.value } : cur,
-                      )
-                    }
-                    disabled={quickBookingSubmitting}
-                  />
-                </div>
-                <div>
-                  <label>Start time</label>
-                  <div
-                    style={{
-                      marginTop: '0.35rem',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                      gap: '0.4rem',
-                      width: '100%',
-                    }}
-                  >
-                    {quickSlotsLoading ? (
-                      <span className="muted">Loading slots...</span>
-                    ) : quickSlots.length === 0 ? (
-                      <span className="muted">
-                        {quickBooking.facility.timeSlotTemplateId
-                          ? 'No template slots available for this date.'
-                          : 'No time slot template assigned to this facility.'}
-                      </span>
-                    ) : (
-                      quickSlots.map((slot) => {
-                        const active =
-                          slot.startTime === quickBooking.startTime &&
-                          slot.endTime === quickBooking.endTime;
-                        return (
-                          <button
-                            key={`${slot.startTime}-${slot.endTime}`}
-                            type="button"
-                            className={active ? 'btn-primary' : 'btn-ghost'}
-                            style={{
-                              padding: '0.55rem 0.8rem',
-                              borderRadius: '0.6rem',
-                              fontSize: '0.9rem',
-                              width: '100%',
-                              textAlign: 'center',
-                            }}
-                            onClick={() =>
-                              setQuickBooking((cur) =>
-                                cur
-                                  ? {
-                                      ...cur,
-                                      startTime: slot.startTime,
-                                      endTime: slot.endTime,
-                                    }
-                                  : cur,
-                              )
-                            }
-                            disabled={quickBookingSubmitting}
-                          >
-                            {formatTime12h(slot.startTime)}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label>Slot duration</label>
-                <input value="60 min (hourly)" readOnly />
-              </div>
-              <div className="detail-row">
-                <span>Price (backend)</span>
-                <span>
-                  {quickPriceLoading
-                    ? 'Loading...'
-                    : quickPrice == null
-                      ? 'Unavailable'
-                      : `PKR ${quickPrice}`}
-                </span>
-              </div>
               <div>
                 <label>Number</label>
                 <input
@@ -843,6 +757,90 @@ export default function FacilitiesLiveViewPage() {
                   placeholder="+92..."
                   disabled={quickBookingSubmitting}
                 />
+              </div>
+              <div>
+                <label>Date</label>
+                <input
+                  type="date"
+                  value={quickBooking.date}
+                  min={localDateYmd()}
+                  onChange={(e) =>
+                    setQuickBooking((cur) =>
+                      cur ? { ...cur, date: e.target.value } : cur,
+                    )
+                  }
+                  disabled={quickBookingSubmitting}
+                />
+              </div>
+              <div>
+                <label>Start time</label>
+                <div
+                  style={{
+                    marginTop: '0.35rem',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: '0.4rem',
+                    width: '100%',
+                  }}
+                >
+                  {quickSlotsLoading ? (
+                    <span className="muted" style={{ gridColumn: '1 / -1' }}>
+                      Loading slots...
+                    </span>
+                  ) : quickSlots.length === 0 ? (
+                    <span className="muted" style={{ gridColumn: '1 / -1' }}>
+                      {quickBooking.facility.timeSlotTemplateId
+                        ? 'No template slots available for this date.'
+                        : 'No time slot template assigned to this facility.'}
+                    </span>
+                  ) : (
+                    quickSlots.map((slot) => {
+                      const active =
+                        slot.startTime === quickBooking.startTime &&
+                        slot.endTime === quickBooking.endTime;
+                      return (
+                        <button
+                          key={`${slot.startTime}-${slot.endTime}`}
+                          type="button"
+                          className={active ? 'btn-primary' : 'btn-ghost'}
+                          style={{
+                            padding: '0.55rem 0.8rem',
+                            borderRadius: '0.6rem',
+                            fontSize: '0.9rem',
+                            width: '100%',
+                            textAlign: 'center',
+                          }}
+                          onClick={() =>
+                            setQuickBooking((cur) =>
+                              cur
+                                ? {
+                                    ...cur,
+                                    startTime: slot.startTime,
+                                    endTime: slot.endTime,
+                                  }
+                                : cur,
+                            )
+                          }
+                          disabled={quickBookingSubmitting}
+                        >
+                          {formatTime12h(slot.startTime)}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <div className="detail-row">
+                <span>Price (backend)</span>
+                <span>
+                  {quickPriceLoading
+                    ? 'Loading...'
+                    : quickPrice == null
+                      ? 'Unavailable'
+                      : `${quickBooking.location?.currency ?? 'PKR'} ${new Intl.NumberFormat('en-PK').format(
+                          quickPrice,
+                        )}`}
+                </span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
