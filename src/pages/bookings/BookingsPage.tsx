@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
-  editBookingFacilitySlots,
   getBookingAvailability,
   getCourtBookedSlots,
   listBookings,
@@ -10,6 +9,7 @@ import {
   listBusinesses,
   listCourtOptions,
   listIamUsers,
+  patchCourtFacilitySlot,
   updateBooking,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
@@ -48,6 +48,19 @@ function titleCaseWords(v: string): string {
     .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
+}
+
+function toMinutes(time: string): number {
+  const [hRaw, mRaw] = time.split(':');
+  const h = Number(hRaw || 0);
+  const m = Number(mRaw || 0);
+  return h * 60 + m;
+}
+
+function minutesToTimeString(totalMins: number): string {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function sportBadgeClass(sport: string | null | undefined): string {
@@ -277,9 +290,20 @@ export default function BookingsPage() {
       const updated = await updateBooking(bookingId, {
         bookingStatus: nextStatus,
       });
-      await editBookingFacilitySlots(bookingId, {
-        blocked: nextStatus === 'confirmed',
-      });
+      const nextSlotStatus = nextStatus === 'confirmed' ? 'blocked' : 'available';
+      for (const item of updated.items) {
+        const startMins = toMinutes(item.startTime);
+        const endMins = toMinutes(item.endTime);
+        for (let m = startMins; m < endMins; m += 60) {
+          await patchCourtFacilitySlot({
+            courtKind: item.courtKind,
+            courtId: item.courtId,
+            date: updated.bookingDate,
+            startTime: minutesToTimeString(m),
+            status: nextSlotStatus,
+          });
+        }
+      }
       setBookings((prev) =>
         prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
       );

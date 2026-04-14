@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { editBookingFacilitySlots, getBooking, updateBooking } from '../../api/saasClient';
+import { getBooking, patchCourtFacilitySlot, updateBooking } from '../../api/saasClient';
 import type { BookingRecord, BookingStatus, PaymentMethod, PaymentStatus } from '../../types/booking';
 import { formatTimeRange12h } from '../../utils/timeDisplay';
 
@@ -26,6 +26,19 @@ function badgeClass(status: string): string {
 
 function courtKindLabel(courtKind: string): string {
   return titleCaseWords(courtKind.replace(/_court$/i, ''));
+}
+
+function toMinutes(time: string): number {
+  const [hRaw, mRaw] = time.split(':');
+  const h = Number(hRaw || 0);
+  const m = Number(mRaw || 0);
+  return h * 60 + m;
+}
+
+function minutesToTimeString(totalMins: number): string {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export default function BookingEditPage() {
@@ -137,9 +150,21 @@ export default function BookingEditPage() {
         previousStatus !== undefined &&
         updated.bookingStatus !== previousStatus
       ) {
-        await editBookingFacilitySlots(updated.bookingId, {
-          blocked: updated.bookingStatus === 'confirmed',
-        });
+        const nextSlotStatus =
+          updated.bookingStatus === 'confirmed' ? 'blocked' : 'available';
+        for (const item of updated.items) {
+          const startMins = toMinutes(item.startTime);
+          const endMins = toMinutes(item.endTime);
+          for (let m = startMins; m < endMins; m += 60) {
+            await patchCourtFacilitySlot({
+              courtKind: item.courtKind,
+              courtId: item.courtId,
+              date: updated.bookingDate,
+              startTime: minutesToTimeString(m),
+              status: nextSlotStatus,
+            });
+          }
+        }
       }
       setBooking(updated);
       navigate('/app/bookings', { replace: true });
