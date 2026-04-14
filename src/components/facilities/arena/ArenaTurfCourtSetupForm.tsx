@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   createCricketCourt,
   createFutsalCourt,
+  createTurfTwinLink,
   getCricketCourt,
   getFutsalCourt,
   listTimeSlotTemplates,
@@ -216,6 +217,8 @@ export function ArenaTurfCourtSetupForm({
     setSaving(true);
     setErr(null);
     try {
+      let createdFutsalId: string | null = null;
+      let createdCricketId: string | null = null;
       if (includesFutsal) {
         const body: CreateFutsalCourtBody = {
           businessLocationId: effectiveLocationId,
@@ -233,7 +236,8 @@ export function ArenaTurfCourtSetupForm({
           const { businessLocationId: _b, ...patch } = body;
           await updateFutsalCourt(existingCourtId, patch);
         } else {
-          await createFutsalCourt(body);
+          const created = await createFutsalCourt(body);
+          createdFutsalId = created.id;
         }
       }
       if (includesCricket) {
@@ -253,8 +257,15 @@ export function ArenaTurfCourtSetupForm({
           const { businessLocationId: _b, ...patch } = body;
           await updateCricketCourt(existingCourtId, patch);
         } else {
-          await createCricketCourt(body);
+          const created = await createCricketCourt(body);
+          createdCricketId = created.id;
         }
+      }
+      if (!existingCourtId && createdFutsalId && createdCricketId) {
+        await createTurfTwinLink({
+          futsalCourtId: createdFutsalId,
+          cricketCourtId: createdCricketId,
+        });
       }
       onSuccess();
     } catch (e) {

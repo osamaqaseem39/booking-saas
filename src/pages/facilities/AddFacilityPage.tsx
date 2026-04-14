@@ -278,12 +278,20 @@ export default function AddFacilityPage() {
     () => [
       ...visibleArenaCourts.futsalVisible.map((r) => ({
         ...r,
-        type: 'Futsal pitch',
+        type:
+          r.linkedTwinCourtKind === 'cricket_court' &&
+          !!r.linkedTwinCourtId?.trim()
+            ? 'Turf field'
+            : 'Futsal pitch',
         code: 'futsal-court' as const,
       })),
       ...visibleArenaCourts.cricketVisible.map((r) => ({
         ...r,
-        type: 'Cricket pitch',
+        type:
+          r.linkedTwinCourtKind === 'futsal_court' &&
+          !!r.linkedTwinCourtId?.trim()
+            ? 'Turf field'
+            : 'Cricket pitch',
         code: 'cricket-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
