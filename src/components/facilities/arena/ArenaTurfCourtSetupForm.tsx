@@ -38,11 +38,15 @@ export function ArenaTurfCourtSetupForm({
   onSuccess: () => void;
   existingCourtId?: string;
 }) {
-  const includesFutsal = courtKind === 'futsal' || courtKind === 'both';
-  const includesCricket = courtKind === 'cricket' || courtKind === 'both';
+  const defaultIncludesFutsal = courtKind === 'futsal' || courtKind === 'both';
+  const defaultIncludesCricket = courtKind === 'cricket' || courtKind === 'both';
+  const [includeFutsal, setIncludeFutsal] = useState(defaultIncludesFutsal);
+  const [includeCricket, setIncludeCricket] = useState(defaultIncludesCricket);
+  const includesFutsal = existingCourtId ? defaultIncludesFutsal : includeFutsal;
+  const includesCricket = existingCourtId ? defaultIncludesCricket : includeCricket;
   const ownKindLabel =
-    courtKind === 'both'
-      ? 'futsal pitch'
+    includesFutsal && includesCricket
+      ? 'futsal + cricket pitches'
       : includesFutsal
         ? 'futsal pitch'
         : 'cricket pitch';
@@ -93,6 +97,8 @@ export function ArenaTurfCourtSetupForm({
       setCricketStumpsAvailable(false);
       setCricketBowlingMachine(false);
       setCricketPracticeMode('');
+      setIncludeFutsal(defaultIncludesFutsal);
+      setIncludeCricket(defaultIncludesCricket);
       return;
     }
     let cancelled = false;
@@ -163,7 +169,7 @@ export function ArenaTurfCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [existingCourtId, includesFutsal, locationId]);
+  }, [defaultIncludesCricket, defaultIncludesFutsal, existingCourtId, includesFutsal, locationId]);
 
   useEffect(() => {
     if (!existingCourtId && locationId) setArenaLocationId(locationId);
@@ -195,6 +201,10 @@ export function ArenaTurfCourtSetupForm({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!includesFutsal && !includesCricket) {
+      setErr('Select at least one sport type (Futsal or Cricket).');
+      return;
+    }
     const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
     if (!effectiveLocationId || !shared.name.trim()) return;
     const arena = locations.find((l) => l.id === arenaLocationId);
@@ -225,7 +235,8 @@ export function ArenaTurfCourtSetupForm({
         } else {
           await createFutsalCourt(body);
         }
-      } else {
+      }
+      if (includesCricket) {
         const body: CreateCricketCourtBody = {
           businessLocationId: effectiveLocationId,
           name: shared.name.trim(),
@@ -333,6 +344,34 @@ export function ArenaTurfCourtSetupForm({
     <div className="turf-setup-form-wrap">
       <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
         {err && <div className="err-banner turf-setup-form-error">{err}</div>}
+        <div className="turf-setup-card">
+          <h4>0. Facility type</h4>
+          <div className="turf-setup-checkrow">
+            <label className="turf-setup-inline">
+              <input
+                type="checkbox"
+                checked={includesFutsal}
+                disabled={!!existingCourtId}
+                onChange={(e) => setIncludeFutsal(e.target.checked)}
+              />
+              Futsal
+            </label>
+            <label className="turf-setup-inline">
+              <input
+                type="checkbox"
+                checked={includesCricket}
+                disabled={!!existingCourtId}
+                onChange={(e) => setIncludeCricket(e.target.checked)}
+              />
+              Cricket
+            </label>
+          </div>
+          {existingCourtId ? (
+            <p className="muted" style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
+              Sport type cannot be changed while editing an existing facility.
+            </p>
+          ) : null}
+        </div>
         <ArenaCourtSharedTurfSections
           shared={shared}
           setShared={setShared}
