@@ -61,16 +61,6 @@ function nextHourTime(now = new Date()): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-function nextHalfHourTime(now = new Date()): string {
-  const d = new Date(now);
-  d.setSeconds(0, 0);
-  const mins = d.getMinutes();
-  const rounded = mins <= 30 ? 30 : 60;
-  if (rounded === 60) d.setHours(d.getHours() + 1, 0, 0, 0);
-  else d.setMinutes(30, 0, 0);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map((x) => Number(x || 0));
   return h * 60 + m;
@@ -339,14 +329,12 @@ export default function FacilitiesLiveViewPage() {
         courtId: state.facility.id,
         date: state.date,
       });
-      const minStartMinutes =
-        state.date === localDateYmd() ? timeToMinutes(nextHalfHourTime()) : 0;
       const hourly = slotsRes.slots
         .filter((s) => s.availability === 'available')
         .map((s) => ({ startTime: s.startTime, endTime: s.endTime }));
       const deduped = hourly.filter((slot, index, arr) => {
         const m = timeToMinutes(slot.startTime);
-        return m % 60 === 0 && m >= minStartMinutes && m <= 23 * 60;
+        return m % 60 === 0 && m <= 23 * 60;
       }).filter((slot, index, arr) => {
         return (
           arr.findIndex(
@@ -426,14 +414,8 @@ export default function FacilitiesLiveViewPage() {
       return;
     }
     const startAt = new Date(`${quickBooking.date}T${startTime}:00`);
-    const minStart = new Date(Date.now() + 30 * 60 * 1000);
-    if (startAt.getTime() < minStart.getTime()) {
-      console.warn(BOOKING_TIMING_LOG, 'time-too-soon', {
-        date: quickBooking.date,
-        startTime,
-        minStartIso: minStart.toISOString(),
-      });
-      setQuickBookingError('Bookings must be at least 1 hour in the future.');
+    if (startAt.getTime() < Date.now()) {
+      setQuickBookingError('Booking start time cannot be in the past.');
       return;
     }
     if (quickPrice == null) {
@@ -510,6 +492,7 @@ export default function FacilitiesLiveViewPage() {
         userId,
         sportType,
         bookingDate: quickBooking.date,
+        allowImmediate: true,
         items: [
           {
             courtKind,
@@ -782,8 +765,8 @@ export default function FacilitiesLiveViewPage() {
                   <div
                     style={{
                       marginTop: '0.35rem',
-                      display: 'flex',
-                      flexDirection: 'column',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                       gap: '0.4rem',
                       width: '100%',
                     }}
@@ -811,7 +794,7 @@ export default function FacilitiesLiveViewPage() {
                               borderRadius: '0.6rem',
                               fontSize: '0.9rem',
                               width: '100%',
-                              textAlign: 'left',
+                              textAlign: 'center',
                             }}
                             onClick={() =>
                               setQuickBooking((cur) =>
@@ -826,7 +809,7 @@ export default function FacilitiesLiveViewPage() {
                             }
                             disabled={quickBookingSubmitting}
                           >
-                            {formatTime12h(slot.startTime)} - {formatTime12h(slot.endTime)}
+                            {formatTime12h(slot.startTime)}
                           </button>
                         );
                       })
@@ -834,15 +817,9 @@ export default function FacilitiesLiveViewPage() {
                   </div>
                 </div>
               </div>
-              <div className="form-row-2">
-                <div>
-                  <label>Slot duration</label>
-                  <input value="60 min (hourly)" readOnly />
-                </div>
-                <div>
-                  <label>End time</label>
-                  <input value={formatTime12h(quickBooking.endTime)} readOnly />
-                </div>
+              <div>
+                <label>Slot duration</label>
+                <input value="60 min (hourly)" readOnly />
               </div>
               <div className="detail-row">
                 <span>Price (backend)</span>

@@ -79,6 +79,8 @@ export interface CreateBookingPayload {
   };
   bookingStatus?: BookingStatus;
   notes?: string;
+  /** Quick-book flow: allow booking from current time onward. */
+  allowImmediate?: boolean;
 }
 
 export interface UpdateBookingPayload {
