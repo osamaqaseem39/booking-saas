@@ -27,6 +27,11 @@ const ARENA_SETUP_CODES = new Set<string>([
 const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
 type ArenaTurfKind = 'futsal' | 'cricket' | 'both';
 
+function arenaKindLabel(kind: ArenaTurfKind): string {
+  if (kind === 'both') return 'Field (futsal + cricket)';
+  return kind === 'futsal' ? 'Futsal field' : 'Cricket field';
+}
+
 export default function LocationFacilitySetupPage() {
   const { session } = useSession();
   const isOwner = session?.roles?.includes('platform-owner') ?? false;
@@ -95,7 +100,7 @@ export default function LocationFacilitySetupPage() {
       return;
     }
     if (hasBothArenaSports) {
-      setSelectedArenaKind('both');
+      setSelectedArenaKind('futsal');
       return;
     }
     if (hasCricketForLocation) {
@@ -157,7 +162,7 @@ export default function LocationFacilitySetupPage() {
         </Link>
       </div>
       <h1 className="page-title">
-        New {isArenaTurfRoute ? 'Field' : label.label}
+        New {isArenaTurfRoute ? arenaKindLabel(selectedArenaKind) : label.label}
       </h1>
       {!location ? (
         <p className="muted">Loading location…</p>
@@ -183,11 +188,7 @@ export default function LocationFacilitySetupPage() {
         <div className="turf-setup-page">
           <p className="muted turf-setup-page-intro">
             Location: <strong>{location.name}</strong>.{' '}
-            {selectedArenaKind === 'both'
-              ? 'Field (futsal + cricket)'
-              : selectedArenaKind === 'futsal'
-              ? 'Futsal pitch'
-              : 'Cricket pitch'}{' '}
+            {arenaKindLabel(selectedArenaKind)}{' '}
             setup.
           </p>
           {hasBothArenaSports ? (

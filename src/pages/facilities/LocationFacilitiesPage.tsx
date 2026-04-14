@@ -282,7 +282,9 @@ export default function LocationFacilitiesPage() {
           {err && <div className="err-banner">{err}</div>}
 
           <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>
-            Add facility (setup form)
+            {location.locationType === 'gaming-zone'
+              ? 'Add facility (setup form)'
+              : 'Add field (setup form)'}
           </h3>
           <div className="facility-setup-grid">
             {(location.locationType === 'gaming-zone'
