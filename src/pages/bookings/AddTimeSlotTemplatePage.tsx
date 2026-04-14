@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { createTimeSlotTemplate } from '../../api/saasClient';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  createTimeSlotTemplate,
+  listTimeSlotTemplates,
+  updateTimeSlotTemplate,
+} from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 
 type DraftSlotLine = {
@@ -36,21 +40,65 @@ function deriveSlotStartsFromLines(lines: DraftSlotLine[]): string[] {
   return [...unique].sort((a, b) => toMinutes(a) - toMinutes(b));
 }
 
-function makeSlotLine(): DraftSlotLine {
+function makeSlotLine(seed?: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime'>>): DraftSlotLine {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    startTime: '',
-    endTime: '',
+    startTime: seed?.startTime ?? '',
+    endTime: seed?.endTime ?? '',
   };
 }
 
 export default function AddTimeSlotTemplatePage() {
   const { tenantId } = useSession();
   const navigate = useNavigate();
+  const { templateId } = useParams<{ templateId: string }>();
+  const isEdit = !!templateId;
   const [newTplName, setNewTplName] = useState('');
   const [newTplLines, setNewTplLines] = useState<DraftSlotLine[]>([]);
   const [tplErr, setTplErr] = useState<string | null>(null);
   const [tplSaving, setTplSaving] = useState(false);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+
+  const pageTitle = useMemo(
+    () => (isEdit ? 'Edit time slot template' : 'Add time slot template'),
+    [isEdit],
+  );
+
+  useEffect(() => {
+    if (!isEdit || !templateId || !tenantId.trim()) return;
+    let cancelled = false;
+    setLoadingTemplate(true);
+    void (async () => {
+      try {
+        const rows = await listTimeSlotTemplates(tenantId);
+        const row = rows.find((x) => x.id === templateId);
+        if (!row) {
+          if (!cancelled) setTplErr('Template not found.');
+          return;
+        }
+        if (cancelled) return;
+        setNewTplName(row.name);
+        const linesSource =
+          row.slotLines && row.slotLines.length > 0
+            ? row.slotLines.map((line) => ({
+                startTime: line.startTime,
+                endTime: line.endTime,
+              }))
+            : row.slotStarts.map((startTime) => ({
+                startTime,
+                endTime: addMinutes(startTime, 60),
+              }));
+        setNewTplLines(linesSource.map((line) => makeSlotLine(line)));
+      } catch (e) {
+        if (!cancelled) setTplErr(e instanceof Error ? e.message : 'Failed to load template');
+      } finally {
+        if (!cancelled) setLoadingTemplate(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, templateId, tenantId]);
 
   async function onSaveTemplate() {
     if (!tenantId.trim()) return;
@@ -80,7 +128,19 @@ export default function AddTimeSlotTemplatePage() {
     setTplSaving(true);
     setTplErr(null);
     try {
-      await createTimeSlotTemplate({ name, slotStarts }, tenantId);
+      const payload = {
+        name,
+        slotStarts,
+        slotLines: newTplLines.map((line) => ({
+          startTime: line.startTime,
+          endTime: line.endTime,
+        })),
+      };
+      if (isEdit && templateId) {
+        await updateTimeSlotTemplate(templateId, payload, tenantId);
+      } else {
+        await createTimeSlotTemplate(payload, tenantId);
+      }
       navigate('/app/time-slots');
     } catch (e) {
       setTplErr(e instanceof Error ? e.message : 'Could not save template');
@@ -116,11 +176,12 @@ export default function AddTimeSlotTemplatePage() {
           ← Back to templates
         </Link>
       </p>
-      <h1 className="page-title">Add time slot template</h1>
+      <h1 className="page-title">{pageTitle}</h1>
       {!tenantId.trim() && <div className="err-banner">Pick an active tenant in the top bar.</div>}
       {tplErr && <div className="err-banner">{tplErr}</div>}
+      {loadingTemplate && <p className="muted">Loading template…</p>}
 
-      <section className="detail-card" style={{ maxWidth: '720px' }}>
+      <section className="detail-card" style={{ maxWidth: '1024px' }}>
         <div className="form-grid">
           <label>
             <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
@@ -212,10 +273,10 @@ export default function AddTimeSlotTemplatePage() {
           <button
             type="button"
             className="btn-primary"
-            disabled={!tenantId.trim() || tplSaving}
+            disabled={!tenantId.trim() || tplSaving || loadingTemplate}
             onClick={() => void onSaveTemplate()}
           >
-            {tplSaving ? 'Saving…' : 'Save template'}
+            {tplSaving ? 'Saving…' : isEdit ? 'Update template' : 'Save template'}
           </button>
         </div>
       </section>

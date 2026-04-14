@@ -1459,6 +1459,12 @@ export async function deletePadelCourt(
 export type TimeSlotTemplateRecord = {
   id: string;
   name: string;
+  slotLines?: Array<{
+    id: string;
+    startTime: string;
+    endTime: string;
+    sortOrder: number;
+  }>;
   slotStarts: string[];
   createdAt: string;
   updatedAt: string;
@@ -1477,7 +1483,11 @@ export async function listTimeSlotTemplates(
 }
 
 export async function createTimeSlotTemplate(
-  body: { name: string; slotStarts: string[] },
+  body: {
+    name: string;
+    slotStarts?: string[];
+    slotLines?: Array<{ startTime: string; endTime: string }>;
+  },
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord> {
   const tid = (tenantIdOverride ?? getTenantId()).trim();
@@ -1493,7 +1503,11 @@ export async function createTimeSlotTemplate(
 
 export async function updateTimeSlotTemplate(
   id: string,
-  body: Partial<{ name: string; slotStarts: string[] }>,
+  body: Partial<{
+    name: string;
+    slotStarts: string[];
+    slotLines: Array<{ startTime: string; endTime: string }>;
+  }>,
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord> {
   const tid = (tenantIdOverride ?? getTenantId()).trim();

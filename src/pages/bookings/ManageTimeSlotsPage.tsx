@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import {
   deleteTimeSlotTemplate,
-  listCourtOptions,
   listTimeSlotTemplates,
   type TimeSlotTemplateRecord,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
-import type { BookingSportType, CourtOption } from '../../types/booking';
 import { formatTimeRange12h } from '../../utils/timeDisplay';
 
 function toMinutes(time: string): number {
@@ -28,46 +26,10 @@ function addMinutes(time: string, minutes: number): string {
 export default function ManageTimeSlotsPage() {
   const { tenantId } = useSession();
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
-  const [sport, setSport] = useState<BookingSportType>('futsal');
-  const [courts, setCourts] = useState<CourtOption[]>([]);
-  const [facilityKey, setFacilityKey] = useState('');
   const [templates, setTemplates] = useState<TimeSlotTemplateRecord[]>([]);
   const [tplLoading, setTplLoading] = useState(false);
   const [tplErr, setTplErr] = useState<string | null>(null);
   const [deletingTplId, setDeletingTplId] = useState<string | null>(null);
-
-  const selected = useMemo(
-    () => courts.find((c) => `${c.kind}:${c.id}` === facilityKey) ?? null,
-    [courts, facilityKey],
-  );
-
-  const activeTemplate = useMemo(() => {
-    const id = selected?.timeSlotTemplateId;
-    if (!id) return null;
-    return templates.find((t) => t.id === id) ?? null;
-  }, [selected, templates]);
-
-  useEffect(() => {
-    setFacilityKey('');
-  }, [sport]);
-
-  useEffect(() => {
-    if (!tenantId.trim()) {
-      setCourts([]);
-      return;
-    }
-    void (async () => {
-      try {
-        const rows = await listCourtOptions(
-          sport,
-          selectedLocationId === 'all' ? undefined : selectedLocationId,
-        );
-        setCourts(rows);
-      } catch {
-        setCourts([]);
-      }
-    })();
-  }, [sport, tenantId, selectedLocationId]);
 
   useEffect(() => {
     if (!tenantId.trim()) {
@@ -90,29 +52,6 @@ export default function ManageTimeSlotsPage() {
       cancelled = true;
     };
   }, [tenantId]);
-
-  useEffect(() => {
-    if (!courts.length) {
-      setFacilityKey('');
-      return;
-    }
-    if (!facilityKey || !courts.some((c) => `${c.kind}:${c.id}` === facilityKey)) {
-      setFacilityKey(`${courts[0].kind}:${courts[0].id}`);
-    }
-  }, [courts, facilityKey]);
-
-  useEffect(() => {
-    if (!selected?.timeSlotTemplateId) return;
-    if (templates.some((t) => t.id === selected.timeSlotTemplateId)) return;
-    void (async () => {
-      try {
-        const rows = await listTimeSlotTemplates(tenantId);
-        setTemplates(rows);
-      } catch {
-        // Keep current state; page already handles missing template gracefully.
-      }
-    })();
-  }, [selected, templates, tenantId]);
 
   async function onDeleteTemplate(id: string) {
     if (!tenantId.trim()) return;
@@ -151,7 +90,7 @@ export default function ManageTimeSlotsPage() {
       )}
       {tplErr && <div className="err-banner">{tplErr}</div>}
 
-      <section className="detail-card" style={{ maxWidth: '720px' }}>
+      <section className="detail-card" style={{ width: '100%', maxWidth: '1100px' }}>
         <h3 style={{ marginTop: 0, fontSize: '1.05rem' }}>Time slot templates</h3>
         <div className="page-actions-row" style={{ marginBottom: '0.8rem' }}>
           <Link to="/app/time-slots/new" className="btn-primary">
@@ -183,6 +122,13 @@ export default function ManageTimeSlotsPage() {
                       {t.slotStarts.length > 3 ? ` · +${t.slotStarts.length - 3} more` : ''}
                     </td>
                     <td>
+                      <Link
+                        to={`/app/time-slots/${t.id}/edit`}
+                        className="btn-ghost btn-compact"
+                        style={{ marginRight: '0.45rem' }}
+                      >
+                        Edit
+                      </Link>
                       <button
                         type="button"
                         className="btn-ghost btn-compact"
@@ -202,79 +148,6 @@ export default function ManageTimeSlotsPage() {
           <p className="muted" style={{ marginBottom: '1rem' }}>
             No templates yet. Click "Add time slot template" to create one.
           </p>
-        )}
-      </section>
-
-      <section className="detail-card" style={{ maxWidth: '720px', marginTop: '1rem' }}>
-        <div className="form-grid">
-          <div className="form-row-2">
-            <label>
-              <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                Sport
-              </span>
-              <select
-                value={sport}
-                onChange={(e) => setSport(e.target.value as BookingSportType)}
-              >
-                <option value="futsal">Futsal</option>
-                <option value="cricket">Cricket</option>
-                <option value="padel">Padel</option>
-              </select>
-            </label>
-          </div>
-          <label>
-            <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-              Facility
-            </span>
-            <select
-              value={facilityKey}
-              onChange={(e) => setFacilityKey(e.target.value)}
-              disabled={!courts.length}
-            >
-              {courts.map((c) => (
-                <option key={`${c.kind}:${c.id}`} value={`${c.kind}:${c.id}`}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section className="detail-card" style={{ maxWidth: '720px', marginTop: '1rem' }}>
-        <h3 style={{ marginTop: 0, fontSize: '1rem' }}>Template slots for selected facility</h3>
-        {!selected && <p className="muted">Select a facility to view its template slots.</p>}
-        {selected && !activeTemplate && (
-          <p className="muted">
-            No template is assigned to this facility yet. Assign one in the facility setup.
-          </p>
-        )}
-        {selected && activeTemplate && (
-          <>
-            <p className="muted" style={{ marginTop: 0 }}>
-              Showing template: <strong>{activeTemplate.name}</strong>
-            </p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {activeTemplate.slotStarts.map((start) => (
-                <li
-                  key={start}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.75rem',
-                    padding: '0.45rem 0',
-                    borderBottom: '1px solid var(--border-subtle, #2a2f3a)',
-                  }}
-                >
-                  <strong>{formatTimeRange12h(start, addMinutes(start, 60))}</strong>
-                  <span className="muted" style={{ fontSize: '0.85rem' }}>
-                    Template slot
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
         )}
       </section>
 

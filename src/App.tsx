@@ -248,6 +248,14 @@ export default function App() {
               }
             />
             <Route
+              path="time-slots/:templateId/edit"
+              element={
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                  <AddTimeSlotTemplatePage />
+                </RequireRoles>
+              }
+            />
+            <Route
               path="owner-live"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin']}>
