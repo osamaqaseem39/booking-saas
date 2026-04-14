@@ -19,6 +19,7 @@ function segmentBookingAllowed(seg: CourtSlotGridSegment): boolean {
 }
 
 type DraftSlotLine = {
+  id: string;
   startTime: string;
   endTime: string;
 };
@@ -50,6 +51,14 @@ function deriveSlotStartsFromLines(lines: DraftSlotLine[]): string[] {
   return [...unique].sort((a, b) => toMinutes(a) - toMinutes(b));
 }
 
+function makeSlotLine(): DraftSlotLine {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    startTime: '',
+    endTime: '',
+  };
+}
+
 export default function ManageTimeSlotsPage() {
   const { tenantId } = useSession();
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
@@ -65,9 +74,7 @@ export default function ManageTimeSlotsPage() {
   const [templates, setTemplates] = useState<TimeSlotTemplateRecord[]>([]);
   const [tplLoading, setTplLoading] = useState(false);
   const [newTplName, setNewTplName] = useState('');
-  const [newTplLines, setNewTplLines] = useState<DraftSlotLine[]>([]);
-  const [draftStartTime, setDraftStartTime] = useState('');
-  const [draftEndTime, setDraftEndTime] = useState('');
+  const [newTplLines, setNewTplLines] = useState<DraftSlotLine[]>(() => [makeSlotLine()]);
   const [tplErr, setTplErr] = useState<string | null>(null);
   const [tplSaving, setTplSaving] = useState(false);
   const [deletingTplId, setDeletingTplId] = useState<string | null>(null);
@@ -199,6 +206,19 @@ export default function ManageTimeSlotsPage() {
   async function onSaveTemplate() {
     if (!tenantId.trim()) return;
     const name = newTplName.trim();
+    const invalidLine = newTplLines.find((line) => {
+      if (!line.startTime || !line.endTime) return true;
+      if (!isValidTimeLabel(line.startTime) || !isValidTimeLabel(line.endTime)) return true;
+      if (!isHourBoundary(line.startTime) || !isHourBoundary(line.endTime)) return true;
+      if (toMinutes(line.endTime) <= toMinutes(line.startTime)) return true;
+      return line.endTime !== addMinutes(line.startTime, 60);
+    });
+    if (invalidLine) {
+      setTplErr(
+        'Each child line must include valid start/end times on the hour, and each slot must be exactly 1 hour.',
+      );
+      return;
+    }
     const slotStarts = deriveSlotStartsFromLines(newTplLines);
     if (!name) {
       setTplErr('Template name is required.');
@@ -215,9 +235,7 @@ export default function ManageTimeSlotsPage() {
       const rows = await listTimeSlotTemplates(tenantId);
       setTemplates(rows);
       setNewTplName('');
-      setNewTplLines([]);
-      setDraftStartTime('');
-      setDraftEndTime('');
+      setNewTplLines([makeSlotLine()]);
     } catch (e) {
       setTplErr(e instanceof Error ? e.message : 'Could not save template');
     } finally {
@@ -240,40 +258,26 @@ export default function ManageTimeSlotsPage() {
   }
 
   function onAddSlotLine() {
-    const startTime = draftStartTime.trim();
-    const endTime = draftEndTime.trim();
-    if (!isValidTimeLabel(startTime) || !isValidTimeLabel(endTime)) {
-      setTplErr('Use valid times in HH:mm format for start and end.');
-      return;
-    }
-    if (!isHourBoundary(startTime) || !isHourBoundary(endTime)) {
-      setTplErr('Times must be on the hour (e.g. 16:00, 17:00).');
-      return;
-    }
-    if (toMinutes(endTime) <= toMinutes(startTime)) {
-      setTplErr('End time must be after start time.');
-      return;
-    }
-    const expectedEnd = addMinutes(startTime, 60);
-    if (endTime !== expectedEnd) {
-      setTplErr('Each line must be exactly one hour (end time = start time + 60 minutes).');
-      return;
-    }
     setTplErr(null);
-    setNewTplLines((cur) => {
-      if (cur.some((line) => line.startTime === startTime)) {
-        return cur;
-      }
-      return [...cur, { startTime, endTime }].sort(
-        (a, b) => toMinutes(a.startTime) - toMinutes(b.startTime),
-      );
-    });
-    setDraftStartTime('');
-    setDraftEndTime('');
+    setNewTplLines((cur) => [...cur, makeSlotLine()]);
   }
 
-  function onRemoveSlotLine(startTime: string) {
-    setNewTplLines((cur) => cur.filter((line) => line.startTime !== startTime));
+  function onRemoveSlotLine(id: string) {
+    setTplErr(null);
+    setNewTplLines((cur) => {
+      const next = cur.filter((line) => line.id !== id);
+      return next.length > 0 ? next : [makeSlotLine()];
+    });
+  }
+
+  function onChangeSlotLine(id: string, patch: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime'>>) {
+    setTplErr(null);
+    setNewTplLines((cur) =>
+      cur.map((line) => {
+        if (line.id !== id) return line;
+        return { ...line, ...patch };
+      }),
+    );
   }
 
   return (
@@ -355,7 +359,7 @@ export default function ManageTimeSlotsPage() {
         <div className="form-grid">
           <label>
             <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-              New template name
+              Parent template name
             </span>
             <input
               value={newTplName}
@@ -364,69 +368,78 @@ export default function ManageTimeSlotsPage() {
               maxLength={120}
             />
           </label>
-          <div className="form-row-2">
-            <label>
-              <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                Start time
-              </span>
-              <input
-                type="time"
-                step={3600}
-                value={draftStartTime}
-                onChange={(e) => setDraftStartTime(e.target.value)}
-              />
-            </label>
-            <label>
-              <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                End time
-              </span>
-              <input
-                type="time"
-                step={3600}
-                value={draftEndTime}
-                onChange={(e) => setDraftEndTime(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="page-actions-row" style={{ marginTop: 0 }}>
-            <button
-              type="button"
-              className="btn-ghost btn-compact"
-              disabled={!tenantId.trim() || tplSaving}
-              onClick={onAddSlotLine}
-            >
-              Add line
-            </button>
-            <span className="muted">{newTplLines.length} line(s) added</span>
-          </div>
-          {newTplLines.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {newTplLines.map((line) => (
-                <li
-                  key={line.startTime}
+          <div
+            style={{
+              border: '1px solid var(--border-subtle, #2a2f3a)',
+              borderRadius: '10px',
+              padding: '0.75rem',
+            }}
+          >
+            <p className="muted" style={{ marginTop: 0, marginBottom: '0.6rem' }}>
+              Child slot lines (start time / end time)
+            </p>
+            <div className="form-grid">
+              {newTplLines.map((line, idx) => (
+                <div
+                  key={line.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.75rem',
-                    padding: '0.4rem 0',
-                    borderBottom: '1px solid var(--border-subtle, #2a2f3a)',
+                    border: '1px solid var(--border-subtle, #2a2f3a)',
+                    borderRadius: '8px',
+                    padding: '0.65rem',
                   }}
                 >
-                  <span>
-                    <strong>{formatTimeRange12h(line.startTime, line.endTime)}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-compact"
-                    onClick={() => onRemoveSlotLine(line.startTime)}
-                  >
-                    Remove
-                  </button>
-                </li>
+                  <div className="form-row-2">
+                    <label>
+                      <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                        Child #{idx + 1} start time
+                      </span>
+                      <input
+                        type="time"
+                        step={3600}
+                        value={line.startTime}
+                        onChange={(e) =>
+                          onChangeSlotLine(line.id, { startTime: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                        Child #{idx + 1} end time
+                      </span>
+                      <input
+                        type="time"
+                        step={3600}
+                        value={line.endTime}
+                        onChange={(e) =>
+                          onChangeSlotLine(line.id, { endTime: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="page-actions-row" style={{ marginTop: '0.35rem' }}>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-compact"
+                      onClick={() => onRemoveSlotLine(line.id)}
+                    >
+                      Remove child line
+                    </button>
+                  </div>
+                </div>
               ))}
-            </ul>
-          )}
+            </div>
+            <div className="page-actions-row" style={{ marginTop: '0.6rem' }}>
+              <button
+                type="button"
+                className="btn-ghost btn-compact"
+                disabled={!tenantId.trim() || tplSaving}
+                onClick={onAddSlotLine}
+              >
+                Add child line
+              </button>
+              <span className="muted">{newTplLines.length} child line(s)</span>
+            </div>
+          </div>
           <button
             type="button"
             className="btn-primary"
