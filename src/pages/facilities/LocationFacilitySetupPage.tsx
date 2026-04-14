@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listBusinessLocations } from '../../api/saasClient';
-import { CricketCourtSetupForm } from '../../components/facilities/arena/CricketCourtSetupForm';
-import { FutsalCourtSetupForm } from '../../components/facilities/arena/FutsalCourtSetupForm';
+import { ArenaTurfCourtSetupForm } from '../../components/facilities/arena/ArenaTurfCourtSetupForm';
 import { PadelCourtSetupForm } from '../../components/facilities/arena/PadelCourtSetupForm';
 import { GamingFacilitySetupForm } from '../../components/facilities/gaming/GamingFacilitySetupForm';
 import {
@@ -26,6 +25,7 @@ const ARENA_SETUP_CODES = new Set<string>([
 ]);
 
 const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
+type ArenaTurfKind = 'futsal' | 'cricket';
 
 export default function LocationFacilitySetupPage() {
   const { session } = useSession();
@@ -36,11 +36,26 @@ export default function LocationFacilitySetupPage() {
   }>();
   const navigate = useNavigate();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
+  const [selectedArenaKind, setSelectedArenaKind] = useState<ArenaTurfKind>(
+    facilityCode === CRICKET_COURT_SETUP_CODE ? 'cricket' : 'futsal',
+  );
 
   const location = useMemo(
     () => locations.find((l) => l.id === locationId),
     [locations, locationId],
   );
+  const isArenaTurfRoute =
+    facilityCode === FUTSAL_COURT_SETUP_CODE ||
+    facilityCode === CRICKET_COURT_SETUP_CODE;
+  const hasFutsalForLocation = isCourtSetupAllowedForLocation(
+    location,
+    FUTSAL_COURT_SETUP_CODE,
+  );
+  const hasCricketForLocation = isCourtSetupAllowedForLocation(
+    location,
+    CRICKET_COURT_SETUP_CODE,
+  );
+  const hasBothArenaSports = hasFutsalForLocation && hasCricketForLocation;
 
   const label = useMemo(() => {
     if (facilityCode === FUTSAL_COURT_SETUP_CODE) {
@@ -71,6 +86,35 @@ export default function LocationFacilitySetupPage() {
     })();
   }, [isOwner]);
 
+  useEffect(() => {
+    if (!isArenaTurfRoute) return;
+    if (!location) {
+      setSelectedArenaKind(
+        facilityCode === CRICKET_COURT_SETUP_CODE ? 'cricket' : 'futsal',
+      );
+      return;
+    }
+    if (hasBothArenaSports) return;
+    if (hasCricketForLocation) {
+      setSelectedArenaKind('cricket');
+      return;
+    }
+    if (hasFutsalForLocation) {
+      setSelectedArenaKind('futsal');
+      return;
+    }
+    setSelectedArenaKind(
+      facilityCode === CRICKET_COURT_SETUP_CODE ? 'cricket' : 'futsal',
+    );
+  }, [
+    facilityCode,
+    hasBothArenaSports,
+    hasCricketForLocation,
+    hasFutsalForLocation,
+    isArenaTurfRoute,
+    location,
+  ]);
+
   const validCode =
     ARENA_SETUP_CODES.has(facilityCode) || GAMING_CODES_SET.has(facilityCode);
 
@@ -90,7 +134,9 @@ export default function LocationFacilitySetupPage() {
   const arenaAllowed =
     location &&
     ARENA_SETUP_CODES.has(facilityCode) &&
-    isCourtSetupAllowedForLocation(location, facilityCode);
+    (facilityCode === 'padel-court'
+      ? isCourtSetupAllowedForLocation(location, facilityCode)
+      : hasFutsalForLocation || hasCricketForLocation);
   const gamingAllowed =
     location &&
     GAMING_CODES_SET.has(facilityCode) &&
@@ -128,24 +174,42 @@ export default function LocationFacilitySetupPage() {
             onSuccess={() => navigate('/app/Facilites')}
           />
         </div>
-      ) : facilityCode === FUTSAL_COURT_SETUP_CODE ? (
+      ) : isArenaTurfRoute ? (
         <div className="turf-setup-page">
           <p className="muted turf-setup-page-intro">
-            Location: <strong>{location.name}</strong>. Futsal pitch (structure
-            and booking fields can be extended in the dashboard later).
+            Location: <strong>{location.name}</strong>.{' '}
+            {selectedArenaKind === 'futsal'
+              ? 'Futsal pitch'
+              : 'Cricket pitch'}{' '}
+            setup.
           </p>
-          <FutsalCourtSetupForm
-            locationId={locationId}
-            locations={locations}
-            onSuccess={() => navigate('/app/Facilites')}
-          />
-        </div>
-      ) : facilityCode === CRICKET_COURT_SETUP_CODE ? (
-        <div className="turf-setup-page">
-          <p className="muted turf-setup-page-intro">
-            Location: <strong>{location.name}</strong>. Cricket pitch setup.
-          </p>
-          <CricketCourtSetupForm
+          {hasBothArenaSports ? (
+            <div className="turf-setup-card" style={{ marginBottom: '0.75rem' }}>
+              <h4 style={{ marginBottom: '0.5rem' }}>Select sport</h4>
+              <div className="turf-setup-checkrow">
+                <label className="turf-setup-inline">
+                  <input
+                    type="radio"
+                    name="arena-sport-kind"
+                    checked={selectedArenaKind === 'futsal'}
+                    onChange={() => setSelectedArenaKind('futsal')}
+                  />
+                  Futsal
+                </label>
+                <label className="turf-setup-inline">
+                  <input
+                    type="radio"
+                    name="arena-sport-kind"
+                    checked={selectedArenaKind === 'cricket'}
+                    onChange={() => setSelectedArenaKind('cricket')}
+                  />
+                  Cricket
+                </label>
+              </div>
+            </div>
+          ) : null}
+          <ArenaTurfCourtSetupForm
+            courtKind={selectedArenaKind}
             locationId={locationId}
             locations={locations}
             onSuccess={() => navigate('/app/Facilites')}

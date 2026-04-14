@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CricketCourtSetupForm } from '../../components/facilities/arena/CricketCourtSetupForm';
-import { FutsalCourtSetupForm } from '../../components/facilities/arena/FutsalCourtSetupForm';
+import { ArenaTurfCourtSetupForm } from '../../components/facilities/arena/ArenaTurfCourtSetupForm';
 import { PadelCourtSetupForm } from '../../components/facilities/arena/PadelCourtSetupForm';
 import { GamingFacilitySetupForm } from '../../components/facilities/gaming/GamingFacilitySetupForm';
 import { listBusinessLocations } from '../../api/saasClient';
@@ -137,7 +136,8 @@ export default function FacilityEditPage() {
 
       {normalizedCode === 'futsal-court' && location ? (
         <div className="turf-setup-page" style={{ marginTop: '1rem' }}>
-          <FutsalCourtSetupForm
+          <ArenaTurfCourtSetupForm
+            courtKind="futsal"
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
@@ -148,7 +148,8 @@ export default function FacilityEditPage() {
 
       {normalizedCode === 'cricket-court' && location ? (
         <div className="turf-setup-page" style={{ marginTop: '1rem' }}>
-          <CricketCourtSetupForm
+          <ArenaTurfCourtSetupForm
+            courtKind="cricket"
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
