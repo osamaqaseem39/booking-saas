@@ -329,12 +329,12 @@ export default function FacilitiesLiveViewPage() {
         courtId: state.facility.id,
         date: state.date,
       });
-      const hourly = slotsRes.slots
+      const availableSlots = slotsRes.slots
         .filter((s) => s.availability === 'available')
         .map((s) => ({ startTime: s.startTime, endTime: s.endTime }));
-      const deduped = hourly.filter((slot, index, arr) => {
+      const deduped = availableSlots.filter((slot, index, arr) => {
         const m = timeToMinutes(slot.startTime);
-        return m % 60 === 0 && m <= 23 * 60;
+        return m <= 23 * 60;
       }).filter((slot, index, arr) => {
         return (
           arr.findIndex(
@@ -407,9 +407,9 @@ export default function FacilitiesLiveViewPage() {
       durationMins: 60,
       computedDuration: duration,
     });
-    if (duration !== 60 || startM % 60 !== 0) {
+    if (duration <= 0) {
       setQuickBookingError(
-        'Quick booking must use an hourly slot (for example 4:00 PM - 5:00 PM).',
+        'Selected slot is invalid. Please choose another slot.',
       );
       return;
     }
@@ -773,7 +773,7 @@ export default function FacilitiesLiveViewPage() {
                 />
               </div>
               <div>
-                <label>Start time</label>
+                <label>Slots</label>
                 <div
                   style={{
                     marginTop: '0.35rem',
@@ -823,7 +823,7 @@ export default function FacilitiesLiveViewPage() {
                           }
                           disabled={quickBookingSubmitting}
                         >
-                          {formatTime12h(slot.startTime)}
+                          {formatTime12h(slot.startTime)} - {formatTime12h(slot.endTime)}
                         </button>
                       );
                     })
