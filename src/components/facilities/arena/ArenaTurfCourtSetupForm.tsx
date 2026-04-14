@@ -2,7 +2,6 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   createCricketCourt,
   createFutsalCourt,
-  createTurfTwinLink,
   getCricketCourt,
   getFutsalCourt,
   listTimeSlotTemplates,
@@ -82,6 +81,8 @@ export function ArenaTurfCourtSetupForm({
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(!!existingCourtId);
   const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+  /** One DB row on `futsal_courts` with `supportsCricket` (no twin link / no cricket row). */
+  const [dualSingleTurfRow, setDualSingleTurfRow] = useState(false);
 
   useEffect(() => {
     if (!existingCourtId) {
@@ -100,15 +101,142 @@ export function ArenaTurfCourtSetupForm({
       setCricketPracticeMode('');
       setIncludeFutsal(defaultIncludesFutsal);
       setIncludeCricket(defaultIncludesCricket);
+      setDualSingleTurfRow(false);
       return;
     }
     let cancelled = false;
     setLoadingDetail(true);
     void (async () => {
       try {
+        if (courtKind === 'both' && existingCourtId) {
+          let f: FutsalCourtDetail | null = null;
+          try {
+            f = await getFutsalCourt(existingCourtId);
+          } catch {
+            f = null;
+          }
+          if (f?.supportsCricket) {
+            if (cancelled) return;
+            setDualSingleTurfRow(true);
+            setShared({
+              ...sharedDetailToFormState(f, emptySharedArenaTurfState()),
+              name: f.name ?? '',
+            });
+            setArenaLocationId(f.businessLocationId ?? locationId);
+            setCourtStatus(
+              f.courtStatus === 'maintenance'
+                ? 'maintenance'
+                : f.courtStatus === 'draft'
+                  ? 'draft'
+                  : 'active',
+            );
+            const ff = f.futsalFormat;
+            setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
+            setFutsalGoalPostsAvailable(f.futsalGoalPostsAvailable === true);
+            setFutsalGoalPostSize(f.futsalGoalPostSize ?? '');
+            const lm = f.futsalLineMarkings;
+            setFutsalLineMarkings(
+              lm === 'permanent' || lm === 'temporary' ? lm : '',
+            );
+            const cf = f.cricketFormat;
+            setCricketFormat(
+              cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
+                ? cf
+                : '',
+            );
+            setCricketStumpsAvailable(f.cricketStumpsAvailable === true);
+            setCricketBowlingMachine(f.cricketBowlingMachine === true);
+            const pm = f.cricketPracticeMode;
+            setCricketPracticeMode(
+              pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
+            );
+            return;
+          }
+          if (f && f.linkedTwinCourtId) {
+            if (cancelled) return;
+            setDualSingleTurfRow(false);
+            setShared({
+              ...sharedDetailToFormState(f, emptySharedArenaTurfState()),
+              name: f.name ?? '',
+            });
+            setArenaLocationId(f.businessLocationId ?? locationId);
+            setCourtStatus(
+              f.courtStatus === 'maintenance'
+                ? 'maintenance'
+                : f.courtStatus === 'draft'
+                  ? 'draft'
+                  : 'active',
+            );
+            const ff = f.futsalFormat;
+            setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
+            setFutsalGoalPostsAvailable(f.futsalGoalPostsAvailable === true);
+            setFutsalGoalPostSize(f.futsalGoalPostSize ?? '');
+            const lm = f.futsalLineMarkings;
+            setFutsalLineMarkings(
+              lm === 'permanent' || lm === 'temporary' ? lm : '',
+            );
+            const twin = await getCricketCourt(f.linkedTwinCourtId);
+            if (cancelled) return;
+            const cf = twin.cricketFormat;
+            setCricketFormat(
+              cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
+                ? cf
+                : '',
+            );
+            setCricketStumpsAvailable(twin.cricketStumpsAvailable === true);
+            setCricketBowlingMachine(twin.cricketBowlingMachine === true);
+            const pm = twin.cricketPracticeMode;
+            setCricketPracticeMode(
+              pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
+            );
+            return;
+          }
+          const c: CricketCourtDetail = await getCricketCourt(existingCourtId);
+          if (cancelled) return;
+          setDualSingleTurfRow(false);
+          setShared({
+            ...sharedDetailToFormState(c, emptySharedArenaTurfState()),
+            name: c.name ?? '',
+          });
+          setArenaLocationId(c.businessLocationId ?? locationId);
+          setCourtStatus(
+            c.courtStatus === 'maintenance'
+              ? 'maintenance'
+              : c.courtStatus === 'draft'
+                ? 'draft'
+                : 'active',
+          );
+          const cf = c.cricketFormat;
+          setCricketFormat(
+            cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
+              ? cf
+              : '',
+          );
+          setCricketStumpsAvailable(c.cricketStumpsAvailable === true);
+          setCricketBowlingMachine(c.cricketBowlingMachine === true);
+          const pm = c.cricketPracticeMode;
+          setCricketPracticeMode(
+            pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
+          );
+          if (c.linkedTwinCourtId) {
+            const twinF = await getFutsalCourt(c.linkedTwinCourtId);
+            if (cancelled) return;
+            const ff = twinF.futsalFormat;
+            setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
+            setFutsalGoalPostsAvailable(twinF.futsalGoalPostsAvailable === true);
+            setFutsalGoalPostSize(twinF.futsalGoalPostSize ?? '');
+            const lm = twinF.futsalLineMarkings;
+            setFutsalLineMarkings(
+              lm === 'permanent' || lm === 'temporary' ? lm : '',
+            );
+          }
+          return;
+        }
+
         if (includesFutsal) {
           const d: FutsalCourtDetail = await getFutsalCourt(existingCourtId);
           if (cancelled) return;
+          setDualSingleTurfRow(d.supportsCricket === true);
           setShared({
             ...sharedDetailToFormState(d, emptySharedArenaTurfState()),
             name: d.name ?? '',
@@ -132,6 +260,7 @@ export function ArenaTurfCourtSetupForm({
         } else {
           const d: CricketCourtDetail = await getCricketCourt(existingCourtId);
           if (cancelled) return;
+          setDualSingleTurfRow(false);
           setShared({
             ...sharedDetailToFormState(d, emptySharedArenaTurfState()),
             name: d.name ?? '',
@@ -170,7 +299,13 @@ export function ArenaTurfCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [defaultIncludesCricket, defaultIncludesFutsal, existingCourtId, locationId]);
+  }, [
+    courtKind,
+    defaultIncludesCricket,
+    defaultIncludesFutsal,
+    existingCourtId,
+    locationId,
+  ]);
 
   useEffect(() => {
     if (!existingCourtId && locationId) setArenaLocationId(locationId);
@@ -217,6 +352,58 @@ export function ArenaTurfCourtSetupForm({
     setSaving(true);
     setErr(null);
     try {
+      if (
+        dualSingleTurfRow &&
+        existingCourtId &&
+        includesFutsal &&
+        includesCricket
+      ) {
+        const body: CreateFutsalCourtBody = {
+          businessLocationId: effectiveLocationId,
+          name: shared.name.trim(),
+          courtStatus,
+          arenaLabel: arena?.name?.trim() || undefined,
+          ...sharedTurfFormStateToPayload(shared),
+          ...templatePayload,
+          supportsCricket: true,
+          futsalFormat: futsalFormat || undefined,
+          futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
+          futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
+          futsalLineMarkings: futsalLineMarkings || undefined,
+          cricketFormat: cricketFormat || undefined,
+          cricketStumpsAvailable: cricketStumpsAvailable || undefined,
+          cricketBowlingMachine: cricketBowlingMachine || undefined,
+          cricketPracticeMode: cricketPracticeMode || undefined,
+        };
+        const { businessLocationId: _b, ...patch } = body;
+        await updateFutsalCourt(existingCourtId, patch);
+        onSuccess();
+        return;
+      }
+
+      if (!existingCourtId && includesFutsal && includesCricket) {
+        const body: CreateFutsalCourtBody = {
+          businessLocationId: effectiveLocationId,
+          name: shared.name.trim(),
+          courtStatus,
+          arenaLabel: arena?.name?.trim() || undefined,
+          ...sharedTurfFormStateToPayload(shared),
+          ...templatePayload,
+          supportsCricket: true,
+          futsalFormat: futsalFormat || undefined,
+          futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
+          futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
+          futsalLineMarkings: futsalLineMarkings || undefined,
+          cricketFormat: cricketFormat || undefined,
+          cricketStumpsAvailable: cricketStumpsAvailable || undefined,
+          cricketBowlingMachine: cricketBowlingMachine || undefined,
+          cricketPracticeMode: cricketPracticeMode || undefined,
+        };
+        await createFutsalCourt(body);
+        onSuccess();
+        return;
+      }
+
       let createdFutsalId: string | null = null;
       let createdCricketId: string | null = null;
       if (includesFutsal) {
@@ -260,12 +447,6 @@ export function ArenaTurfCourtSetupForm({
           const created = await createCricketCourt(body);
           createdCricketId = created.id;
         }
-      }
-      if (!existingCourtId && createdFutsalId && createdCricketId) {
-        await createTurfTwinLink({
-          futsalCourtId: createdFutsalId,
-          cricketCourtId: createdCricketId,
-        });
       }
       onSuccess();
     } catch (e) {

@@ -1090,11 +1090,20 @@ function appendBusinessLocationQuery(
   return qs ? `${base}?${qs}` : base;
 }
 
+const ARENA_TURF_COURTS = '/arena/turf-courts';
+
+function appendTurfCourtsSurfaceListQuery(
+  businessLocationId: string | undefined,
+): string {
+  const base = `${ARENA_TURF_COURTS}/surface`;
+  return appendBusinessLocationQuery(base, businessLocationId);
+}
+
 export async function listFutsalCourts(
   businessLocationId?: string,
   tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
-  const path = appendBusinessLocationQuery('/arena/futsal-courts', businessLocationId);
+  const path = appendBusinessLocationQuery(ARENA_TURF_COURTS, businessLocationId);
   const tid = (tenantIdOverride ?? getTenantId()).trim();
   if (tid) {
     return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
@@ -1106,7 +1115,7 @@ export async function listCricketCourts(
   businessLocationId?: string,
   tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
-  const path = appendBusinessLocationQuery('/arena/cricket-courts', businessLocationId);
+  const path = appendTurfCourtsSurfaceListQuery(businessLocationId);
   const tid = (tenantIdOverride ?? getTenantId()).trim();
   if (tid) {
     return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
@@ -1197,6 +1206,15 @@ export type CreateFutsalCourtBody = {
   /** Linked cricket pitch: same physical turf, one shared booking calendar. */
   linkedTwinCourtKind?: 'futsal_court' | 'cricket_court';
   linkedTwinCourtId?: string;
+  /**
+   * When true, cricket is stored on this same futsal row (no separate cricket court).
+   * Use with cricket* fields for a single dual-sport turf.
+   */
+  supportsCricket?: boolean;
+  cricketFormat?: 'tape_ball' | 'tennis_ball' | 'hard_ball';
+  cricketStumpsAvailable?: boolean;
+  cricketBowlingMachine?: boolean;
+  cricketPracticeMode?: 'full_ground' | 'nets_mode';
   amenities?: {
     changingRoom?: boolean;
     washroom?: boolean;
@@ -1222,7 +1240,7 @@ export type FutsalCourtDetail = Partial<CreateFutsalCourtBody> & {
 };
 
 export async function getFutsalCourt(id: string): Promise<FutsalCourtDetail> {
-  return request<FutsalCourtDetail>(`/arena/futsal-courts/${id}`, {
+  return request<FutsalCourtDetail>(`${ARENA_TURF_COURTS}/${encodeURIComponent(id)}`, {
     method: 'GET',
   });
 }
@@ -1230,7 +1248,7 @@ export async function getFutsalCourt(id: string): Promise<FutsalCourtDetail> {
 export async function createFutsalCourt(
   body: CreateFutsalCourtBody,
 ): Promise<NamedCourt> {
-  return request<NamedCourt>('/arena/futsal-courts', {
+  return request<NamedCourt>(ARENA_TURF_COURTS, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -1240,17 +1258,20 @@ export async function updateFutsalCourt(
   id: string,
   body: Partial<CreateFutsalCourtBody>,
 ): Promise<NamedCourt> {
-  return request<NamedCourt>(`/arena/futsal-courts/${id}`, {
+  return request<NamedCourt>(
+    `${ARENA_TURF_COURTS}/${encodeURIComponent(id)}`,
+    {
     method: 'PATCH',
     body: JSON.stringify(body),
-  });
+  },
+  );
 }
 
 export async function deleteFutsalCourt(
   id: string,
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
-  const path = `/arena/futsal-courts/${id}`;
+  const path = `${ARENA_TURF_COURTS}/${encodeURIComponent(id)}`;
   const tid = (tenantIdOverride ?? getTenantId()).trim();
   if (tid) {
     return requestForTenant<{ deleted: true; id: string }>(tid, path, {
@@ -1321,15 +1342,18 @@ export type CricketCourtDetail = Partial<CreateCricketCourtBody> & {
 };
 
 export async function getCricketCourt(id: string): Promise<CricketCourtDetail> {
-  return request<CricketCourtDetail>(`/arena/cricket-courts/${id}`, {
+  return request<CricketCourtDetail>(
+    `${ARENA_TURF_COURTS}/surface/${encodeURIComponent(id)}`,
+    {
     method: 'GET',
-  });
+  },
+  );
 }
 
 export async function createCricketCourt(
   body: CreateCricketCourtBody,
 ): Promise<NamedCourt> {
-  return request<NamedCourt>('/arena/cricket-courts', {
+  return request<NamedCourt>(`${ARENA_TURF_COURTS}/surface`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -1339,17 +1363,20 @@ export async function updateCricketCourt(
   id: string,
   body: Partial<CreateCricketCourtBody>,
 ): Promise<NamedCourt> {
-  return request<NamedCourt>(`/arena/cricket-courts/${id}`, {
+  return request<NamedCourt>(
+    `${ARENA_TURF_COURTS}/surface/${encodeURIComponent(id)}`,
+    {
     method: 'PATCH',
     body: JSON.stringify(body),
-  });
+  },
+  );
 }
 
 export async function deleteCricketCourt(
   id: string,
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
-  const path = `/arena/cricket-courts/${id}`;
+  const path = `${ARENA_TURF_COURTS}/surface/${encodeURIComponent(id)}`;
   const tid = (tenantIdOverride ?? getTenantId()).trim();
   if (tid) {
     return requestForTenant<{ deleted: true; id: string }>(tid, path, {
@@ -1560,8 +1587,8 @@ export async function listCourtOptions(
     loc != null
       ? `/arena/padel-court?businessLocationId=${encodeURIComponent(loc)}`
       : '/arena/padel-court';
-  const futsalPath = appendBusinessLocationQuery('/arena/futsal-courts', loc);
-  const cricketPath = appendBusinessLocationQuery('/arena/cricket-courts', loc);
+  const futsalPath = appendBusinessLocationQuery(ARENA_TURF_COURTS, loc);
+  const cricketPath = appendTurfCourtsSurfaceListQuery(loc);
   try {
     const out: CourtOption[] = [];
 

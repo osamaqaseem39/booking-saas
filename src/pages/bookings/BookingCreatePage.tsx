@@ -318,7 +318,8 @@ export default function BookingCreatePage() {
   const [lineSlotSource, setLineSlotSource] = useState<
     Record<number, { starts: string[]; source: 'api' | 'local' }>
   >({});
-  const bookingDateChoices = useMemo(() => nextSevenDays(), []);
+  const bookingDateDayKey = localDateYmd();
+  const bookingDateChoices = useMemo(() => nextSevenDays(), [bookingDateDayKey]);
 
   const slotGridFetchKey = useMemo(
     () =>
@@ -613,6 +614,11 @@ export default function BookingCreatePage() {
     }
     if (lines.length === 0) {
       setError('At least one facility line is required.');
+      return;
+    }
+    const todayYmd = localDateYmd();
+    if (bookingDate < todayYmd) {
+      setError('Booking date cannot be in the past.');
       return;
     }
     for (const [idx, ln] of lines.entries()) {

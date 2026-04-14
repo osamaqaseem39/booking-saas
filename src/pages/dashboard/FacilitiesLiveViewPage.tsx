@@ -392,6 +392,10 @@ export default function FacilitiesLiveViewPage() {
       setQuickBookingError('Please select a valid booking date.');
       return;
     }
+    if (quickBooking.date < localDateYmd()) {
+      setQuickBookingError('Booking date cannot be in the past.');
+      return;
+    }
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(quickBooking.startTime)) {
       setQuickBookingError('Please select a valid start time.');
       return;
