@@ -74,7 +74,7 @@ export default function ManageTimeSlotsPage() {
   const [templates, setTemplates] = useState<TimeSlotTemplateRecord[]>([]);
   const [tplLoading, setTplLoading] = useState(false);
   const [newTplName, setNewTplName] = useState('');
-  const [newTplLines, setNewTplLines] = useState<DraftSlotLine[]>(() => [makeSlotLine()]);
+  const [newTplLines, setNewTplLines] = useState<DraftSlotLine[]>([]);
   const [tplErr, setTplErr] = useState<string | null>(null);
   const [tplSaving, setTplSaving] = useState(false);
   const [deletingTplId, setDeletingTplId] = useState<string | null>(null);
@@ -235,7 +235,7 @@ export default function ManageTimeSlotsPage() {
       const rows = await listTimeSlotTemplates(tenantId);
       setTemplates(rows);
       setNewTplName('');
-      setNewTplLines([makeSlotLine()]);
+      setNewTplLines([]);
     } catch (e) {
       setTplErr(e instanceof Error ? e.message : 'Could not save template');
     } finally {
@@ -264,10 +264,7 @@ export default function ManageTimeSlotsPage() {
 
   function onRemoveSlotLine(id: string) {
     setTplErr(null);
-    setNewTplLines((cur) => {
-      const next = cur.filter((line) => line.id !== id);
-      return next.length > 0 ? next : [makeSlotLine()];
-    });
+    setNewTplLines((cur) => cur.filter((line) => line.id !== id));
   }
 
   function onChangeSlotLine(id: string, patch: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime'>>) {
@@ -378,56 +375,58 @@ export default function ManageTimeSlotsPage() {
             <p className="muted" style={{ marginTop: 0, marginBottom: '0.6rem' }}>
               Child slot lines (start time / end time)
             </p>
-            <div className="form-grid">
-              {newTplLines.map((line, idx) => (
-                <div
-                  key={line.id}
-                  style={{
-                    border: '1px solid var(--border-subtle, #2a2f3a)',
-                    borderRadius: '8px',
-                    padding: '0.65rem',
-                  }}
-                >
-                  <div className="form-row-2">
-                    <label>
-                      <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                        Child #{idx + 1} start time
-                      </span>
-                      <input
-                        type="time"
-                        step={3600}
-                        value={line.startTime}
-                        onChange={(e) =>
-                          onChangeSlotLine(line.id, { startTime: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                        Child #{idx + 1} end time
-                      </span>
-                      <input
-                        type="time"
-                        step={3600}
-                        value={line.endTime}
-                        onChange={(e) =>
-                          onChangeSlotLine(line.id, { endTime: e.target.value })
-                        }
-                      />
-                    </label>
+            {newTplLines.length > 0 && (
+              <div className="form-grid">
+                {newTplLines.map((line, idx) => (
+                  <div
+                    key={line.id}
+                    style={{
+                      border: '1px solid var(--border-subtle, #2a2f3a)',
+                      borderRadius: '8px',
+                      padding: '0.65rem',
+                    }}
+                  >
+                    <div className="form-row-2">
+                      <label>
+                        <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                          Child #{idx + 1} start time
+                        </span>
+                        <input
+                          type="time"
+                          step={3600}
+                          value={line.startTime}
+                          onChange={(e) =>
+                            onChangeSlotLine(line.id, { startTime: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                          Child #{idx + 1} end time
+                        </span>
+                        <input
+                          type="time"
+                          step={3600}
+                          value={line.endTime}
+                          onChange={(e) =>
+                            onChangeSlotLine(line.id, { endTime: e.target.value })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="page-actions-row" style={{ marginTop: '0.35rem' }}>
+                      <button
+                        type="button"
+                        className="btn-ghost btn-compact"
+                        onClick={() => onRemoveSlotLine(line.id)}
+                      >
+                        Remove child line
+                      </button>
+                    </div>
                   </div>
-                  <div className="page-actions-row" style={{ marginTop: '0.35rem' }}>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-compact"
-                      onClick={() => onRemoveSlotLine(line.id)}
-                    >
-                      Remove child line
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             <div className="page-actions-row" style={{ marginTop: '0.6rem' }}>
               <button
                 type="button"
@@ -437,7 +436,9 @@ export default function ManageTimeSlotsPage() {
               >
                 Add child line
               </button>
-              <span className="muted">{newTplLines.length} child line(s)</span>
+              {newTplLines.length > 0 && (
+                <span className="muted">{newTplLines.length} child line(s)</span>
+              )}
             </div>
           </div>
           <button
