@@ -11,6 +11,7 @@ import {
   listBusinessLocations,
   listCourtOptions,
   listIamUsers,
+  listTimeSlotTemplates,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
@@ -129,17 +130,6 @@ function defaultLine(): BookingLine {
     status: 'reserved',
     slotPage: 0,
   };
-}
-
-function remainingDayHourlySlots(date: string): string[] {
-  const today = localDateYmd();
-  const minMinutes = date === today ? timeToMinutes(nextHalfHourTime()) : 0;
-  const firstHour = Math.ceil(minMinutes / 60) * 60;
-  const out: string[] = [];
-  for (let m = firstHour; m <= 23 * 60; m += 60) {
-    out.push(minutesToTime(m));
-  }
-  return out;
 }
 
 function hourlyStartsFromFreeSegments(starts: string[]): string[] {
@@ -338,6 +328,7 @@ export default function BookingCreatePage() {
   const [tax, setTax] = useState('0');
   const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
+  const [templateStartsById, setTemplateStartsById] = useState<Record<string, string[]>>({});
   /** Per line: server slot grid (free-only, hides booked) vs local fallback. */
   const [lineSlotSource, setLineSlotSource] = useState<
     Record<number, { starts: string[]; source: 'api' | 'local' }>
@@ -351,6 +342,25 @@ export default function BookingCreatePage() {
         .join(';')}`,
     [bookingTenant, bookingDate, lines],
   );
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        if (isPlatformOwner && !bookingTenant) {
+          setTemplateStartsById({});
+          return;
+        }
+        const rows = await listTimeSlotTemplates(isPlatformOwner ? bookingTenant : undefined);
+        const byId: Record<string, string[]> = {};
+        for (const row of rows) {
+          byId[row.id] = row.slotStarts;
+        }
+        setTemplateStartsById(byId);
+      } catch {
+        setTemplateStartsById({});
+      }
+    })();
+  }, [bookingTenant, isPlatformOwner]);
 
   useEffect(() => {
     if (!bookingTenant) {
@@ -1033,13 +1043,16 @@ export default function BookingCreatePage() {
                 (location?.workingHours as Record<string, unknown> | null) ?? null,
                 bookingDate,
               );
-              const fallbackSlots = remainingDayHourlySlots(bookingDate);
+              const templateStarts = selectedCourt?.timeSlotTemplateId
+                ? templateStartsById[selectedCourt.timeSlotTemplateId] ?? []
+                : [];
+              const templateSet = new Set(templateStarts);
               const src = lineSlotSource[idx];
-              const baseStarts =
+              const serverStarts =
                 src?.source === 'api'
                   ? hourlyStartsFromFreeSegments(src.starts)
-                  : fallbackSlots;
-              const startSlots = baseStarts;
+                  : [];
+              const startSlots = serverStarts.filter((slot) => templateSet.has(slot));
               const totalSlides = Math.max(
                 1,
                 Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),
@@ -1176,7 +1189,9 @@ export default function BookingCreatePage() {
                           })}
                           {startSlots.length === 0 && (
                             <span className="muted" style={{ fontSize: '0.78rem' }}>
-                              No slots available for this day.
+                              {selectedCourt?.timeSlotTemplateId
+                                ? 'No template slots available for this day.'
+                                : 'No time slot template assigned to this facility.'}
                             </span>
                           )}
                         </div>

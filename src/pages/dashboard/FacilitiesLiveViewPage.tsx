@@ -13,6 +13,7 @@ import {
   listCricketCourts,
   listFutsalCourts,
   listPadelCourts,
+  listTimeSlotTemplates,
 } from '../../api/saasClient';
 import type { BookingRecord } from '../../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../../types/domain';
@@ -29,6 +30,7 @@ type FacilityCardRow = {
   name: string;
   type: FacilityLiveType;
   locationId?: string | null;
+  timeSlotTemplateId?: string | null;
   facilityStatus?: string;
   facilityIsActive?: boolean;
 };
@@ -137,6 +139,7 @@ export default function FacilitiesLiveViewPage() {
     [],
   );
   const [quickSlotsLoading, setQuickSlotsLoading] = useState(false);
+  const [templateStartsById, setTemplateStartsById] = useState<Record<string, string[]>>({});
   /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
   useEffect(() => {
@@ -156,6 +159,7 @@ export default function FacilitiesLiveViewPage() {
           name: r.name,
           type: 'futsalCourt' as const,
           locationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
         })),
@@ -164,6 +168,7 @@ export default function FacilitiesLiveViewPage() {
           name: r.name,
           type: 'cricketCourt' as const,
           locationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
         })),
@@ -172,6 +177,7 @@ export default function FacilitiesLiveViewPage() {
           name: r.name,
           type: 'padel' as const,
           locationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
         })),
@@ -313,6 +319,19 @@ export default function FacilitiesLiveViewPage() {
   }, []);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await listTimeSlotTemplates();
+        const byId: Record<string, string[]> = {};
+        for (const row of rows) byId[row.id] = row.slotStarts;
+        setTemplateStartsById(byId);
+      } catch {
+        setTemplateStartsById({});
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     if (!quickBooking) return;
     void loadQuickPrice(quickBooking);
   }, [quickBooking, loadQuickPrice]);
@@ -351,13 +370,17 @@ export default function FacilitiesLiveViewPage() {
         );
       });
       deduped.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
-      setQuickSlots(deduped);
+      const templateStarts = state.facility.timeSlotTemplateId
+        ? templateStartsById[state.facility.timeSlotTemplateId] ?? []
+        : [];
+      const templateSet = new Set(templateStarts);
+      setQuickSlots(deduped.filter((slot) => templateSet.has(slot.startTime)));
     } catch {
       setQuickSlots([]);
     } finally {
       setQuickSlotsLoading(false);
     }
-  }, []);
+  }, [templateStartsById]);
 
   useEffect(() => {
     if (!quickBooking) {
@@ -771,7 +794,11 @@ export default function FacilitiesLiveViewPage() {
                     {quickSlotsLoading ? (
                       <span className="muted">Loading slots...</span>
                     ) : quickSlots.length === 0 ? (
-                      <span className="muted">No free hourly slots for this date.</span>
+                      <span className="muted">
+                        {quickBooking.facility.timeSlotTemplateId
+                          ? 'No template slots available for this date.'
+                          : 'No time slot template assigned to this facility.'}
+                      </span>
                     ) : (
                       quickSlots.map((slot) => {
                         const active =
