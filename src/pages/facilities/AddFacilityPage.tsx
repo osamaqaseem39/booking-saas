@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   deleteFacilityByCode,
@@ -32,6 +32,7 @@ import {
   listGamingStationsForLocation,
 } from '../../utils/gamingStationLocalStore';
 import type { BusinessLocationRow, NamedCourt } from '../../types/domain';
+import { useSession } from '../../context/SessionContext';
 import {
   cricketDetailToCreateBody,
   cricketSharedBodyFromFutsalDetail,
@@ -79,6 +80,8 @@ function hasSetupForm(code: string): boolean {
 }
 
 export default function AddFacilityPage() {
+  const { session } = useSession();
+  const isOwner = session?.roles?.includes('platform-owner') ?? false;
   const routeLocation = useLocation();
   const [searchParams] = useSearchParams();
   const preselectedLocationId = searchParams.get('locationId')?.trim() ?? '';
@@ -175,7 +178,9 @@ export default function AddFacilityPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const locs = await listBusinessLocations();
+        const locs = await listBusinessLocations({
+          ignoreActiveTenant: isOwner,
+        });
         setLocations(locs);
         setLocationId((id) =>
           topbarLocationLocked ? selectedLocationId : id || locs[0]?.id || '',
@@ -185,7 +190,7 @@ export default function AddFacilityPage() {
         setLocations([]);
       }
     })();
-  }, [selectedLocationId, topbarLocationLocked]);
+  }, [isOwner, selectedLocationId, topbarLocationLocked]);
 
   useEffect(() => {
     if (topbarLocationLocked) return;

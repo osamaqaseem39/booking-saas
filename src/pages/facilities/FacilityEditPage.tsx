@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CricketCourtSetupForm } from '../../components/facilities/arena/CricketCourtSetupForm';
 import { FutsalCourtSetupForm } from '../../components/facilities/arena/FutsalCourtSetupForm';
@@ -14,6 +14,7 @@ import {
   FUTSAL_COURT_SETUP_CODE,
 } from '../../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../../types/domain';
+import { useSession } from '../../context/SessionContext';
 
 const EDITABLE_CODES = new Set<string>([
   FUTSAL_COURT_SETUP_CODE,
@@ -25,6 +26,8 @@ const EDITABLE_CODES = new Set<string>([
 ]);
 
 export default function FacilityEditPage() {
+  const { session } = useSession();
+  const isOwner = session?.roles?.includes('platform-owner') ?? false;
   const {
     locationId = '',
     facilityCode = '',
@@ -59,7 +62,9 @@ export default function FacilityEditPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const locs = await listBusinessLocations();
+        const locs = await listBusinessLocations({
+          ignoreActiveTenant: isOwner,
+        });
         setLocations(locs);
       } catch (e) {
         setLoadErr(e instanceof Error ? e.message : 'Failed to load locations');
@@ -68,7 +73,7 @@ export default function FacilityEditPage() {
         setLocationsLoadDone(true);
       }
     })();
-  }, []);
+  }, [isOwner]);
 
   const location = useMemo(
     () => locations.find((l) => l.id === locationId),

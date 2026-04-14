@@ -270,7 +270,7 @@ export default function LocationDetailPage() {
               Add booking
             </Link>
             <Link
-              to="/app/Facilites"
+              to={`/app/locations/${location.id}/facilities`}
               className="btn-ghost"
             >
               Manage facilities

@@ -228,7 +228,7 @@ export default function LocationsPage() {
                       </Link>
                       <Link
                         className="action-link"
-                        to={`/app/Facilites?locationId=${encodeURIComponent(r.id)}`}
+                        to={`/app/locations/${encodeURIComponent(r.id)}/facilities`}
                       >
                         View facilities
                       </Link>
