@@ -187,11 +187,6 @@ export default function LocationFacilitySetupPage() {
         </div>
       ) : isArenaTurfRoute ? (
         <div className="turf-setup-page">
-          <p className="muted turf-setup-page-intro">
-            Location: <strong>{location.name}</strong>.{' '}
-            {arenaKindLabel(selectedArenaKind)}{' '}
-            setup.
-          </p>
           <ArenaTurfCourtSetupForm
             courtKind={selectedArenaKind}
             locationId={locationId}

@@ -169,7 +169,7 @@ export function ArenaTurfCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [defaultIncludesCricket, defaultIncludesFutsal, existingCourtId, includesFutsal, locationId]);
+  }, [defaultIncludesCricket, defaultIncludesFutsal, existingCourtId, locationId]);
 
   useEffect(() => {
     if (!existingCourtId && locationId) setArenaLocationId(locationId);

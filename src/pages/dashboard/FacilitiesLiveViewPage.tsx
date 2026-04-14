@@ -58,6 +58,16 @@ function nextHourTime(now = new Date()): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
+function nextHalfHourTime(now = new Date()): string {
+  const d = new Date(now);
+  d.setSeconds(0, 0);
+  const mins = d.getMinutes();
+  const rounded = mins <= 30 ? 30 : 60;
+  if (rounded === 60) d.setHours(d.getHours() + 1, 0, 0, 0);
+  else d.setMinutes(30, 0, 0);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map((x) => Number(x || 0));
   return h * 60 + m;
@@ -72,6 +82,19 @@ function minutesToTime(v: number): string {
 function endTimeFrom(startTime: string): string {
   const end = Math.min(timeToMinutes(startTime) + 60, 24 * 60);
   return minutesToTime(end);
+}
+
+function hourlyStartsFromFreeSegments(starts: string[]): string[] {
+  const set = new Set(starts);
+  const out: string[] = [];
+  for (const s of starts) {
+    const m = timeToMinutes(s);
+    if (m % 60 !== 0) continue;
+    if (m + 60 > 24 * 60) continue;
+    if (!set.has(minutesToTime(m + 30))) continue;
+    out.push(s);
+  }
+  return out;
 }
 
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
@@ -121,6 +144,8 @@ export default function FacilitiesLiveViewPage() {
   const [quickPriceLoading, setQuickPriceLoading] = useState(false);
   const [quickBookingSubmitting, setQuickBookingSubmitting] = useState(false);
   const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
+  const [quickSlots, setQuickSlots] = useState<string[]>([]);
+  const [quickSlotsLoading, setQuickSlotsLoading] = useState(false);
   /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
   useEffect(() => {
@@ -309,6 +334,50 @@ export default function FacilitiesLiveViewPage() {
       cur ? { ...cur, startTime: minutesToTime(Math.max(0, maxStart)) } : cur,
     );
   }, [quickBooking]);
+
+  const loadQuickSlots = useCallback(async (state: QuickBookingState) => {
+    setQuickSlotsLoading(true);
+    try {
+      const courtKind = facilityTypeToCourtKind(state.facility.type);
+      const slotGrid = await getCourtSlotGrid({
+        courtKind,
+        courtId: state.facility.id,
+        date: state.date,
+        useWorkingHours: false,
+        availableOnly: true,
+      });
+      const freeStarts = slotGrid.segments
+        .filter((s) => s.state === 'free')
+        .map((s) => s.startTime);
+      const minStartMinutes =
+        state.date === localDateYmd()
+          ? timeToMinutes(nextHalfHourTime())
+          : 0;
+      const hourly = hourlyStartsFromFreeSegments(freeStarts).filter(
+        (slot) => timeToMinutes(slot) >= minStartMinutes,
+      );
+      setQuickSlots(hourly);
+    } catch {
+      setQuickSlots([]);
+    } finally {
+      setQuickSlotsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!quickBooking) {
+      setQuickSlots([]);
+      return;
+    }
+    void loadQuickSlots(quickBooking);
+  }, [quickBooking?.facility.id, quickBooking?.date, loadQuickSlots]);
+
+  useEffect(() => {
+    if (!quickBooking) return;
+    if (quickSlots.length === 0) return;
+    if (quickSlots.includes(quickBooking.startTime)) return;
+    setQuickBooking((cur) => (cur ? { ...cur, startTime: quickSlots[0] } : cur));
+  }, [quickSlots, quickBooking]);
 
   async function submitQuickBooking(): Promise<void> {
     if (!quickBooking) return;
@@ -697,15 +766,31 @@ export default function FacilitiesLiveViewPage() {
                 </div>
                 <div>
                   <label>Start time</label>
-                  <input
-                    type="time"
-                    step={3600}
-                    value={quickBooking.startTime}
-                    onChange={(e) =>
-                      setQuickBooking((cur) => (cur ? { ...cur, startTime: e.target.value } : cur))
-                    }
-                    disabled={quickBookingSubmitting}
-                  />
+                  <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {quickSlotsLoading ? (
+                      <span className="muted">Loading slots...</span>
+                    ) : quickSlots.length === 0 ? (
+                      <span className="muted">No free hourly slots for this date.</span>
+                    ) : (
+                      quickSlots.map((slot) => {
+                        const active = slot === quickBooking.startTime;
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            className={active ? 'btn-primary' : 'btn-ghost'}
+                            style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', fontSize: '0.86rem' }}
+                            onClick={() =>
+                              setQuickBooking((cur) => (cur ? { ...cur, startTime: slot } : cur))
+                            }
+                            disabled={quickBookingSubmitting}
+                          >
+                            {formatTime12h(slot)}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="form-row-2">
@@ -755,7 +840,13 @@ export default function FacilitiesLiveViewPage() {
                 type="button"
                 className="btn-primary btn-compact"
                 onClick={() => void submitQuickBooking()}
-                disabled={quickBookingSubmitting || quickPriceLoading || quickPrice == null}
+                disabled={
+                  quickBookingSubmitting ||
+                  quickSlotsLoading ||
+                  quickSlots.length === 0 ||
+                  quickPriceLoading ||
+                  quickPrice == null
+                }
               >
                 {quickBookingSubmitting ? 'Booking...' : 'Confirm booking'}
               </button>
