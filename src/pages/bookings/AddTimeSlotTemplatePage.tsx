@@ -31,10 +31,6 @@ function isValidTimeLabel(value: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
-function isHourBoundary(value: string): boolean {
-  return value.endsWith(':00');
-}
-
 function deriveSlotStartsFromLines(lines: DraftSlotLine[]): string[] {
   const unique = new Set(lines.map((line) => line.startTime));
   return [...unique].sort((a, b) => toMinutes(a) - toMinutes(b));
@@ -58,6 +54,9 @@ export default function AddTimeSlotTemplatePage() {
   const [tplErr, setTplErr] = useState<string | null>(null);
   const [tplSaving, setTplSaving] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [generatorStartTime, setGeneratorStartTime] = useState('09:00');
+  const [generatorEndTime, setGeneratorEndTime] = useState('18:00');
+  const [generatorDuration, setGeneratorDuration] = useState<'30' | '60'>('60');
 
   const pageTitle = useMemo(
     () => (isEdit ? 'Edit time slot template' : 'Add time slot template'),
@@ -106,14 +105,11 @@ export default function AddTimeSlotTemplatePage() {
     const invalidLine = newTplLines.find((line) => {
       if (!line.startTime || !line.endTime) return true;
       if (!isValidTimeLabel(line.startTime) || !isValidTimeLabel(line.endTime)) return true;
-      if (!isHourBoundary(line.startTime) || !isHourBoundary(line.endTime)) return true;
       if (toMinutes(line.endTime) <= toMinutes(line.startTime)) return true;
-      return line.endTime !== addMinutes(line.startTime, 60);
+      return false;
     });
     if (invalidLine) {
-      setTplErr(
-        'Each child line must include valid start/end times on the hour, and each slot must be exactly 1 hour.',
-      );
+      setTplErr('Each child line must include valid start/end times, with end after start.');
       return;
     }
     const slotStarts = deriveSlotStartsFromLines(newTplLines);
@@ -169,6 +165,45 @@ export default function AddTimeSlotTemplatePage() {
     );
   }
 
+  function onGenerateSlotLines() {
+    setTplErr(null);
+    if (!isValidTimeLabel(generatorStartTime) || !isValidTimeLabel(generatorEndTime)) {
+      setTplErr('Pick valid start and end times for slot generation.');
+      return;
+    }
+    const duration = Number(generatorDuration);
+    const startMinutes = toMinutes(generatorStartTime);
+    const endMinutes = toMinutes(generatorEndTime);
+    if (endMinutes <= startMinutes) {
+      setTplErr('End time must be after start time.');
+      return;
+    }
+    const totalMinutes = endMinutes - startMinutes;
+    if (totalMinutes < duration) {
+      setTplErr('Selected range is too short for the chosen slot duration.');
+      return;
+    }
+    if (totalMinutes % duration !== 0) {
+      setTplErr(
+        `Range must divide evenly by ${duration} minutes so slots fit exactly between start and end.`,
+      );
+      return;
+    }
+    const generated: DraftSlotLine[] = [];
+    for (let cursor = startMinutes; cursor + duration <= endMinutes; cursor += duration) {
+      const startTime = `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`;
+      const endTime = `${String(Math.floor((cursor + duration) / 60)).padStart(2, '0')}:${String((cursor + duration) % 60).padStart(2, '0')}`;
+      generated.push(makeSlotLine({ startTime, endTime }));
+    }
+    setNewTplLines((cur) => {
+      const existingPairs = new Set(cur.map((line) => `${line.startTime}-${line.endTime}`));
+      const fresh = generated.filter(
+        (line) => !existingPairs.has(`${line.startTime}-${line.endTime}`),
+      );
+      return [...cur, ...fresh];
+    });
+  }
+
   return (
     <>
       <p className="page-toolbar">
@@ -202,6 +237,61 @@ export default function AddTimeSlotTemplatePage() {
             }}
           >
             <p className="muted" style={{ marginTop: 0, marginBottom: '0.6rem' }}>
+              Slot generator
+            </p>
+            <div className="form-grid" style={{ marginBottom: '0.8rem' }}>
+              <div className="form-row-2">
+                <label>
+                  <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                    Start time
+                  </span>
+                  <input
+                    type="time"
+                    step={1800}
+                    value={generatorStartTime}
+                    onChange={(e) => setGeneratorStartTime(e.target.value)}
+                  />
+                </label>
+                <label>
+                  <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                    End time
+                  </span>
+                  <input
+                    type="time"
+                    step={1800}
+                    value={generatorEndTime}
+                    onChange={(e) => setGeneratorEndTime(e.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="form-row-2">
+                <label>
+                  <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                    Slot duration
+                  </span>
+                  <select
+                    value={generatorDuration}
+                    onChange={(e) =>
+                      setGeneratorDuration(e.target.value === '30' ? '30' : '60')
+                    }
+                  >
+                    <option value="30">30 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+                <div className="page-actions-row" style={{ alignItems: 'end' }}>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-compact"
+                    disabled={!tenantId.trim() || tplSaving || loadingTemplate}
+                    onClick={onGenerateSlotLines}
+                  >
+                    Generate slots
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="muted" style={{ marginTop: 0, marginBottom: '0.6rem' }}>
               Child slot lines (start time / end time)
             </p>
             {newTplLines.length > 0 && (
@@ -222,7 +312,7 @@ export default function AddTimeSlotTemplatePage() {
                         </span>
                         <input
                           type="time"
-                          step={3600}
+                          step={1800}
                           value={line.startTime}
                           onChange={(e) =>
                             onChangeSlotLine(line.id, { startTime: e.target.value })
@@ -235,7 +325,7 @@ export default function AddTimeSlotTemplatePage() {
                         </span>
                         <input
                           type="time"
-                          step={3600}
+                          step={1800}
                           value={line.endTime}
                           onChange={(e) =>
                             onChangeSlotLine(line.id, { endTime: e.target.value })

@@ -229,11 +229,21 @@ export default function AddFacilityPage() {
   }, [location]);
   const isArenaLocation = (location?.locationType ?? '') === 'arena';
   const isGamingLocation = (location?.locationType ?? '') === 'gaming-zone';
-  const arenaSetupOptions = useMemo(() => {
-    if (!isArenaLocation || !location) return [];
-    return SETUP_OPTIONS_BY_LOCATION_TYPE.arena.filter((option) =>
-      isCourtSetupAllowedForLocation(location, option.code),
-    );
+  const arenaAddButtons = useMemo(() => {
+    if (!isArenaLocation || !location) {
+      return { sharedArenaCode: '', hasPadel: false };
+    }
+    const hasFutsal = isCourtSetupAllowedForLocation(location, FUTSAL_COURT_SETUP_CODE);
+    const hasCricket = isCourtSetupAllowedForLocation(location, CRICKET_COURT_SETUP_CODE);
+    const hasPadel = isCourtSetupAllowedForLocation(location, 'padel-court');
+    return {
+      sharedArenaCode: hasFutsal
+        ? FUTSAL_COURT_SETUP_CODE
+        : hasCricket
+          ? CRICKET_COURT_SETUP_CODE
+          : '',
+      hasPadel,
+    };
   }, [isArenaLocation, location]);
 
   const gamingRows = useMemo(() => {
@@ -508,23 +518,38 @@ export default function AddFacilityPage() {
       <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>Add facility</h3>
       <div className="facility-setup-grid">
         {isArenaLocation ? (
-          arenaSetupOptions.length === 0 ? (
-            <button type="button" className="btn-primary" disabled>
-              No configured arena facility types
-            </button>
-          ) : (
-            arenaSetupOptions.map((o) =>
+          <>
+            {arenaAddButtons.sharedArenaCode ? (
               locationId ? (
-                <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">
-                  Add {o.label}
+                <Link
+                  to={setupPath(locationId, arenaAddButtons.sharedArenaCode)}
+                  className="btn-primary"
+                >
+                  Add cricket/futsal
                 </Link>
               ) : (
-                <button key={o.code} type="button" className="btn-primary" disabled>
-                  Add {o.label}
+                <button type="button" className="btn-primary" disabled>
+                  Add cricket/futsal
                 </button>
-              ),
-            )
-          )
+              )
+            ) : null}
+            {arenaAddButtons.hasPadel ? (
+              locationId ? (
+                <Link to={setupPath(locationId, 'padel-court')} className="btn-primary">
+                  Add padel
+                </Link>
+              ) : (
+                <button type="button" className="btn-primary" disabled>
+                  Add padel
+                </button>
+              )
+            ) : null}
+            {!arenaAddButtons.sharedArenaCode && !arenaAddButtons.hasPadel ? (
+              <button type="button" className="btn-primary" disabled>
+                No configured arena facility types
+              </button>
+            ) : null}
+          </>
         ) : (
           visibleSetupOptions.map((o) => {
             const canOpenSetup = hasSetupForm(o.code);
