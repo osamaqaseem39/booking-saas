@@ -38,6 +38,7 @@ type QuickBookingState = {
   location: BusinessLocationRow | null;
   date: string;
   startTime: string;
+  endTime: string;
   phone: string;
 };
 
@@ -132,7 +133,9 @@ export default function FacilitiesLiveViewPage() {
   const [quickPriceLoading, setQuickPriceLoading] = useState(false);
   const [quickBookingSubmitting, setQuickBookingSubmitting] = useState(false);
   const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
-  const [quickSlots, setQuickSlots] = useState<string[]>([]);
+  const [quickSlots, setQuickSlots] = useState<Array<{ startTime: string; endTime: string }>>(
+    [],
+  );
   const [quickSlotsLoading, setQuickSlotsLoading] = useState(false);
   /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
@@ -282,7 +285,7 @@ export default function FacilitiesLiveViewPage() {
           ? 'cricket'
           : 'padel';
     const startTime = state.startTime;
-    const endTime = endTimeFrom(startTime);
+    const endTime = state.endTime || endTimeFrom(startTime);
     setQuickPriceLoading(true);
     try {
       const avail = await getBookingAvailability({
@@ -336,12 +339,18 @@ export default function FacilitiesLiveViewPage() {
         state.date === localDateYmd() ? timeToMinutes(nextHalfHourTime()) : 0;
       const hourly = slotsRes.slots
         .filter((s) => s.availability === 'available')
-        .map((s) => s.startTime);
-      const deduped = [...new Set(hourly)].filter((slot) => {
-        const m = timeToMinutes(slot);
+        .map((s) => ({ startTime: s.startTime, endTime: s.endTime }));
+      const deduped = hourly.filter((slot, index, arr) => {
+        const m = timeToMinutes(slot.startTime);
         return m % 60 === 0 && m >= minStartMinutes && m <= 23 * 60;
+      }).filter((slot, index, arr) => {
+        return (
+          arr.findIndex(
+            (x) => x.startTime === slot.startTime && x.endTime === slot.endTime,
+          ) === index
+        );
       });
-      deduped.sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+      deduped.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
       setQuickSlots(deduped);
     } catch {
       setQuickSlots([]);
@@ -361,8 +370,12 @@ export default function FacilitiesLiveViewPage() {
   useEffect(() => {
     if (!quickBooking) return;
     if (quickSlots.length === 0) return;
-    if (quickSlots.includes(quickBooking.startTime)) return;
-    setQuickBooking((cur) => (cur ? { ...cur, startTime: quickSlots[0] } : cur));
+    const current = quickSlots.find((slot) => slot.startTime === quickBooking.startTime);
+    if (current && current.endTime === quickBooking.endTime) return;
+    const first = quickSlots[0];
+    setQuickBooking((cur) =>
+      cur ? { ...cur, startTime: first.startTime, endTime: first.endTime } : cur,
+    );
   }, [quickSlots, quickBooking]);
 
   async function submitQuickBooking(): Promise<void> {
@@ -387,7 +400,7 @@ export default function FacilitiesLiveViewPage() {
       return;
     }
     const startTime = quickBooking.startTime;
-    const endTime = endTimeFrom(startTime);
+    const endTime = quickBooking.endTime || endTimeFrom(startTime);
     const startM = timeToMinutes(startTime);
     const endM = timeToMinutes(endTime);
     const duration = endM - startM;
@@ -603,6 +616,7 @@ export default function FacilitiesLiveViewPage() {
                       location: location ?? null,
                       date: localDateYmd(),
                       startTime: safeStart,
+                      endTime: endTimeFrom(safeStart),
                       phone: '+92',
                     });
                   }
@@ -618,6 +632,7 @@ export default function FacilitiesLiveViewPage() {
                       location: location ?? null,
                       date: localDateYmd(),
                       startTime: safeStart,
+                      endTime: endTimeFrom(safeStart),
                       phone: '+92',
                     });
                   }
@@ -759,19 +774,29 @@ export default function FacilitiesLiveViewPage() {
                       <span className="muted">No free hourly slots for this date.</span>
                     ) : (
                       quickSlots.map((slot) => {
-                        const active = slot === quickBooking.startTime;
+                        const active =
+                          slot.startTime === quickBooking.startTime &&
+                          slot.endTime === quickBooking.endTime;
                         return (
                           <button
-                            key={slot}
+                            key={`${slot.startTime}-${slot.endTime}`}
                             type="button"
                             className={active ? 'btn-primary' : 'btn-ghost'}
                             style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', fontSize: '0.86rem' }}
                             onClick={() =>
-                              setQuickBooking((cur) => (cur ? { ...cur, startTime: slot } : cur))
+                              setQuickBooking((cur) =>
+                                cur
+                                  ? {
+                                      ...cur,
+                                      startTime: slot.startTime,
+                                      endTime: slot.endTime,
+                                    }
+                                  : cur,
+                              )
                             }
                             disabled={quickBookingSubmitting}
                           >
-                            {formatTime12h(slot)}
+                            {formatTime12h(slot.startTime)} - {formatTime12h(slot.endTime)}
                           </button>
                         );
                       })
@@ -786,7 +811,7 @@ export default function FacilitiesLiveViewPage() {
                 </div>
                 <div>
                   <label>End time</label>
-                  <input value={formatTime12h(endTimeFrom(quickBooking.startTime))} readOnly />
+                  <input value={formatTime12h(quickBooking.endTime)} readOnly />
                 </div>
               </div>
               <div className="detail-row">

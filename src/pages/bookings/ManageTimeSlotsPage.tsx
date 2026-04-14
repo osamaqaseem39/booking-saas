@@ -18,11 +18,36 @@ function segmentBookingAllowed(seg: CourtSlotGridSegment): boolean {
   return seg.state === 'free';
 }
 
-function parseSlotStartsInput(text: string): string[] {
-  return text
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+type DraftSlotLine = {
+  startTime: string;
+  endTime: string;
+};
+
+function toMinutes(time: string): number {
+  const [hRaw, mRaw] = time.split(':');
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  return h * 60 + m;
+}
+
+function isValidTimeLabel(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function isHourBoundary(value: string): boolean {
+  return value.endsWith(':00');
+}
+
+function addMinutes(time: string, minutes: number): string {
+  const total = toMinutes(time) + minutes;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function deriveSlotStartsFromLines(lines: DraftSlotLine[]): string[] {
+  const unique = new Set(lines.map((line) => line.startTime));
+  return [...unique].sort((a, b) => toMinutes(a) - toMinutes(b));
 }
 
 export default function ManageTimeSlotsPage() {
@@ -40,7 +65,9 @@ export default function ManageTimeSlotsPage() {
   const [templates, setTemplates] = useState<TimeSlotTemplateRecord[]>([]);
   const [tplLoading, setTplLoading] = useState(false);
   const [newTplName, setNewTplName] = useState('');
-  const [newTplTimes, setNewTplTimes] = useState('');
+  const [newTplLines, setNewTplLines] = useState<DraftSlotLine[]>([]);
+  const [draftStartTime, setDraftStartTime] = useState('');
+  const [draftEndTime, setDraftEndTime] = useState('');
   const [tplErr, setTplErr] = useState<string | null>(null);
   const [tplSaving, setTplSaving] = useState(false);
   const [deletingTplId, setDeletingTplId] = useState<string | null>(null);
@@ -172,13 +199,13 @@ export default function ManageTimeSlotsPage() {
   async function onSaveTemplate() {
     if (!tenantId.trim()) return;
     const name = newTplName.trim();
-    const slotStarts = parseSlotStartsInput(newTplTimes);
+    const slotStarts = deriveSlotStartsFromLines(newTplLines);
     if (!name) {
       setTplErr('Template name is required.');
       return;
     }
     if (!slotStarts.length) {
-      setTplErr('Add at least one start time (HH:mm, on the hour), separated by commas or new lines.');
+      setTplErr('Add at least one slot line first.');
       return;
     }
     setTplSaving(true);
@@ -188,7 +215,9 @@ export default function ManageTimeSlotsPage() {
       const rows = await listTimeSlotTemplates(tenantId);
       setTemplates(rows);
       setNewTplName('');
-      setNewTplTimes('');
+      setNewTplLines([]);
+      setDraftStartTime('');
+      setDraftEndTime('');
     } catch (e) {
       setTplErr(e instanceof Error ? e.message : 'Could not save template');
     } finally {
@@ -208,6 +237,43 @@ export default function ManageTimeSlotsPage() {
     } finally {
       setDeletingTplId(null);
     }
+  }
+
+  function onAddSlotLine() {
+    const startTime = draftStartTime.trim();
+    const endTime = draftEndTime.trim();
+    if (!isValidTimeLabel(startTime) || !isValidTimeLabel(endTime)) {
+      setTplErr('Use valid times in HH:mm format for start and end.');
+      return;
+    }
+    if (!isHourBoundary(startTime) || !isHourBoundary(endTime)) {
+      setTplErr('Times must be on the hour (e.g. 16:00, 17:00).');
+      return;
+    }
+    if (toMinutes(endTime) <= toMinutes(startTime)) {
+      setTplErr('End time must be after start time.');
+      return;
+    }
+    const expectedEnd = addMinutes(startTime, 60);
+    if (endTime !== expectedEnd) {
+      setTplErr('Each line must be exactly one hour (end time = start time + 60 minutes).');
+      return;
+    }
+    setTplErr(null);
+    setNewTplLines((cur) => {
+      if (cur.some((line) => line.startTime === startTime)) {
+        return cur;
+      }
+      return [...cur, { startTime, endTime }].sort(
+        (a, b) => toMinutes(a.startTime) - toMinutes(b.startTime),
+      );
+    });
+    setDraftStartTime('');
+    setDraftEndTime('');
+  }
+
+  function onRemoveSlotLine(startTime: string) {
+    setNewTplLines((cur) => cur.filter((line) => line.startTime !== startTime));
   }
 
   return (
@@ -261,6 +327,13 @@ export default function ManageTimeSlotsPage() {
                   <span className="muted" style={{ marginLeft: '0.5rem', fontSize: '0.85rem' }}>
                     {t.slotStarts.length} slot{t.slotStarts.length === 1 ? '' : 's'}
                   </span>
+                  <div className="muted" style={{ marginTop: '0.2rem' }}>
+                    {t.slotStarts
+                      .slice(0, 3)
+                      .map((start) => formatTimeRange12h(start, addMinutes(start, 60)))
+                      .join(' · ')}
+                    {t.slotStarts.length > 3 ? ` · +${t.slotStarts.length - 3} more` : ''}
+                  </div>
                 </span>
                 <button
                   type="button"
@@ -291,17 +364,69 @@ export default function ManageTimeSlotsPage() {
               maxLength={120}
             />
           </label>
-          <label>
-            <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-              Slot start times (HH:mm, on the hour — one per line or comma-separated)
-            </span>
-            <textarea
-              rows={4}
-              value={newTplTimes}
-              onChange={(e) => setNewTplTimes(e.target.value)}
-              placeholder={'16:00\n17:00\n18:00'}
-            />
-          </label>
+          <div className="form-row-2">
+            <label>
+              <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                Start time
+              </span>
+              <input
+                type="time"
+                step={3600}
+                value={draftStartTime}
+                onChange={(e) => setDraftStartTime(e.target.value)}
+              />
+            </label>
+            <label>
+              <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                End time
+              </span>
+              <input
+                type="time"
+                step={3600}
+                value={draftEndTime}
+                onChange={(e) => setDraftEndTime(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="page-actions-row" style={{ marginTop: 0 }}>
+            <button
+              type="button"
+              className="btn-ghost btn-compact"
+              disabled={!tenantId.trim() || tplSaving}
+              onClick={onAddSlotLine}
+            >
+              Add line
+            </button>
+            <span className="muted">{newTplLines.length} line(s) added</span>
+          </div>
+          {newTplLines.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {newTplLines.map((line) => (
+                <li
+                  key={line.startTime}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    padding: '0.4rem 0',
+                    borderBottom: '1px solid var(--border-subtle, #2a2f3a)',
+                  }}
+                >
+                  <span>
+                    <strong>{formatTimeRange12h(line.startTime, line.endTime)}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-compact"
+                    onClick={() => onRemoveSlotLine(line.startTime)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <button
             type="button"
             className="btn-primary"
