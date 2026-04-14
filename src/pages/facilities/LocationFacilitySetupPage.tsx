@@ -91,23 +91,31 @@ export default function LocationFacilitySetupPage() {
 
   useEffect(() => {
     if (!isArenaTurfRoute) return;
+    const prefersCricketRoute = facilityCode === CRICKET_COURT_SETUP_CODE;
     if (!location) {
-      setSelectedArenaKind(
-        facilityCode === CRICKET_COURT_SETUP_CODE ? 'cricket' : 'futsal',
-      );
+      setSelectedArenaKind(prefersCricketRoute ? 'cricket' : 'futsal');
       return;
     }
-    if (hasCricketForLocation) {
-      setSelectedArenaKind('cricket');
-      return;
+    if (prefersCricketRoute) {
+      if (hasCricketForLocation) {
+        setSelectedArenaKind('cricket');
+        return;
+      }
+      if (hasFutsalForLocation) {
+        setSelectedArenaKind('futsal');
+        return;
+      }
+    } else {
+      if (hasFutsalForLocation) {
+        setSelectedArenaKind('futsal');
+        return;
+      }
+      if (hasCricketForLocation) {
+        setSelectedArenaKind('cricket');
+        return;
+      }
     }
-    if (hasFutsalForLocation) {
-      setSelectedArenaKind('futsal');
-      return;
-    }
-    setSelectedArenaKind(
-      facilityCode === CRICKET_COURT_SETUP_CODE ? 'cricket' : 'futsal',
-    );
+    setSelectedArenaKind(prefersCricketRoute ? 'cricket' : 'futsal');
   }, [
     facilityCode,
     hasCricketForLocation,

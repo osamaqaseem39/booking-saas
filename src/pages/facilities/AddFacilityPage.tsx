@@ -229,6 +229,19 @@ export default function AddFacilityPage() {
   }, [location]);
   const isArenaLocation = (location?.locationType ?? '') === 'arena';
   const isGamingLocation = (location?.locationType ?? '') === 'gaming-zone';
+  const arenaPrimarySetupCode = useMemo(() => {
+    if (!isArenaLocation || !location) return '';
+    if (isCourtSetupAllowedForLocation(location, FUTSAL_COURT_SETUP_CODE)) {
+      return FUTSAL_COURT_SETUP_CODE;
+    }
+    if (isCourtSetupAllowedForLocation(location, CRICKET_COURT_SETUP_CODE)) {
+      return CRICKET_COURT_SETUP_CODE;
+    }
+    if (isCourtSetupAllowedForLocation(location, 'padel-court')) {
+      return 'padel-court';
+    }
+    return '';
+  }, [isArenaLocation, location]);
 
   const gamingRows = useMemo(() => {
     if (!isGamingLocation || !locationId) return [];
@@ -493,24 +506,39 @@ export default function AddFacilityPage() {
 
       <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>Add facility</h3>
       <div className="facility-setup-grid">
-        {visibleSetupOptions.map((o) => {
-          const canOpenSetup = hasSetupForm(o.code);
-          return locationId && canOpenSetup ? (
-            <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">
-              {o.label}
+        {isArenaLocation ? (
+          locationId && arenaPrimarySetupCode ? (
+            <Link
+              to={setupPath(locationId, arenaPrimarySetupCode)}
+              className="btn-primary"
+            >
+              Add facility (setup form)
             </Link>
           ) : (
-            <button
-              key={o.code}
-              type="button"
-              className="btn-primary"
-              disabled
-              title="Setup form for this facility type is coming soon."
-            >
-              {o.label}
+            <button type="button" className="btn-primary" disabled>
+              Add facility (setup form)
             </button>
-          );
-        })}
+          )
+        ) : (
+          visibleSetupOptions.map((o) => {
+            const canOpenSetup = hasSetupForm(o.code);
+            return locationId && canOpenSetup ? (
+              <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">
+                {o.label}
+              </Link>
+            ) : (
+              <button
+                key={o.code}
+                type="button"
+                className="btn-primary"
+                disabled
+                title="Setup form for this facility type is coming soon."
+              >
+                {o.label}
+              </button>
+            );
+          })
+        )}
       </div>
 
       {isArenaLocation ? (

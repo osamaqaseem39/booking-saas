@@ -11,7 +11,6 @@ import {
   listPadelCourts,
 } from '../../api/saasClient';
 import {
-  courtSetupOptions,
   isCourtSetupAllowedForLocation,
 } from '../../constants/locationFacilityTypes';
 import {
@@ -147,6 +146,19 @@ export default function LocationFacilitiesPage() {
     [locations, locationId],
   );
   const tenantIdOverride = isOwner ? location?.business?.tenantId ?? '' : '';
+  const arenaPrimarySetupCode = useMemo(() => {
+    if (!location || location.locationType === 'gaming-zone') return '';
+    if (isCourtSetupAllowedForLocation(location, 'futsal-court')) {
+      return 'futsal-court';
+    }
+    if (isCourtSetupAllowedForLocation(location, 'cricket-court')) {
+      return 'cricket-court';
+    }
+    if (isCourtSetupAllowedForLocation(location, 'padel-court')) {
+      return 'padel-court';
+    }
+    return '';
+  }, [location]);
 
   const load = () => {
     void (async () => {
@@ -226,19 +238,10 @@ export default function LocationFacilitiesPage() {
                 }))
               : [
                   {
-                    code: 'futsal-court',
-                    label: 'Add Field',
-                    allowed:
-                      isCourtSetupAllowedForLocation(location, 'futsal-court') ||
-                      isCourtSetupAllowedForLocation(location, 'cricket-court'),
+                    code: arenaPrimarySetupCode || 'futsal-court',
+                    label: 'Add facility (setup form)',
+                    allowed: Boolean(arenaPrimarySetupCode),
                   },
-                  ...courtSetupOptions()
-                    .filter((o) => o.code === 'padel-court')
-                    .map((o) => ({
-                      code: o.code,
-                      label: `Add ${o.label}`,
-                      allowed: isCourtSetupAllowedForLocation(location, o.code),
-                    })),
                 ]
             ).map((o) =>
               o.allowed ? (
