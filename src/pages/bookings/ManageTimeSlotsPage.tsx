@@ -84,6 +84,22 @@ export default function ManageTimeSlotsPage() {
     [courts, facilityKey],
   );
 
+  const loadCourts = useCallback(async () => {
+    if (!tenantId.trim()) {
+      setCourts([]);
+      return;
+    }
+    try {
+      const rows = await listCourtOptions(
+        sport,
+        selectedLocationId === 'all' ? undefined : selectedLocationId,
+      );
+      setCourts(rows);
+    } catch {
+      setCourts([]);
+    }
+  }, [sport, tenantId, selectedLocationId]);
+
   const activeTemplate = useMemo(() => {
     const id = selected?.timeSlotTemplateId;
     if (!id) return null;
@@ -105,22 +121,16 @@ export default function ManageTimeSlotsPage() {
   }, [sport]);
 
   useEffect(() => {
-    if (!tenantId.trim()) {
-      setCourts([]);
-      return;
-    }
-    void (async () => {
-      try {
-        const rows = await listCourtOptions(
-          sport,
-          selectedLocationId === 'all' ? undefined : selectedLocationId,
-        );
-        setCourts(rows);
-      } catch {
-        setCourts([]);
-      }
-    })();
-  }, [sport, tenantId, selectedLocationId]);
+    void loadCourts();
+  }, [loadCourts]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void loadCourts();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadCourts]);
 
   useEffect(() => {
     if (!tenantId.trim()) {
@@ -153,6 +163,19 @@ export default function ManageTimeSlotsPage() {
       setFacilityKey(`${courts[0].kind}:${courts[0].id}`);
     }
   }, [courts, facilityKey]);
+
+  useEffect(() => {
+    if (!selected?.timeSlotTemplateId) return;
+    if (templates.some((t) => t.id === selected.timeSlotTemplateId)) return;
+    void (async () => {
+      try {
+        const rows = await listTimeSlotTemplates(tenantId);
+        setTemplates(rows);
+      } catch {
+        // Keep current state; page already handles missing template gracefully.
+      }
+    })();
+  }, [selected, templates, tenantId]);
 
   const loadGrid = useCallback(async () => {
     if (!selected) {
