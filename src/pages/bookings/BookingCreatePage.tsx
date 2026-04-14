@@ -11,7 +11,6 @@ import {
   listBusinessLocations,
   listCourtOptions,
   listIamUsers,
-  listTimeSlotTemplates,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
@@ -328,7 +327,6 @@ export default function BookingCreatePage() {
   const [tax, setTax] = useState('0');
   const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
-  const [templateStartsById, setTemplateStartsById] = useState<Record<string, string[]>>({});
   /** Per line: server slot grid (free-only, hides booked) vs local fallback. */
   const [lineSlotSource, setLineSlotSource] = useState<
     Record<number, { starts: string[]; source: 'api' | 'local' }>
@@ -342,25 +340,6 @@ export default function BookingCreatePage() {
         .join(';')}`,
     [bookingTenant, bookingDate, lines],
   );
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        if (isPlatformOwner && !bookingTenant) {
-          setTemplateStartsById({});
-          return;
-        }
-        const rows = await listTimeSlotTemplates(isPlatformOwner ? bookingTenant : undefined);
-        const byId: Record<string, string[]> = {};
-        for (const row of rows) {
-          byId[row.id] = row.slotStarts;
-        }
-        setTemplateStartsById(byId);
-      } catch {
-        setTemplateStartsById({});
-      }
-    })();
-  }, [bookingTenant, isPlatformOwner]);
 
   useEffect(() => {
     if (!bookingTenant) {
@@ -1043,16 +1022,17 @@ export default function BookingCreatePage() {
                 (location?.workingHours as Record<string, unknown> | null) ?? null,
                 bookingDate,
               );
-              const templateStarts = selectedCourt?.timeSlotTemplateId
-                ? templateStartsById[selectedCourt.timeSlotTemplateId] ?? []
-                : [];
-              const templateSet = new Set(templateStarts);
               const src = lineSlotSource[idx];
               const serverStarts =
                 src?.source === 'api'
                   ? hourlyStartsFromFreeSegments(src.starts)
                   : [];
-              const startSlots = serverStarts.filter((slot) => templateSet.has(slot));
+              /**
+               * API slot-grid already applies facility template filtering.
+               * Keep front-end filtering disabled so newly assigned templates
+               * immediately surface slot buttons.
+               */
+              const startSlots = serverStarts;
               const totalSlides = Math.max(
                 1,
                 Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),

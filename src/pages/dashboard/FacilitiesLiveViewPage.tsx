@@ -13,7 +13,6 @@ import {
   listCricketCourts,
   listFutsalCourts,
   listPadelCourts,
-  listTimeSlotTemplates,
 } from '../../api/saasClient';
 import type { BookingRecord } from '../../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../../types/domain';
@@ -139,7 +138,6 @@ export default function FacilitiesLiveViewPage() {
     [],
   );
   const [quickSlotsLoading, setQuickSlotsLoading] = useState(false);
-  const [templateStartsById, setTemplateStartsById] = useState<Record<string, string[]>>({});
   /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
   useEffect(() => {
@@ -319,19 +317,6 @@ export default function FacilitiesLiveViewPage() {
   }, []);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const rows = await listTimeSlotTemplates();
-        const byId: Record<string, string[]> = {};
-        for (const row of rows) byId[row.id] = row.slotStarts;
-        setTemplateStartsById(byId);
-      } catch {
-        setTemplateStartsById({});
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
     if (!quickBooking) return;
     void loadQuickPrice(quickBooking);
   }, [quickBooking, loadQuickPrice]);
@@ -370,17 +355,17 @@ export default function FacilitiesLiveViewPage() {
         );
       });
       deduped.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
-      const templateStarts = state.facility.timeSlotTemplateId
-        ? templateStartsById[state.facility.timeSlotTemplateId] ?? []
-        : [];
-      const templateSet = new Set(templateStarts);
-      setQuickSlots(deduped.filter((slot) => templateSet.has(slot.startTime)));
+      /**
+       * `getCourtSlots` is already filtered by the facility's assigned
+       * time-slot template on the backend.
+       */
+      setQuickSlots(deduped);
     } catch {
       setQuickSlots([]);
     } finally {
       setQuickSlotsLoading(false);
     }
-  }, [templateStartsById]);
+  }, []);
 
   useEffect(() => {
     if (!quickBooking) {
@@ -482,7 +467,11 @@ export default function FacilitiesLiveViewPage() {
         locationClosed: slotGrid.locationClosed,
         segmentCount: slotGrid.segments.length,
       });
-      for (let m = startM; m < endM; m += 30) {
+      const segmentStep =
+        typeof slotGrid.segmentMinutes === 'number' && slotGrid.segmentMinutes > 0
+          ? slotGrid.segmentMinutes
+          : 60;
+      for (let m = startM; m < endM; m += segmentStep) {
         const seg = slotGrid.segments.find(
           (s) => timeToMinutes(s.startTime) === m,
         );
@@ -790,7 +779,15 @@ export default function FacilitiesLiveViewPage() {
                 </div>
                 <div>
                   <label>Start time</label>
-                  <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <div
+                    style={{
+                      marginTop: '0.35rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.4rem',
+                      width: '100%',
+                    }}
+                  >
                     {quickSlotsLoading ? (
                       <span className="muted">Loading slots...</span>
                     ) : quickSlots.length === 0 ? (
@@ -809,7 +806,13 @@ export default function FacilitiesLiveViewPage() {
                             key={`${slot.startTime}-${slot.endTime}`}
                             type="button"
                             className={active ? 'btn-primary' : 'btn-ghost'}
-                            style={{ padding: '0.35rem 0.7rem', borderRadius: '999px', fontSize: '0.86rem' }}
+                            style={{
+                              padding: '0.55rem 0.8rem',
+                              borderRadius: '0.6rem',
+                              fontSize: '0.9rem',
+                              width: '100%',
+                              textAlign: 'left',
+                            }}
                             onClick={() =>
                               setQuickBooking((cur) =>
                                 cur

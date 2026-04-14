@@ -375,6 +375,7 @@ export default function AddFacilityPage() {
     id: string;
     code: string;
     name: string;
+    businessLocationId?: string;
   }) {
     const yes = window.confirm(
       `Delete facility “${row.name}”? This cannot be undone.`,
@@ -383,10 +384,16 @@ export default function AddFacilityPage() {
     setDeletingId(row.id);
     setErr(null);
     try {
+      const rowLocId = row.businessLocationId?.trim() || locationId || '';
+      const locationForTenant = locations.find((l) => l.id === rowLocId);
+      const tenantIdOverride = isOwner
+        ? locationForTenant?.business?.tenantId ?? ''
+        : '';
       await deleteFacilityByCode(
         row.code as FacilityRowCode,
         row.id,
         rowLocId || undefined,
+        tenantIdOverride,
       );
       await reloadFacilitiesFor(locationId, locations);
     } catch (e) {
