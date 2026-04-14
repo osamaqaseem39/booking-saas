@@ -4,6 +4,7 @@ import {
   createBooking,
   createIamUser,
   getBookingAvailability,
+  getCourtSlots,
   getCourtSlotGrid,
   getBusinessDashboardView,
   listIamUsers,
@@ -82,19 +83,6 @@ function minutesToTime(v: number): string {
 function endTimeFrom(startTime: string): string {
   const end = Math.min(timeToMinutes(startTime) + 60, 24 * 60);
   return minutesToTime(end);
-}
-
-function hourlyStartsFromFreeSegments(starts: string[]): string[] {
-  const set = new Set(starts);
-  const out: string[] = [];
-  for (const s of starts) {
-    const m = timeToMinutes(s);
-    if (m % 60 !== 0) continue;
-    if (m + 60 > 24 * 60) continue;
-    if (!set.has(minutesToTime(m + 30))) continue;
-    out.push(s);
-  }
-  return out;
 }
 
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
@@ -339,24 +327,22 @@ export default function FacilitiesLiveViewPage() {
     setQuickSlotsLoading(true);
     try {
       const courtKind = facilityTypeToCourtKind(state.facility.type);
-      const slotGrid = await getCourtSlotGrid({
+      const slotsRes = await getCourtSlots({
         courtKind,
         courtId: state.facility.id,
         date: state.date,
-        useWorkingHours: false,
-        availableOnly: true,
       });
-      const freeStarts = slotGrid.segments
-        .filter((s) => s.state === 'free')
-        .map((s) => s.startTime);
       const minStartMinutes =
-        state.date === localDateYmd()
-          ? timeToMinutes(nextHalfHourTime())
-          : 0;
-      const hourly = hourlyStartsFromFreeSegments(freeStarts).filter(
-        (slot) => timeToMinutes(slot) >= minStartMinutes,
-      );
-      setQuickSlots(hourly);
+        state.date === localDateYmd() ? timeToMinutes(nextHalfHourTime()) : 0;
+      const hourly = slotsRes.slots
+        .filter((s) => s.availability === 'available')
+        .map((s) => s.startTime);
+      const deduped = [...new Set(hourly)].filter((slot) => {
+        const m = timeToMinutes(slot);
+        return m % 60 === 0 && m >= minStartMinutes && m <= 23 * 60;
+      });
+      deduped.sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+      setQuickSlots(deduped);
     } catch {
       setQuickSlots([]);
     } finally {
