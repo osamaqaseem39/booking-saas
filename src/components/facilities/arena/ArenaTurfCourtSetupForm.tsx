@@ -5,10 +5,7 @@ import {
   createTurfTwinLink,
   getCricketCourt,
   getFutsalCourt,
-  listCricketCourts,
-  listFutsalCourts,
   listTimeSlotTemplates,
-  removeTurfTwinLink,
   updateCricketCourt,
   updateFutsalCourt,
   type CreateCricketCourtBody,
@@ -16,7 +13,7 @@ import {
   type CricketCourtDetail,
   type FutsalCourtDetail,
 } from '../../../api/saasClient';
-import type { BusinessLocationRow, NamedCourt } from '../../../types/domain';
+import type { BusinessLocationRow } from '../../../types/domain';
 import { ArenaCourtSharedTurfSections } from './ArenaCourtSharedTurfSections';
 import {
   emptySharedArenaTurfState,
@@ -51,7 +48,6 @@ export function ArenaTurfCourtSetupForm({
       : includesFutsal
         ? 'futsal pitch'
         : 'cricket pitch';
-  const twinKindLabel = includesFutsal ? 'cricket pitch' : 'futsal pitch';
 
   const [shared, setShared] = useState<SharedArenaTurfFormState>(() =>
     emptySharedArenaTurfState(),
@@ -75,10 +71,6 @@ export function ArenaTurfCourtSetupForm({
     'full_ground' | 'nets_mode' | ''
   >('');
 
-  const [shareSameField, setShareSameField] = useState(false);
-  const [linkedTwinCourtId, setLinkedTwinCourtId] = useState('');
-  const [initialTwinCourtId, setInitialTwinCourtId] = useState('');
-  const [twinOptions, setTwinOptions] = useState<NamedCourt[]>([]);
   const [timeSlotTemplateOptions, setTimeSlotTemplateOptions] = useState<
     { id: string; name: string }[]
   >([]);
@@ -103,10 +95,6 @@ export function ArenaTurfCourtSetupForm({
       setCricketStumpsAvailable(false);
       setCricketBowlingMachine(false);
       setCricketPracticeMode('');
-      setShareSameField(false);
-      setLinkedTwinCourtId('');
-      setInitialTwinCourtId('');
-      setTwinOptions([]);
       return;
     }
     let cancelled = false;
@@ -136,13 +124,6 @@ export function ArenaTurfCourtSetupForm({
           setFutsalLineMarkings(
             lm === 'permanent' || lm === 'temporary' ? lm : '',
           );
-          const linkedId =
-            d.linkedTwinCourtKind === 'cricket_court'
-              ? (d.linkedTwinCourtId ?? '').trim()
-              : '';
-          setInitialTwinCourtId(linkedId);
-          setShareSameField(Boolean(linkedId));
-          setLinkedTwinCourtId(linkedId);
         } else {
           const d: CricketCourtDetail = await getCricketCourt(existingCourtId);
           if (cancelled) return;
@@ -170,13 +151,6 @@ export function ArenaTurfCourtSetupForm({
           setCricketPracticeMode(
             pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
           );
-          const linkedId =
-            d.linkedTwinCourtKind === 'futsal_court'
-              ? (d.linkedTwinCourtId ?? '').trim()
-              : '';
-          setInitialTwinCourtId(linkedId);
-          setShareSameField(Boolean(linkedId));
-          setLinkedTwinCourtId(linkedId);
         }
       } catch (e) {
         if (!cancelled) {
@@ -198,28 +172,6 @@ export function ArenaTurfCourtSetupForm({
   }, [locationId, existingCourtId]);
 
   useEffect(() => {
-    if (!arenaLocationId) {
-      setTwinOptions([]);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const rows = includesFutsal
-          ? await listCricketCourts(arenaLocationId)
-          : await listFutsalCourts(arenaLocationId);
-        if (cancelled) return;
-        setTwinOptions(rows);
-      } catch {
-        if (!cancelled) setTwinOptions([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [arenaLocationId, includesFutsal]);
-
-  useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
@@ -235,35 +187,6 @@ export function ArenaTurfCourtSetupForm({
     };
   }, []);
 
-  useEffect(() => {
-    if (existingCourtId || !isSingleKind || !shareSameField || !linkedTwinCourtId)
-      return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const twin: CricketCourtDetail | FutsalCourtDetail = includesFutsal
-          ? await getCricketCourt(linkedTwinCourtId)
-          : await getFutsalCourt(linkedTwinCourtId);
-        if (cancelled) return;
-        setShared((prev) => ({
-          ...sharedDetailToFormState(twin, prev),
-          name: twin.name ?? prev.name,
-        }));
-      } catch {
-        // Keep manual values if twin details fail to load.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    existingCourtId,
-    includesFutsal,
-    isSingleKind,
-    linkedTwinCourtId,
-    shareSameField,
-  ]);
-
   const locationOptions = useMemo(
     () =>
       [...locations].sort((a, b) =>
@@ -276,18 +199,12 @@ export function ArenaTurfCourtSetupForm({
     e.preventDefault();
     const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
     if (!effectiveLocationId || !shared.name.trim()) return;
-    if (isSingleKind && shareSameField && !linkedTwinCourtId) {
-      setErr(`Select a ${twinKindLabel} to mark this as the same physical field.`);
-      return;
-    }
     const arena = locations.find((l) => l.id === arenaLocationId);
     const templatePayload = shared.timeSlotTemplateId.trim()
       ? { timeSlotTemplateId: shared.timeSlotTemplateId.trim() }
       : existingCourtId
         ? { timeSlotTemplateId: null as null }
         : {};
-    const shouldLinkTwin =
-      isSingleKind && shareSameField && !!linkedTwinCourtId.trim();
     setSaving(true);
     setErr(null);
     try {
@@ -334,25 +251,10 @@ export function ArenaTurfCourtSetupForm({
           futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
           futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
           futsalLineMarkings: futsalLineMarkings || undefined,
-          linkedTwinCourtKind:
-            !existingCourtId && shouldLinkTwin ? 'cricket_court' : undefined,
-          linkedTwinCourtId:
-            !existingCourtId && shouldLinkTwin ? linkedTwinCourtId : undefined,
         };
         if (existingCourtId) {
           const { businessLocationId: _b, ...patch } = body;
           await updateFutsalCourt(existingCourtId, patch);
-          if (initialTwinCourtId && !shouldLinkTwin) {
-            await removeTurfTwinLink({ courtKind: 'futsal_court', courtId: existingCourtId });
-          } else if (shouldLinkTwin && linkedTwinCourtId !== initialTwinCourtId) {
-            if (initialTwinCourtId) {
-              await removeTurfTwinLink({ courtKind: 'futsal_court', courtId: existingCourtId });
-            }
-            await createTurfTwinLink({
-              futsalCourtId: existingCourtId,
-              cricketCourtId: linkedTwinCourtId,
-            });
-          }
         } else {
           await createFutsalCourt(body);
         }
@@ -368,25 +270,10 @@ export function ArenaTurfCourtSetupForm({
           cricketStumpsAvailable: cricketStumpsAvailable || undefined,
           cricketBowlingMachine: cricketBowlingMachine || undefined,
           cricketPracticeMode: cricketPracticeMode || undefined,
-          linkedTwinCourtKind:
-            !existingCourtId && shouldLinkTwin ? 'futsal_court' : undefined,
-          linkedTwinCourtId:
-            !existingCourtId && shouldLinkTwin ? linkedTwinCourtId : undefined,
         };
         if (existingCourtId) {
           const { businessLocationId: _b, ...patch } = body;
           await updateCricketCourt(existingCourtId, patch);
-          if (initialTwinCourtId && !shouldLinkTwin) {
-            await removeTurfTwinLink({ courtKind: 'cricket_court', courtId: existingCourtId });
-          } else if (shouldLinkTwin && linkedTwinCourtId !== initialTwinCourtId) {
-            if (initialTwinCourtId) {
-              await removeTurfTwinLink({ courtKind: 'cricket_court', courtId: existingCourtId });
-            }
-            await createTurfTwinLink({
-              futsalCourtId: linkedTwinCourtId,
-              cricketCourtId: existingCourtId,
-            });
-          }
         } else {
           await createCricketCourt(body);
         }
@@ -491,40 +378,7 @@ export function ArenaTurfCourtSetupForm({
           timeSlotTemplateOptions={timeSlotTemplateOptions}
           gameSection={gameSection}
         />
-        {isSingleKind ? (
-          <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
-          <label className="turf-setup-inline">
-            <input
-              type="checkbox"
-              checked={shareSameField}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setShareSameField(checked);
-                if (!checked) setLinkedTwinCourtId('');
-              }}
-            />
-            Same physical field as an existing {twinKindLabel} (shared booking calendar)
-          </label>
-          {shareSameField ? (
-            <div style={{ marginTop: '0.75rem' }}>
-              <label>{twinKindLabel.charAt(0).toUpperCase() + twinKindLabel.slice(1)} to link *</label>
-              <select value={linkedTwinCourtId} onChange={(e) => setLinkedTwinCourtId(e.target.value)}>
-                <option value="">Select {twinKindLabel}…</option>
-                {twinOptions.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </select>
-              <p className="muted" style={{ marginTop: '0.35rem' }}>
-                {existingCourtId
-                  ? 'Save changes to apply updated shared-field linking.'
-                  : `Shared turf details are auto-filled from the selected ${twinKindLabel}, and both sides are treated as one field for availability.`}
-              </p>
-            </div>
-          ) : null}
-          </div>
-        ) : (
+        {!isSingleKind ? (
           <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
             <p className="muted" style={{ margin: 0 }}>
               Both sports are enabled. This submission creates futsal + cricket
