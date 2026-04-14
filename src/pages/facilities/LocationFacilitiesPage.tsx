@@ -291,11 +291,22 @@ export default function LocationFacilitiesPage() {
                   label: `Add ${o.label}`,
                   allowed: isGamingSetupAllowedForLocation(location, o.value),
                 }))
-              : courtSetupOptions().map((o) => ({
-                  code: o.code,
-                  label: `Add ${o.label}`,
-                  allowed: isCourtSetupAllowedForLocation(location, o.code),
-                }))
+              : [
+                  {
+                    code: 'futsal-court',
+                    label: 'Add Field',
+                    allowed:
+                      isCourtSetupAllowedForLocation(location, 'futsal-court') ||
+                      isCourtSetupAllowedForLocation(location, 'cricket-court'),
+                  },
+                  ...courtSetupOptions()
+                    .filter((o) => o.code === 'padel-court')
+                    .map((o) => ({
+                      code: o.code,
+                      label: `Add ${o.label}`,
+                      allowed: isCourtSetupAllowedForLocation(location, o.code),
+                    })),
+                ]
             ).map((o) =>
               o.allowed ? (
                 <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">

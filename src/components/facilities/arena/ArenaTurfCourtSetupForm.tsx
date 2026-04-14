@@ -27,7 +27,7 @@ import {
 } from './sharedArenaTurfFormState';
 import type { ArenaCourtStatus } from './arenaCourtSetupFormModels';
 
-type ArenaTurfKind = 'futsal' | 'cricket';
+type ArenaTurfKind = 'futsal' | 'cricket' | 'both';
 
 export function ArenaTurfCourtSetupForm({
   courtKind,
@@ -42,9 +42,16 @@ export function ArenaTurfCourtSetupForm({
   onSuccess: () => void;
   existingCourtId?: string;
 }) {
-  const isFutsal = courtKind === 'futsal';
-  const ownKindLabel = isFutsal ? 'futsal pitch' : 'cricket pitch';
-  const twinKindLabel = isFutsal ? 'cricket pitch' : 'futsal pitch';
+  const includesFutsal = courtKind === 'futsal' || courtKind === 'both';
+  const includesCricket = courtKind === 'cricket' || courtKind === 'both';
+  const isSingleKind = includesFutsal !== includesCricket;
+  const ownKindLabel =
+    courtKind === 'both'
+      ? 'field'
+      : includesFutsal
+        ? 'futsal pitch'
+        : 'cricket pitch';
+  const twinKindLabel = includesFutsal ? 'cricket pitch' : 'futsal pitch';
 
   const [shared, setShared] = useState<SharedArenaTurfFormState>(() =>
     emptySharedArenaTurfState(),
@@ -106,7 +113,7 @@ export function ArenaTurfCourtSetupForm({
     setLoadingDetail(true);
     void (async () => {
       try {
-        if (isFutsal) {
+        if (includesFutsal) {
           const d: FutsalCourtDetail = await getFutsalCourt(existingCourtId);
           if (cancelled) return;
           setShared({
@@ -184,7 +191,7 @@ export function ArenaTurfCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [existingCourtId, isFutsal, locationId]);
+  }, [existingCourtId, includesFutsal, locationId]);
 
   useEffect(() => {
     if (!existingCourtId && locationId) setArenaLocationId(locationId);
@@ -198,7 +205,7 @@ export function ArenaTurfCourtSetupForm({
     let cancelled = false;
     void (async () => {
       try {
-        const rows = isFutsal
+        const rows = includesFutsal
           ? await listCricketCourts(arenaLocationId)
           : await listFutsalCourts(arenaLocationId);
         if (cancelled) return;
@@ -210,7 +217,7 @@ export function ArenaTurfCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [arenaLocationId, isFutsal]);
+  }, [arenaLocationId, includesFutsal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -229,11 +236,12 @@ export function ArenaTurfCourtSetupForm({
   }, []);
 
   useEffect(() => {
-    if (existingCourtId || !shareSameField || !linkedTwinCourtId) return;
+    if (existingCourtId || !isSingleKind || !shareSameField || !linkedTwinCourtId)
+      return;
     let cancelled = false;
     void (async () => {
       try {
-        const twin: CricketCourtDetail | FutsalCourtDetail = isFutsal
+        const twin: CricketCourtDetail | FutsalCourtDetail = includesFutsal
           ? await getCricketCourt(linkedTwinCourtId)
           : await getFutsalCourt(linkedTwinCourtId);
         if (cancelled) return;
@@ -248,7 +256,13 @@ export function ArenaTurfCourtSetupForm({
     return () => {
       cancelled = true;
     };
-  }, [existingCourtId, shareSameField, linkedTwinCourtId, isFutsal]);
+  }, [
+    existingCourtId,
+    includesFutsal,
+    isSingleKind,
+    linkedTwinCourtId,
+    shareSameField,
+  ]);
 
   const locationOptions = useMemo(
     () =>
@@ -262,7 +276,7 @@ export function ArenaTurfCourtSetupForm({
     e.preventDefault();
     const effectiveLocationId = existingCourtId ? arenaLocationId : locationId;
     if (!effectiveLocationId || !shared.name.trim()) return;
-    if (shareSameField && !linkedTwinCourtId) {
+    if (isSingleKind && shareSameField && !linkedTwinCourtId) {
       setErr(`Select a ${twinKindLabel} to mark this as the same physical field.`);
       return;
     }
@@ -272,11 +286,43 @@ export function ArenaTurfCourtSetupForm({
       : existingCourtId
         ? { timeSlotTemplateId: null as null }
         : {};
-    const shouldLinkTwin = shareSameField && !!linkedTwinCourtId.trim();
+    const shouldLinkTwin =
+      isSingleKind && shareSameField && !!linkedTwinCourtId.trim();
     setSaving(true);
     setErr(null);
     try {
-      if (isFutsal) {
+      if (!existingCourtId && courtKind === 'both') {
+        const futsalBody: CreateFutsalCourtBody = {
+          businessLocationId: effectiveLocationId,
+          name: shared.name.trim(),
+          courtStatus,
+          arenaLabel: arena?.name?.trim() || undefined,
+          ...sharedTurfFormStateToPayload(shared),
+          ...templatePayload,
+          futsalFormat: futsalFormat || undefined,
+          futsalGoalPostsAvailable: futsalGoalPostsAvailable || undefined,
+          futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
+          futsalLineMarkings: futsalLineMarkings || undefined,
+        };
+        const cricketBody: CreateCricketCourtBody = {
+          businessLocationId: effectiveLocationId,
+          name: shared.name.trim(),
+          courtStatus,
+          arenaLabel: arena?.name?.trim() || undefined,
+          ...sharedTurfFormStateToCricketPayload(shared),
+          ...templatePayload,
+          cricketFormat: cricketFormat || undefined,
+          cricketStumpsAvailable: cricketStumpsAvailable || undefined,
+          cricketBowlingMachine: cricketBowlingMachine || undefined,
+          cricketPracticeMode: cricketPracticeMode || undefined,
+        };
+        const createdFutsal = await createFutsalCourt(futsalBody);
+        const createdCricket = await createCricketCourt(cricketBody);
+        await createTurfTwinLink({
+          futsalCourtId: createdFutsal.id,
+          cricketCourtId: createdCricket.id,
+        });
+      } else if (includesFutsal) {
         const body: CreateFutsalCourtBody = {
           businessLocationId: effectiveLocationId,
           name: shared.name.trim(),
@@ -356,7 +402,7 @@ export function ArenaTurfCourtSetupForm({
   if (initialLoadError) return <div className="err-banner">{initialLoadError}</div>;
   if (loadingDetail && existingCourtId) return <div className="empty-state">Loading court…</div>;
 
-  const gameSection = isFutsal ? (
+  const futsalSection = (
     <div className="form-grid">
       <div>
         <label>Format</label>
@@ -386,7 +432,9 @@ export function ArenaTurfCourtSetupForm({
         </select>
       </div>
     </div>
-  ) : (
+  );
+
+  const cricketSection = (
     <div className="form-grid">
       <div>
         <label>Ball format</label>
@@ -420,6 +468,13 @@ export function ArenaTurfCourtSetupForm({
     </div>
   );
 
+  const gameSection = (
+    <>
+      {includesFutsal ? futsalSection : null}
+      {includesCricket ? cricketSection : null}
+    </>
+  );
+
   return (
     <div className="turf-setup-form-wrap">
       <form className="form-grid turf-setup-form" onSubmit={(e) => void onSubmit(e)}>
@@ -436,7 +491,8 @@ export function ArenaTurfCourtSetupForm({
           timeSlotTemplateOptions={timeSlotTemplateOptions}
           gameSection={gameSection}
         />
-        <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
+        {isSingleKind ? (
+          <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
           <label className="turf-setup-inline">
             <input
               type="checkbox"
@@ -467,7 +523,15 @@ export function ArenaTurfCourtSetupForm({
               </p>
             </div>
           ) : null}
-        </div>
+          </div>
+        ) : (
+          <div className="connection-panel" style={{ marginTop: '0.5rem' }}>
+            <p className="muted" style={{ margin: 0 }}>
+              Both sports are enabled. This submission creates futsal + cricket
+              together as one linked field.
+            </p>
+          </div>
+        )}
         <div className="turf-setup-form-actions">
           <button type="submit" className="btn-primary" disabled={saving || !shared.name.trim()}>
             {saving ? 'Saving…' : existingCourtId ? 'Save changes' : `Create ${ownKindLabel}`}

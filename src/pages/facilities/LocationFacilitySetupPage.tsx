@@ -25,7 +25,7 @@ const ARENA_SETUP_CODES = new Set<string>([
 ]);
 
 const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
-type ArenaTurfKind = 'futsal' | 'cricket';
+type ArenaTurfKind = 'futsal' | 'cricket' | 'both';
 
 export default function LocationFacilitySetupPage() {
   const { session } = useSession();
@@ -94,7 +94,10 @@ export default function LocationFacilitySetupPage() {
       );
       return;
     }
-    if (hasBothArenaSports) return;
+    if (hasBothArenaSports) {
+      setSelectedArenaKind('both');
+      return;
+    }
     if (hasCricketForLocation) {
       setSelectedArenaKind('cricket');
       return;
@@ -153,7 +156,9 @@ export default function LocationFacilitySetupPage() {
           ← Main facility page
         </Link>
       </div>
-      <h1 className="page-title">New {label.label}</h1>
+      <h1 className="page-title">
+        New {isArenaTurfRoute ? 'Field' : label.label}
+      </h1>
       {!location ? (
         <p className="muted">Loading location…</p>
       ) : !typeAllowed ? (
@@ -178,34 +183,60 @@ export default function LocationFacilitySetupPage() {
         <div className="turf-setup-page">
           <p className="muted turf-setup-page-intro">
             Location: <strong>{location.name}</strong>.{' '}
-            {selectedArenaKind === 'futsal'
+            {selectedArenaKind === 'both'
+              ? 'Field (futsal + cricket)'
+              : selectedArenaKind === 'futsal'
               ? 'Futsal pitch'
               : 'Cricket pitch'}{' '}
             setup.
           </p>
           {hasBothArenaSports ? (
             <div className="turf-setup-card" style={{ marginBottom: '0.75rem' }}>
-              <h4 style={{ marginBottom: '0.5rem' }}>Select sport</h4>
+              <h4 style={{ marginBottom: '0.5rem' }}>Select sports for this field</h4>
               <div className="turf-setup-checkrow">
                 <label className="turf-setup-inline">
                   <input
-                    type="radio"
-                    name="arena-sport-kind"
-                    checked={selectedArenaKind === 'futsal'}
-                    onChange={() => setSelectedArenaKind('futsal')}
+                    type="checkbox"
+                    checked={
+                      selectedArenaKind === 'futsal' ||
+                      selectedArenaKind === 'both'
+                    }
+                    onChange={(e) => {
+                      const futsalOn = e.target.checked;
+                      const cricketOn =
+                        selectedArenaKind === 'cricket' ||
+                        selectedArenaKind === 'both';
+                      if (futsalOn && cricketOn) setSelectedArenaKind('both');
+                      else if (futsalOn) setSelectedArenaKind('futsal');
+                      else if (cricketOn) setSelectedArenaKind('cricket');
+                    }}
                   />
                   Futsal
                 </label>
                 <label className="turf-setup-inline">
                   <input
-                    type="radio"
-                    name="arena-sport-kind"
-                    checked={selectedArenaKind === 'cricket'}
-                    onChange={() => setSelectedArenaKind('cricket')}
+                    type="checkbox"
+                    checked={
+                      selectedArenaKind === 'cricket' ||
+                      selectedArenaKind === 'both'
+                    }
+                    onChange={(e) => {
+                      const cricketOn = e.target.checked;
+                      const futsalOn =
+                        selectedArenaKind === 'futsal' ||
+                        selectedArenaKind === 'both';
+                      if (futsalOn && cricketOn) setSelectedArenaKind('both');
+                      else if (futsalOn) setSelectedArenaKind('futsal');
+                      else if (cricketOn) setSelectedArenaKind('cricket');
+                    }}
                   />
                   Cricket
                 </label>
               </div>
+              <p className="muted" style={{ marginTop: '0.5rem' }}>
+                If both are enabled, this creates one shared field with linked
+                futsal and cricket records.
+              </p>
             </div>
           ) : null}
           <ArenaTurfCourtSetupForm
