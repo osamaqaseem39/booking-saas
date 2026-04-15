@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import {
   getBookingAvailability,
   getCourtBookedSlots,
+  getCourtSlotGrid,
   listBookings,
   listBookingsForTenant,
   listBusinessLocations,
@@ -61,6 +62,17 @@ function minutesToTimeString(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
   const m = totalMins % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function hourlyStartsInRange(startTime: string, endTime: string): string[] {
+  const start = toMinutes(startTime);
+  const end = toMinutes(endTime);
+  if (end <= start) return [];
+  const out: string[] = [];
+  for (let m = start; m < end; m += 60) {
+    out.push(minutesToTimeString(m));
+  }
+  return out;
 }
 
 function sportBadgeClass(sport: string | null | undefined): string {
@@ -317,6 +329,11 @@ export default function BookingsPage() {
       setError('Select sport, date, start time, and end time to check availability.');
       return;
     }
+    const requestedStarts = hourlyStartsInRange(availabilityStartTime, availabilityEndTime);
+    if (requestedStarts.length === 0) {
+      setError('End time must be after start time.');
+      return;
+    }
     setError(null);
     setAvailabilityLoading(true);
     setCourtSlots(null);
@@ -327,7 +344,29 @@ export default function BookingsPage() {
         endTime: availabilityEndTime,
         sportType: availabilitySport,
       });
-      setAvailability(result);
+      const slotChecks = await Promise.all(
+        result.availableCourts.map(async (court) => {
+          try {
+            const grid = await getCourtSlotGrid({
+              courtKind: court.kind,
+              courtId: court.id,
+              date: availabilityDate,
+              availableOnly: true,
+              useWorkingHours: false,
+              startTime: availabilityStartTime,
+              endTime: availabilityEndTime,
+            });
+            const freeStarts = new Set(
+              grid.segments.filter((s) => s.state === 'free').map((s) => s.startTime),
+            );
+            return requestedStarts.every((t) => freeStarts.has(t));
+          } catch {
+            return false;
+          }
+        }),
+      );
+      const availableCourts = result.availableCourts.filter((_, idx) => slotChecks[idx]);
+      setAvailability({ ...result, availableCourts });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to check availability');
       setAvailability(null);
