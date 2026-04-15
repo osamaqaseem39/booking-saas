@@ -6,8 +6,7 @@ import {
 } from '../../api/facilityMutations';
 import {
   listBusinessLocations,
-  listCricketCourts,
-  listFutsalCourts,
+  listTurfCourts,
   listPadelCourts,
 } from '../../api/saasClient';
 import {
@@ -141,8 +140,7 @@ export default function LocationFacilitiesPage() {
   const isOwner = session?.roles?.includes('platform-owner') ?? false;
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
-  const [cricketCourts, setCricketCourts] = useState<NamedCourt[]>([]);
+  const [turfCourts, setTurfCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
   const [gamingStations, setGamingStations] = useState<GamingStationRecord[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -153,27 +151,6 @@ export default function LocationFacilitiesPage() {
     [locations, locationId],
   );
   const tenantIdOverride = isOwner ? location?.business?.tenantId ?? '' : '';
-  const dualTurfRows = useMemo(
-    () => futsalCourts.filter((r) => r.supportsCricket === true),
-    [futsalCourts],
-  );
-  const dualTurfIds = useMemo(
-    () => new Set(dualTurfRows.map((r) => r.id)),
-    [dualTurfRows],
-  );
-  const futsalOnlyCourts = useMemo(
-    () => futsalCourts.filter((r) => r.supportsCricket !== true),
-    [futsalCourts],
-  );
-  const cricketOnlyCourts = useMemo(
-    () => cricketCourts.filter((r) => !dualTurfIds.has(r.id)),
-    [cricketCourts, dualTurfIds],
-  );
-  const turfRows = useMemo(
-    () => [...dualTurfRows, ...futsalOnlyCourts, ...cricketOnlyCourts],
-    [dualTurfRows, futsalOnlyCourts, cricketOnlyCourts],
-  );
-
   const arenaPrimarySetupCode = useMemo(() => {
     if (!location || location.locationType === 'gaming-zone') return '';
     if (isCourtSetupAllowedForLocation(location, 'futsal-court')) {
@@ -199,14 +176,12 @@ export default function LocationFacilitiesPage() {
         const currentTenantId = isOwner
           ? currentLocation?.business?.tenantId ?? ''
           : '';
-        const [fc, cc, pa] = await Promise.all([
-          listFutsalCourts(locationId, currentTenantId),
-          listCricketCourts(locationId, currentTenantId),
+        const [tc, pa] = await Promise.all([
+          listTurfCourts(locationId, currentTenantId),
           listPadelCourts(locationId, currentTenantId),
         ]);
         setLocations(locs);
-        setFutsalCourts(fc);
-        setCricketCourts(cc);
+        setTurfCourts(tc);
         setPadel(pa);
         setGamingStations(await listGamingStationsForLocation(locationId));
       } catch (e) {
@@ -314,15 +289,10 @@ export default function LocationFacilitiesPage() {
             ))
           ) : (
             <>
-              {dualTurfRows.length > 0 ? (
+              <FacilitiesTableBlock
                 title="Turf fields"
-                rows={turfRows}
+                rows={turfCourts}
                 facilityCode="futsal-court"
-                resolveFacilityCode={(row) =>
-                  cricketOnlyCourts.some((r) => r.id === row.id)
-                    ? 'cricket-court'
-                    : 'futsal-court'
-                }
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}

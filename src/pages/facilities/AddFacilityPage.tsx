@@ -12,8 +12,7 @@ import {
   getFutsalCourt,
   getPadelCourt,
   listBusinessLocations,
-  listCricketCourts,
-  listFutsalCourts,
+  listTurfCourts,
   listPadelCourts,
   updateFutsalCourt,
 } from '../../api/saasClient';
@@ -92,8 +91,7 @@ export default function AddFacilityPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'type' | 'name' | 'id'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [futsalCourts, setFutsalCourts] = useState<NamedCourt[]>([]);
-  const [cricketCourts, setCricketCourts] = useState<NamedCourt[]>([]);
+  const [turfCourts, setTurfCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
   const [gamingStations, setGamingStations] = useState<
     Array<{
@@ -120,8 +118,7 @@ export default function AddFacilityPage() {
   async function reloadFacilitiesFor(locationIdArg: string, locs: BusinessLocationRow[]) {
     if (!locationIdArg) {
       setLoading(false);
-      setFutsalCourts([]);
-      setCricketCourts([]);
+      setTurfCourts([]);
       setPadel([]);
       setGamingStations([]);
       return;
@@ -148,26 +145,22 @@ export default function AddFacilityPage() {
         setGamingStations([]);
       }
       setLoading(false);
-      setFutsalCourts([]);
-      setCricketCourts([]);
+      setTurfCourts([]);
       setPadel([]);
       return;
     }
     setLoading(true);
     try {
-      const [fc, cc, pa] = await Promise.all([
-        listFutsalCourts(locationIdArg),
-        listCricketCourts(locationIdArg),
+      const [tc, pa] = await Promise.all([
+        listTurfCourts(locationIdArg),
         listPadelCourts(locationIdArg),
       ]);
-      setFutsalCourts(fc);
-      setCricketCourts(cc);
+      setTurfCourts(tc);
       setPadel(pa);
       setGamingStations([]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load facilities');
-      setFutsalCourts([]);
-      setCricketCourts([]);
+      setTurfCourts([]);
       setPadel([]);
     } finally {
       setLoading(false);
@@ -256,57 +249,17 @@ export default function AddFacilityPage() {
     }));
   }, [gamingStations, isGamingLocation, locationId, routeLocation.pathname]);
 
-  const visibleArenaCourts = useMemo(() => {
-    const futsalById = new Map(futsalCourts.map((row) => [row.id, row]));
-    const cricketById = new Map(cricketCourts.map((row) => [row.id, row]));
-
-    const futsalVisible = futsalCourts.filter((row) => {
-      const twinId = row.linkedTwinCourtId?.trim();
-      if (!twinId || row.linkedTwinCourtKind !== 'cricket_court') return true;
-      const twin = cricketById.get(twinId);
-      if (!twin) return true;
-      const hasBackLink = (twin.linkedTwinCourtId ?? '').trim() === row.id;
-      if (!hasBackLink) return false;
-      return row.id.localeCompare(twinId) <= 0;
-    });
-
-    const cricketVisible = cricketCourts.filter((row) => {
-      const twinId = row.linkedTwinCourtId?.trim();
-      if (!twinId || row.linkedTwinCourtKind !== 'futsal_court') return true;
-      const twin = futsalById.get(twinId);
-      if (!twin) return true;
-      const hasBackLink = (twin.linkedTwinCourtId ?? '').trim() === row.id;
-      if (!hasBackLink) return false;
-      return row.id.localeCompare(twinId) <= 0;
-    });
-
-    return { futsalVisible, cricketVisible };
-  }, [futsalCourts, cricketCourts]);
-
   const allFacilities = useMemo(
     () => [
-      ...visibleArenaCourts.futsalVisible.map((r) => ({
+      ...turfCourts.map((r) => ({
         ...r,
-        type:
-          r.linkedTwinCourtKind === 'cricket_court' &&
-          !!r.linkedTwinCourtId?.trim()
-            ? 'Turf field'
-            : 'Turf field',
+        type: 'Turf field',
         code: 'futsal-court' as const,
-      })),
-      ...visibleArenaCourts.cricketVisible.map((r) => ({
-        ...r,
-        type:
-          r.linkedTwinCourtKind === 'futsal_court' &&
-          !!r.linkedTwinCourtId?.trim()
-            ? 'Turf field'
-            : 'Turf field',
-        code: 'cricket-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
       ...gamingRows,
     ],
-    [visibleArenaCourts, padel, gamingRows],
+    [turfCourts, padel, gamingRows],
   );
 
   const gamingFacilityCards = useMemo(() => {
@@ -354,17 +307,11 @@ export default function AddFacilityPage() {
         {
           key: 'turfCourts',
           label: 'Turf fields',
-          count:
-            visibleArenaCourts.futsalVisible.length +
-            visibleArenaCourts.cricketVisible.length,
+          count: turfCourts.length,
         },
         { key: 'padel', label: 'Padel courts', count: padel.length },
       ].filter((item) => item.count > 0),
-    [
-      visibleArenaCourts.cricketVisible.length,
-      visibleArenaCourts.futsalVisible.length,
-      padel.length,
-    ],
+    [turfCourts.length, padel.length],
   );
 
   async function deleteFacilityRow(row: {
