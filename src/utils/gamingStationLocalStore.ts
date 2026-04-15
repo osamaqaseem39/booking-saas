@@ -57,6 +57,7 @@ const PATH_BY_SETUP: Record<GamingSetupCode, string> = {
   'gaming-vr': '/gaming/vr-stations',
   'gaming-steering-sim': '/gaming/steering-sim-stations',
 };
+const ALL_GAMING_SETUP_CODES = Object.keys(PATH_BY_SETUP) as GamingSetupCode[];
 
 function toNumText(v: unknown): string {
   if (v === null || v === undefined) return '';
@@ -133,10 +134,16 @@ function toBody(record: GamingStationRecord) {
 export async function listGamingStationsForLocation(
   locationId: string,
 ): Promise<GamingStationRecord[]> {
-  const rows = await request<GamingStationApiRow[]>(
-    `/gaming/stations?businessLocationId=${encodeURIComponent(locationId)}`,
-    { method: 'GET' },
+  const encodedLocationId = encodeURIComponent(locationId);
+  const rowGroups = await Promise.all(
+    ALL_GAMING_SETUP_CODES.map((setupCode) =>
+      request<GamingStationApiRow[]>(
+        `${PATH_BY_SETUP[setupCode]}?businessLocationId=${encodedLocationId}`,
+        { method: 'GET' },
+      ),
+    ),
   );
+  const rows = rowGroups.flat();
   return rows.map(rowToRecord).sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
   );
@@ -146,11 +153,20 @@ export async function getGamingStation(
   locationId: string,
   id: string,
 ): Promise<GamingStationRecord | undefined> {
-  const row = await request<GamingStationApiRow>(`/gaming/stations/${id}`, {
-    method: 'GET',
-  });
-  const rec = rowToRecord(row);
-  return rec.businessLocationId === locationId ? rec : undefined;
+  for (const setupCode of ALL_GAMING_SETUP_CODES) {
+    try {
+      const row = await request<GamingStationApiRow>(
+        `${PATH_BY_SETUP[setupCode]}/${id}`,
+        { method: 'GET' },
+      );
+      const rec = rowToRecord(row);
+      if (rec.businessLocationId === locationId) return rec;
+      return undefined;
+    } catch {
+      // Try next typed endpoint until one resolves this id.
+    }
+  }
+  return undefined;
 }
 
 export async function saveGamingStation(record: GamingStationRecord): Promise<void> {
@@ -170,7 +186,9 @@ export async function saveGamingStation(record: GamingStationRecord): Promise<vo
 }
 
 export async function deleteGamingStation(locationId: string, id: string): Promise<void> {
-  await request(`/gaming/stations/${id}`, { method: 'DELETE' });
+  const row = await getGamingStation(locationId, id);
+  if (!row) return;
+  await request(`${PATH_BY_SETUP[row.setupCode]}/${id}`, { method: 'DELETE' });
 }
 
 export async function duplicateGamingStation(
