@@ -1152,6 +1152,8 @@ function normalizeTurfNamedCourtRows(raw: unknown): NamedCourt[] {
             : null,
       supportsCricket,
       courtStatus: typeof row.status === 'string' ? row.status : undefined,
+      timeSlotTemplateId:
+        typeof row.timeSlotTemplateId === 'string' ? row.timeSlotTemplateId : null,
     });
   }
   return out;
