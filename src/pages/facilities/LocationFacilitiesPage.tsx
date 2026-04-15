@@ -40,6 +40,7 @@ function FacilitiesTableBlock({
   title,
   rows,
   facilityCode,
+  resolveFacilityCode,
   locationId,
   onReload,
   setPageErr,
@@ -48,6 +49,7 @@ function FacilitiesTableBlock({
   title: string;
   rows: NamedCourt[];
   facilityCode: FacilityRowCode;
+  resolveFacilityCode?: (row: NamedCourt) => FacilityRowCode;
   locationId: string;
   onReload: () => void;
   setPageErr: (msg: string | null) => void;
@@ -63,7 +65,8 @@ function FacilitiesTableBlock({
     setDeletingId(r.id);
     setPageErr(null);
     try {
-      await deleteFacilityByCode(facilityCode, r.id, locationId, tenantIdOverride);
+      const rowFacilityCode = resolveFacilityCode?.(r) ?? facilityCode;
+      await deleteFacilityByCode(rowFacilityCode, r.id, locationId, tenantIdOverride);
       onReload();
     } catch (e) {
       setPageErr(e instanceof Error ? e.message : 'Failed to delete facility');
@@ -104,7 +107,11 @@ function FacilitiesTableBlock({
                       }}
                     >
                       <Link
-                        to={editFacilityPath(locationId, facilityCode, r.id)}
+                        to={editFacilityPath(
+                          locationId,
+                          resolveFacilityCode?.(r) ?? facilityCode,
+                          r.id,
+                        )}
                         className="btn-ghost btn-compact"
                       >
                         Edit
@@ -161,6 +168,10 @@ export default function LocationFacilitiesPage() {
   const cricketOnlyCourts = useMemo(
     () => cricketCourts.filter((r) => !dualTurfIds.has(r.id)),
     [cricketCourts, dualTurfIds],
+  );
+  const turfRows = useMemo(
+    () => [...dualTurfRows, ...futsalOnlyCourts, ...cricketOnlyCourts],
+    [dualTurfRows, futsalOnlyCourts, cricketOnlyCourts],
   );
 
   const arenaPrimarySetupCode = useMemo(() => {
@@ -304,29 +315,14 @@ export default function LocationFacilitiesPage() {
           ) : (
             <>
               {dualTurfRows.length > 0 ? (
-                <FacilitiesTableBlock
-                  title="Turf fields"
-                  rows={dualTurfRows}
-                  facilityCode="futsal-court"
-                  locationId={locationId}
-                  onReload={load}
-                  setPageErr={setErr}
-                  tenantIdOverride={tenantIdOverride}
-                />
-              ) : null}
-              <FacilitiesTableBlock
                 title="Turf fields"
-                rows={futsalOnlyCourts}
+                rows={turfRows}
                 facilityCode="futsal-court"
-                locationId={locationId}
-                onReload={load}
-                setPageErr={setErr}
-                tenantIdOverride={tenantIdOverride}
-              />
-              <FacilitiesTableBlock
-                title="Turf fields"
-                rows={cricketOnlyCourts}
-                facilityCode="cricket-court"
+                resolveFacilityCode={(row) =>
+                  cricketOnlyCourts.some((r) => r.id === row.id)
+                    ? 'cricket-court'
+                    : 'futsal-court'
+                }
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}
