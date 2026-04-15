@@ -256,7 +256,7 @@ export default function LocationFacilitiesPage() {
               : [
                   {
                     code: arenaPrimarySetupCode || 'futsal-court',
-                    label: 'Add facility (setup form)',
+                    label: 'Add turf/padel (setup form)',
                     allowed: Boolean(arenaPrimarySetupCode),
                   },
                 ]
@@ -305,7 +305,7 @@ export default function LocationFacilitiesPage() {
             <>
               {dualTurfRows.length > 0 ? (
                 <FacilitiesTableBlock
-                  title="Turf (futsal + cricket)"
+                  title="Turf fields (futsal + cricket)"
                   rows={dualTurfRows}
                   facilityCode="futsal-court"
                   locationId={locationId}
@@ -315,7 +315,7 @@ export default function LocationFacilitiesPage() {
                 />
               ) : null}
               <FacilitiesTableBlock
-                title="Futsal pitches"
+                title="Turf fields (futsal)"
                 rows={futsalOnlyCourts}
                 facilityCode="futsal-court"
                 locationId={locationId}
@@ -324,7 +324,7 @@ export default function LocationFacilitiesPage() {
                 tenantIdOverride={tenantIdOverride}
               />
               <FacilitiesTableBlock
-                title="Cricket pitches"
+                title="Turf fields (cricket)"
                 rows={cricketOnlyCourts}
                 facilityCode="cricket-court"
                 locationId={locationId}

@@ -58,8 +58,7 @@ type SetupOption = { code: string; label: string };
 
 const SETUP_OPTIONS_BY_LOCATION_TYPE: Record<string, SetupOption[]> = {
   arena: [
-    { code: FUTSAL_COURT_SETUP_CODE, label: 'Futsal pitch' },
-    { code: CRICKET_COURT_SETUP_CODE, label: 'Cricket pitch' },
+    { code: FUTSAL_COURT_SETUP_CODE, label: 'Turf field' },
     { code: 'padel-court', label: 'Padel' },
   ],
   'gaming-zone': GAMING_SETUP_OPTIONS.map((o) => ({
@@ -221,7 +220,7 @@ export default function AddFacilityPage() {
     /** Buttons follow `location.locationType` from the API (set when the location was created). */
     const options =
       SETUP_OPTIONS_BY_LOCATION_TYPE[location.locationType ?? ''] ?? [];
-    // Arena: always show futsal, cricket, and padel so owners see all three choices.
+    // Arena: always show turf and padel so owners see arena sub-facilities.
     if ((location.locationType ?? '') === 'arena') {
       return SETUP_OPTIONS_BY_LOCATION_TYPE.arena;
     }
@@ -292,7 +291,7 @@ export default function AddFacilityPage() {
           r.linkedTwinCourtKind === 'cricket_court' &&
           !!r.linkedTwinCourtId?.trim()
             ? 'Turf field'
-            : 'Futsal pitch',
+            : 'Turf field (futsal)',
         code: 'futsal-court' as const,
       })),
       ...visibleArenaCourts.cricketVisible.map((r) => ({
@@ -301,7 +300,7 @@ export default function AddFacilityPage() {
           r.linkedTwinCourtKind === 'futsal_court' &&
           !!r.linkedTwinCourtId?.trim()
             ? 'Turf field'
-            : 'Cricket pitch',
+            : 'Turf field (cricket)',
         code: 'cricket-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
@@ -354,12 +353,12 @@ export default function AddFacilityPage() {
       [
         {
           key: 'futsalCourts',
-          label: 'Futsal pitches',
+          label: 'Turf fields (futsal)',
           count: visibleArenaCourts.futsalVisible.length,
         },
         {
           key: 'cricketCourts',
-          label: 'Cricket pitches',
+          label: 'Turf fields (cricket)',
           count: visibleArenaCourts.cricketVisible.length,
         },
         { key: 'padel', label: 'Padel courts', count: padel.length },
@@ -532,11 +531,11 @@ export default function AddFacilityPage() {
                   to={setupPath(locationId, arenaAddButtons.sharedArenaCode)}
                   className="btn-primary"
                 >
-                  Add cricket/futsal
+                  Add turf
                 </Link>
               ) : (
                 <button type="button" className="btn-primary" disabled>
-                  Add cricket/futsal
+                  Add turf
                 </button>
               )
             ) : null}

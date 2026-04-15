@@ -28,8 +28,8 @@ const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
 type ArenaTurfKind = 'futsal' | 'cricket' | 'both';
 
 function arenaKindLabel(kind: ArenaTurfKind): string {
-  if (kind === 'both') return 'Futsal field';
-  return kind === 'futsal' ? 'Futsal field' : 'Cricket field';
+  if (kind === 'both') return 'Turf field';
+  return kind === 'futsal' ? 'Turf field (futsal)' : 'Turf field (cricket)';
 }
 
 export default function LocationFacilitySetupPage() {
@@ -62,10 +62,10 @@ export default function LocationFacilitySetupPage() {
   );
   const label = useMemo(() => {
     if (facilityCode === FUTSAL_COURT_SETUP_CODE) {
-      return { label: 'Futsal pitch' };
+      return { label: 'Turf field' };
     }
     if (facilityCode === CRICKET_COURT_SETUP_CODE) {
-      return { label: 'Cricket pitch' };
+      return { label: 'Turf field' };
     }
     if (facilityCode === 'padel-court') {
       return { label: 'Padel court' };
