@@ -292,7 +292,7 @@ export default function LocationFacilitiesPage() {
               <FacilitiesTableBlock
                 title="Turf fields"
                 rows={turfCourts}
-                facilityCode="futsal-court"
+                facilityCode="turf-court"
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}

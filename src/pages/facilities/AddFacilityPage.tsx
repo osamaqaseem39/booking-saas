@@ -254,7 +254,7 @@ export default function AddFacilityPage() {
       ...turfCourts.map((r) => ({
         ...r,
         type: 'Turf field',
-        code: 'futsal-court' as const,
+        code: 'turf-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
       ...gamingRows,
@@ -379,7 +379,7 @@ export default function AddFacilityPage() {
       if (row.code === 'padel-court') {
         const d = await getPadelCourt(row.id);
         await createPadelCourt(padelDetailToCreateBody(d, businessLocationId));
-      } else if (row.code === 'futsal-court') {
+      } else if (row.code === 'futsal-court' || row.code === 'turf-court') {
         const d = await getFutsalCourt(row.id);
         const primary = await createFutsalCourt(
           futsalDetailToCreateBody(d, businessLocationId),

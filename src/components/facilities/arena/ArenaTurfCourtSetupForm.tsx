@@ -42,8 +42,8 @@ export function ArenaTurfCourtSetupForm({
   const defaultIncludesCricket = courtKind === 'cricket' || courtKind === 'both';
   const [includeFutsal, setIncludeFutsal] = useState(defaultIncludesFutsal);
   const [includeCricket, setIncludeCricket] = useState(defaultIncludesCricket);
-  const includesFutsal = existingCourtId ? defaultIncludesFutsal : includeFutsal;
-  const includesCricket = existingCourtId ? defaultIncludesCricket : includeCricket;
+  const includesFutsal = includeFutsal;
+  const includesCricket = includeCricket;
   const ownKindLabel =
     includesFutsal && includesCricket
       ? 'futsal + cricket pitches'
@@ -118,6 +118,8 @@ export function ArenaTurfCourtSetupForm({
           if (f?.supportsCricket) {
             if (cancelled) return;
             setDualSingleTurfRow(true);
+            setIncludeFutsal(true);
+            setIncludeCricket(true);
             setShared({
               ...sharedDetailToFormState(f, emptySharedArenaTurfState()),
               name: f.name ?? '',
@@ -155,6 +157,8 @@ export function ArenaTurfCourtSetupForm({
           if (f && f.linkedTwinCourtId) {
             if (cancelled) return;
             setDualSingleTurfRow(false);
+            setIncludeFutsal(true);
+            setIncludeCricket(true);
             setShared({
               ...sharedDetailToFormState(f, emptySharedArenaTurfState()),
               name: f.name ?? '',
@@ -194,6 +198,8 @@ export function ArenaTurfCourtSetupForm({
           const c: CricketCourtDetail = await getCricketCourt(existingCourtId);
           if (cancelled) return;
           setDualSingleTurfRow(false);
+          setIncludeFutsal(true);
+          setIncludeCricket(true);
           setShared({
             ...sharedDetailToFormState(c, emptySharedArenaTurfState()),
             name: c.name ?? '',
@@ -237,6 +243,8 @@ export function ArenaTurfCourtSetupForm({
           const d: FutsalCourtDetail = await getFutsalCourt(existingCourtId);
           if (cancelled) return;
           setDualSingleTurfRow(d.supportsCricket === true);
+          setIncludeFutsal(true);
+          setIncludeCricket(d.supportsCricket === true);
           setShared({
             ...sharedDetailToFormState(d, emptySharedArenaTurfState()),
             name: d.name ?? '',
@@ -261,6 +269,8 @@ export function ArenaTurfCourtSetupForm({
           const d: CricketCourtDetail = await getCricketCourt(existingCourtId);
           if (cancelled) return;
           setDualSingleTurfRow(false);
+          setIncludeFutsal(false);
+          setIncludeCricket(true);
           setShared({
             ...sharedDetailToFormState(d, emptySharedArenaTurfState()),
             name: d.name ?? '',

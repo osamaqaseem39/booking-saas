@@ -16,6 +16,7 @@ import type { BusinessLocationRow } from '../../types/domain';
 import { useSession } from '../../context/SessionContext';
 
 const EDITABLE_CODES = new Set<string>([
+  'turf-court',
   FUTSAL_COURT_SETUP_CODE,
   CRICKET_COURT_SETUP_CODE,
   'padel-court',
@@ -80,7 +81,9 @@ export default function FacilityEditPage() {
   );
 
   const normalizedCode =
-    facilityCode === FUTSAL_COURT_SETUP_CODE
+    facilityCode === 'turf-court'
+      ? 'turf-court'
+      : facilityCode === FUTSAL_COURT_SETUP_CODE
       ? 'futsal-court'
       : facilityCode === CRICKET_COURT_SETUP_CODE
         ? 'cricket-court'
@@ -138,6 +141,18 @@ export default function FacilityEditPage() {
         <div className="turf-setup-page" style={{ marginTop: '1rem' }}>
           <ArenaTurfCourtSetupForm
             courtKind="futsal"
+            locationId={locationId}
+            locations={locations}
+            existingCourtId={courtId}
+            onSuccess={() => navigate('/app/Facilites')}
+          />
+        </div>
+      ) : null}
+
+      {normalizedCode === 'turf-court' && location ? (
+        <div className="turf-setup-page" style={{ marginTop: '1rem' }}>
+          <ArenaTurfCourtSetupForm
+            courtKind="both"
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}

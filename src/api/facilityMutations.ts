@@ -10,6 +10,7 @@ import {
 import { deleteGamingStation } from '../utils/gamingStationLocalStore';
 
 export type FacilityRowCode =
+  | 'turf-court'
   | 'futsal-court'
   | 'cricket-court'
   | 'padel-court'
@@ -30,6 +31,10 @@ export async function deleteFacilityByCode(
     return;
   }
   if (code === 'futsal-court') {
+    await deleteFutsalCourt(id, tenantIdOverride);
+    return;
+  }
+  if (code === 'turf-court') {
     await deleteFutsalCourt(id, tenantIdOverride);
     return;
   }
