@@ -291,7 +291,7 @@ export default function AddFacilityPage() {
           r.linkedTwinCourtKind === 'cricket_court' &&
           !!r.linkedTwinCourtId?.trim()
             ? 'Turf field'
-            : 'Turf field (futsal)',
+            : 'Turf field',
         code: 'futsal-court' as const,
       })),
       ...visibleArenaCourts.cricketVisible.map((r) => ({
@@ -300,7 +300,7 @@ export default function AddFacilityPage() {
           r.linkedTwinCourtKind === 'futsal_court' &&
           !!r.linkedTwinCourtId?.trim()
             ? 'Turf field'
-            : 'Turf field (cricket)',
+            : 'Turf field',
         code: 'cricket-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
@@ -352,14 +352,11 @@ export default function AddFacilityPage() {
     () =>
       [
         {
-          key: 'futsalCourts',
-          label: 'Turf fields (futsal)',
-          count: visibleArenaCourts.futsalVisible.length,
-        },
-        {
-          key: 'cricketCourts',
-          label: 'Turf fields (cricket)',
-          count: visibleArenaCourts.cricketVisible.length,
+          key: 'turfCourts',
+          label: 'Turf fields',
+          count:
+            visibleArenaCourts.futsalVisible.length +
+            visibleArenaCourts.cricketVisible.length,
         },
         { key: 'padel', label: 'Padel courts', count: padel.length },
       ].filter((item) => item.count > 0),
@@ -833,9 +830,8 @@ export default function AddFacilityPage() {
                   onChange={(e) => setDupLinkedTwin(e.target.checked)}
                 />
                 <span>
-                  {dupModal.row.code === 'futsal-court'
-                    ? 'Also create a linked cricket pitch for the same physical turf. Bookings on either side share one calendar.'
-                    : 'Also create a linked futsal pitch for the same physical turf. Bookings on either side share one calendar.'}
+                  Also create a linked turf setup for the same physical turf so
+                  bookings stay on one shared calendar.
                 </span>
               </label>
             ) : null}

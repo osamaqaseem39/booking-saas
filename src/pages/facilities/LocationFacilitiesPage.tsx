@@ -305,7 +305,7 @@ export default function LocationFacilitiesPage() {
             <>
               {dualTurfRows.length > 0 ? (
                 <FacilitiesTableBlock
-                  title="Turf fields (futsal + cricket)"
+                  title="Turf fields"
                   rows={dualTurfRows}
                   facilityCode="futsal-court"
                   locationId={locationId}
@@ -315,7 +315,7 @@ export default function LocationFacilitiesPage() {
                 />
               ) : null}
               <FacilitiesTableBlock
-                title="Turf fields (futsal)"
+                title="Turf fields"
                 rows={futsalOnlyCourts}
                 facilityCode="futsal-court"
                 locationId={locationId}
@@ -324,7 +324,7 @@ export default function LocationFacilitiesPage() {
                 tenantIdOverride={tenantIdOverride}
               />
               <FacilitiesTableBlock
-                title="Turf fields (cricket)"
+                title="Turf fields"
                 rows={cricketOnlyCourts}
                 facilityCode="cricket-court"
                 locationId={locationId}

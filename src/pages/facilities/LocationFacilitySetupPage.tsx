@@ -29,7 +29,7 @@ type ArenaTurfKind = 'futsal' | 'cricket' | 'both';
 
 function arenaKindLabel(kind: ArenaTurfKind): string {
   if (kind === 'both') return 'Turf field';
-  return kind === 'futsal' ? 'Turf field (futsal)' : 'Turf field (cricket)';
+  return 'Turf field';
 }
 
 export default function LocationFacilitySetupPage() {
