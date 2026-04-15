@@ -6,7 +6,10 @@ import {
   updateBusinessLocation,
 } from '../../api/saasClient';
 import { GAMING_LOCATION_FACILITY_OPTIONS } from '../../constants/gamingFacilityTypes';
-import { LOCATION_FACILITY_TYPE_OPTIONS } from '../../constants/locationFacilityTypes';
+import {
+  LOCATION_FACILITY_TYPE_OPTIONS,
+  normalizeLocationFacilityTypesSelection,
+} from '../../constants/locationFacilityTypes';
 import WorkingHoursEditor, {
   createDefaultWorkingHoursPayload,
   validateWorkingHoursPayload,
@@ -131,7 +134,7 @@ export default function LocationEditPage() {
     setLogoUrl(location.logo ?? '');
     setBannerImageUrl(location.bannerImage ?? '');
     setGalleryUrls(location.gallery ?? []);
-    setFacilityTypes(location.facilityTypes ?? []);
+    setFacilityTypes(normalizeLocationFacilityTypesSelection(location.facilityTypes));
     const isPreset = LOCATION_TYPE_OPTIONS.some((o) => o.value === location.locationType);
     if (location.locationType && !isPreset) {
       setLocationType('custom');

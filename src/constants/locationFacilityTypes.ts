@@ -8,10 +8,38 @@ export const TURF_COURT_SETUP_CODE = FUTSAL_COURT_SETUP_CODE;
 
 export const LOCATION_FACILITY_TYPE_OPTIONS: { value: string; label: string }[] =
   [
-    { value: 'futsal', label: 'Futsal' },
-    { value: 'cricket', label: 'Cricket' },
+    { value: 'turf', label: 'Turf' },
     { value: 'padel', label: 'Padel' },
   ];
+
+/** Collapse legacy arena facility tags into current toggle values. */
+export function normalizeLocationFacilityTypesSelection(
+  raw: string[] | null | undefined,
+): string[] {
+  if (!raw?.length) return [];
+  const out = new Set<string>();
+  for (const t of raw) {
+    if (
+      t === 'turf' ||
+      t === 'futsal' ||
+      t === 'cricket' ||
+      t === 'futsal-field' ||
+      t === 'cricket-indoor' ||
+      t === 'turf-court' ||
+      t === 'turf-court-futsal' ||
+      t === 'turf-court-cricket'
+    ) {
+      out.add('turf');
+      continue;
+    }
+    if (t === 'padel' || t === 'padel-court') {
+      out.add('padel');
+      continue;
+    }
+    out.add(t);
+  }
+  return [...out];
+}
 
 export function isCourtSetupAllowedForLocation(
   location: { facilityTypes?: string[] } | undefined,
@@ -24,6 +52,7 @@ export function isCourtSetupAllowedForLocation(
     return allowed.some(
       (c) =>
         c === 'futsal' ||
+        c === 'turf' ||
         c === 'futsal-field' ||
         c === 'turf-court-futsal' ||
         c === 'turf-court',
@@ -33,6 +62,7 @@ export function isCourtSetupAllowedForLocation(
     return allowed.some(
       (c) =>
         c === 'cricket' ||
+        c === 'turf' ||
         c === 'cricket-indoor' ||
         c === 'turf-court-cricket' ||
         c === 'turf-court',

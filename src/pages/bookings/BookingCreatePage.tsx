@@ -970,8 +970,7 @@ export default function BookingCreatePage() {
                 value={sport}
                 onChange={(next) => setSport(next as BookingSportType)}
                 options={[
-                  { value: 'futsal', label: 'Futsal' },
-                  { value: 'cricket', label: 'Cricket' },
+                  { value: 'futsal', label: 'Turf' },
                   { value: 'padel', label: 'Padel' },
                 ]}
               />
