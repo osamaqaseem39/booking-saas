@@ -1,10 +1,15 @@
 import type { BookingItemRow, BookingRecord, CourtKind } from '../types/booking';
 import { formatTimeRange12h } from './timeDisplay';
 
-export type FacilityLiveType = 'futsalCourt' | 'cricketCourt' | 'padel';
+export type FacilityLiveType =
+  | 'futsalCourt'
+  | 'cricketCourt'
+  | 'padel'
+  /** One pitch stored on `futsal_courts` with `supportsCricket` — same calendar for both sports. */
+  | 'sharedTurfCourt';
 
 export function facilityTypeToCourtKind(t: FacilityLiveType): CourtKind {
-  if (t === 'futsalCourt') return 'futsal_court';
+  if (t === 'futsalCourt' || t === 'sharedTurfCourt') return 'futsal_court';
   if (t === 'cricketCourt') return 'cricket_court';
   return 'padel_court';
 }
@@ -104,6 +109,8 @@ export function computeFacilityLiveSnapshot(
     now?: Date;
     facilityActive: boolean;
     facilityStatus?: string;
+    /** Same pitch may appear as both `futsal_court` and `cricket_court` items (dual-sport turf). */
+    linkedCourtKinds?: CourtKind[];
   },
 ): FacilityLiveSnapshot {
   const now = opts.now ?? new Date();
@@ -124,7 +131,13 @@ export function computeFacilityLiveSnapshot(
     };
   }
 
-  const windows = collectWindows(bookings, courtKind, courtId);
+  const kinds: CourtKind[] = [
+    courtKind,
+    ...(opts.linkedCourtKinds?.filter((k) => k !== courtKind) ?? []),
+  ];
+  const windows = kinds
+    .flatMap((k) => collectWindows(bookings, k, courtId))
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
 
   let hoursBookedToday = 0;
   const weekStarts: string[] = [];

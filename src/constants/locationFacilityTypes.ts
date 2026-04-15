@@ -67,6 +67,7 @@ const LABEL_BY_CODE: Record<string, string> = {
   'turf-court-cricket': 'Turf — Cricket (legacy)',
   'futsal-field': 'Futsal (legacy field)',
   'cricket-indoor': 'Cricket indoor (legacy)',
+  turf: 'Turf (futsal + cricket)',
 };
 
 export function formatFacilityTypeLabel(code: string): string {

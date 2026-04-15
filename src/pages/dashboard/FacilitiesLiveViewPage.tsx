@@ -105,6 +105,7 @@ function tenantForLocation(
 function sportClassFromFacilityType(type: FacilityCardRow['type']): string {
   if (type === 'futsalCourt') return 'facilities-live-box--sport-futsal';
   if (type === 'cricketCourt') return 'facilities-live-box--sport-cricket';
+  if (type === 'sharedTurfCourt') return 'facilities-live-box--sport-shared-turf';
   return 'facilities-live-box--sport-padel';
 }
 
@@ -140,17 +141,33 @@ export default function FacilitiesLiveViewPage() {
       cricketCourtRows: NamedCourt[],
       padelRows: NamedCourt[],
     ): FacilityCardRow[] => {
-      return [
-        ...futsalCourtRows.map((r) => ({
-          id: r.id,
-          name: r.name,
-          type: 'futsalCourt' as const,
-          locationId: r.businessLocationId,
-          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
-          facilityStatus: r.courtStatus,
-          facilityIsActive: r.isActive,
-        })),
-        ...cricketCourtRows.map((r) => ({
+      const dualTurfIds = new Set(
+        futsalCourtRows.filter((r) => r.supportsCricket === true).map((r) => r.id),
+      );
+      const futsalCards = futsalCourtRows.map((r) =>
+        r.supportsCricket === true
+          ? {
+              id: r.id,
+              name: `${r.name} (futsal + cricket)`,
+              type: 'sharedTurfCourt' as const,
+              locationId: r.businessLocationId,
+              timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+              facilityStatus: r.courtStatus,
+              facilityIsActive: r.isActive,
+            }
+          : {
+              id: r.id,
+              name: r.name,
+              type: 'futsalCourt' as const,
+              locationId: r.businessLocationId,
+              timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+              facilityStatus: r.courtStatus,
+              facilityIsActive: r.isActive,
+            },
+      );
+      const cricketCards = cricketCourtRows
+        .filter((r) => !dualTurfIds.has(r.id))
+        .map((r) => ({
           id: r.id,
           name: r.name,
           type: 'cricketCourt' as const,
@@ -158,17 +175,17 @@ export default function FacilitiesLiveViewPage() {
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
-        })),
-        ...padelRows.map((r) => ({
-          id: r.id,
-          name: r.name,
-          type: 'padel' as const,
-          locationId: r.businessLocationId,
-          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
-          facilityStatus: r.courtStatus,
-          facilityIsActive: r.isActive,
-        })),
-      ];
+        }));
+      const padelCards = padelRows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        type: 'padel' as const,
+        locationId: r.businessLocationId,
+        timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+        facilityStatus: r.courtStatus,
+        facilityIsActive: r.isActive,
+      }));
+      return [...futsalCards, ...cricketCards, ...padelCards];
     },
     [],
   );
@@ -255,12 +272,18 @@ export default function FacilitiesLiveViewPage() {
       const kind = facilityTypeToCourtKind(facility.type);
       const cardId = `${facility.type}-${facility.id}`;
       const isActive = facility.facilityIsActive !== false;
+      const linkedCourtKinds =
+        facility.type === 'sharedTurfCourt' ? (['cricket_court'] as const) : undefined;
       map.set(
         cardId,
         computeFacilityLiveSnapshot(bookings, kind, facility.id, {
           now,
           facilityActive: isActive,
           facilityStatus: facility.facilityStatus,
+          linkedCourtKinds:
+            linkedCourtKinds && linkedCourtKinds.length
+              ? [...linkedCourtKinds]
+              : undefined,
         }),
       );
     }
@@ -268,11 +291,17 @@ export default function FacilitiesLiveViewPage() {
   }, [bookings, clock, filteredFacilities]);
 
   const typeLabel = (t: FacilityCardRow['type']) =>
-    t === 'futsalCourt' ? 'Futsal' : t === 'cricketCourt' ? 'Cricket' : 'Padel';
+    t === 'futsalCourt'
+      ? 'Futsal'
+      : t === 'cricketCourt'
+        ? 'Cricket'
+        : t === 'sharedTurfCourt'
+          ? 'Turf'
+          : 'Padel';
 
   const loadQuickPrice = useCallback(async (state: QuickBookingState) => {
     const sportType =
-      state.facility.type === 'futsalCourt'
+      state.facility.type === 'futsalCourt' || state.facility.type === 'sharedTurfCourt'
         ? 'futsal'
         : state.facility.type === 'cricketCourt'
           ? 'cricket'
@@ -288,9 +317,17 @@ export default function FacilitiesLiveViewPage() {
         sportType,
       });
       const courtKind = facilityTypeToCourtKind(state.facility.type);
-      const row = avail.availableCourts.find(
+      let row = avail.availableCourts.find(
         (c) => c.kind === courtKind && c.id === state.facility.id,
       );
+      if (
+        !row &&
+        state.facility.type === 'sharedTurfCourt'
+      ) {
+        row = avail.availableCourts.find(
+          (c) => c.kind === 'cricket_court' && c.id === state.facility.id,
+        );
+      }
       if (!row || row.pricePerSlot == null) {
         setQuickPrice(null);
         return;
@@ -428,7 +465,8 @@ export default function FacilitiesLiveViewPage() {
       return;
     }
     const sportType =
-      quickBooking.facility.type === 'futsalCourt'
+      quickBooking.facility.type === 'futsalCourt' ||
+      quickBooking.facility.type === 'sharedTurfCourt'
         ? 'futsal'
         : quickBooking.facility.type === 'cricketCourt'
           ? 'cricket'

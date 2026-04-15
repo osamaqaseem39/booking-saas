@@ -172,6 +172,19 @@ export default function BusinessesPage() {
       for (const loc of selectedLocations) {
         for (const facility of loc.facilityCourts ?? []) {
           const facilityType = facility.facilityType;
+          if (facilityType === 'turf') {
+            typeCounts.futsal += 1;
+            typeCounts.cricket += 1;
+            const row = {
+              facilityName: facility.name,
+              locationName: loc.name,
+              businessName: businessNameById.get(loc.businessId) ?? '—',
+              bookings: 0,
+            };
+            facilityStats.set(`futsal_court:${facility.id}`, row);
+            facilityStats.set(`cricket_court:${facility.id}`, row);
+            continue;
+          }
           if (facilityType === 'futsal' || facilityType === 'cricket' || facilityType === 'padel') {
             typeCounts[facilityType] += 1;
           }
@@ -213,7 +226,13 @@ export default function BusinessesPage() {
         }
       }
 
+      const seenRowObjects = new WeakSet<object>();
       const topFacilities = Array.from(facilityStats.entries())
+        .filter(([, row]) => {
+          if (seenRowObjects.has(row)) return false;
+          seenRowObjects.add(row);
+          return true;
+        })
         .map(([key, row]) => ({ key, ...row }))
         .sort((a, b) => b.bookings - a.bookings)
         .slice(0, 8);

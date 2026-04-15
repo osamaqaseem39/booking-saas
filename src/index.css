@@ -2536,6 +2536,10 @@ table.data.data--noninteractive tbody tr:hover {
   border-left: 4px solid rgba(251, 191, 36, 0.75);
 }
 
+.facilities-live-box--sport-shared-turf {
+  border-left: 4px solid rgba(56, 189, 248, 0.85);
+}
+
 .facilities-live-box--sport-padel {
   border-left: 4px solid rgba(167, 139, 250, 0.8);
 }

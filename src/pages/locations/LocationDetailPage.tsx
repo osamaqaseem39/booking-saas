@@ -67,7 +67,7 @@ export default function LocationDetailPage() {
 
   const courtsByType = useMemo(() => {
     const courts = location?.facilityCourts ?? [];
-    const order = ['padel', 'futsal', 'cricket'] as const;
+    const order = ['padel', 'turf', 'futsal', 'cricket'] as const;
     const map = new Map<string, typeof courts>();
     for (const c of courts) {
       const list = map.get(c.facilityType) ?? [];

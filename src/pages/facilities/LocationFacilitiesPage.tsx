@@ -146,6 +146,23 @@ export default function LocationFacilitiesPage() {
     [locations, locationId],
   );
   const tenantIdOverride = isOwner ? location?.business?.tenantId ?? '' : '';
+  const dualTurfRows = useMemo(
+    () => futsalCourts.filter((r) => r.supportsCricket === true),
+    [futsalCourts],
+  );
+  const dualTurfIds = useMemo(
+    () => new Set(dualTurfRows.map((r) => r.id)),
+    [dualTurfRows],
+  );
+  const futsalOnlyCourts = useMemo(
+    () => futsalCourts.filter((r) => r.supportsCricket !== true),
+    [futsalCourts],
+  );
+  const cricketOnlyCourts = useMemo(
+    () => cricketCourts.filter((r) => !dualTurfIds.has(r.id)),
+    [cricketCourts, dualTurfIds],
+  );
+
   const arenaPrimarySetupCode = useMemo(() => {
     if (!location || location.locationType === 'gaming-zone') return '';
     if (isCourtSetupAllowedForLocation(location, 'futsal-court')) {
@@ -286,9 +303,20 @@ export default function LocationFacilitiesPage() {
             ))
           ) : (
             <>
+              {dualTurfRows.length > 0 ? (
+                <FacilitiesTableBlock
+                  title="Turf (futsal + cricket)"
+                  rows={dualTurfRows}
+                  facilityCode="futsal-court"
+                  locationId={locationId}
+                  onReload={load}
+                  setPageErr={setErr}
+                  tenantIdOverride={tenantIdOverride}
+                />
+              ) : null}
               <FacilitiesTableBlock
                 title="Futsal pitches"
-                rows={futsalCourts}
+                rows={futsalOnlyCourts}
                 facilityCode="futsal-court"
                 locationId={locationId}
                 onReload={load}
@@ -297,7 +325,7 @@ export default function LocationFacilitiesPage() {
               />
               <FacilitiesTableBlock
                 title="Cricket pitches"
-                rows={cricketCourts}
+                rows={cricketOnlyCourts}
                 facilityCode="cricket-court"
                 locationId={locationId}
                 onReload={load}

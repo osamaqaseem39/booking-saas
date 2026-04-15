@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   deleteBusinessLocation,
@@ -19,7 +19,9 @@ export default function LocationsPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [nameSearch, setNameSearch] = useState('');
+  const nameSearchRef = useRef(nameSearch);
+  nameSearchRef.current = nameSearch;
   const [typeFilter, setTypeFilter] = useState(initialTypeFilter);
 
   useEffect(() => {
@@ -27,13 +29,15 @@ export default function LocationsPage() {
     setTypeFilter(nextTypeFilter);
   }, [searchParams]);
 
-  const load = () => {
+  const load = useCallback(() => {
     void (async () => {
       setLoading(true);
       setErr(null);
       try {
+        const n = nameSearchRef.current.trim() || undefined;
         const locs = await listBusinessLocations({
           ignoreActiveTenant: !!isOwner,
+          name: n,
         });
         setRows(locs);
       } catch (e) {
@@ -42,11 +46,13 @@ export default function LocationsPage() {
         setLoading(false);
       }
     })();
-  };
+  }, [isOwner]);
 
   useEffect(() => {
-    load();
-  }, [isOwner]);
+    const delayMs = nameSearchRef.current.trim() ? 350 : 0;
+    const t = window.setTimeout(() => load(), delayMs);
+    return () => window.clearTimeout(t);
+  }, [nameSearch, isOwner, load]);
 
   async function onDelete(locationId: string) {
     const yes = window.confirm('Delete this location? This cannot be undone.');
@@ -64,19 +70,12 @@ export default function LocationsPage() {
   }
 
   const filteredRows = useMemo(() => {
-    const q = query.trim().toLowerCase();
     return rows.filter((r) => {
       if (businessIdFilter && r.businessId !== businessIdFilter) return false;
       if (typeFilter !== 'all' && (r.locationType ?? 'unknown') !== typeFilter) return false;
-      if (!q) return true;
-      return (
-        (r.name ?? '').toLowerCase().includes(q) ||
-        (r.city ?? '').toLowerCase().includes(q) ||
-        (r.business?.businessName ?? '').toLowerCase().includes(q) ||
-        (r.business?.tenantId ?? '').toLowerCase().includes(q)
-      );
+      return true;
     });
-  }, [businessIdFilter, query, rows, typeFilter]);
+  }, [businessIdFilter, rows, typeFilter]);
 
   const stats = useMemo(() => {
     const active = filteredRows.filter((r) => (r.status ?? '').toLowerCase() === 'active').length;
@@ -118,11 +117,12 @@ export default function LocationsPage() {
       <div className="connection-panel location-list-toolbar">
         <div className="form-row-2" style={{ maxWidth: '760px' }}>
           <div>
-            <label>Search</label>
+            <label>Search by name</label>
             <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Location, city, business, tenant"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              placeholder="Location name (server)"
+              autoComplete="off"
             />
           </div>
           <div>

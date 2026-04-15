@@ -54,7 +54,8 @@ export interface BusinessLocationRow {
   };
   /** Active courts/fields with id and display name. */
   facilityCourts?: Array<{
-    facilityType: 'futsal' | 'cricket' | 'padel';
+    /** `turf` = one physical pitch bookable for both sports (shared calendar). */
+    facilityType: 'futsal' | 'cricket' | 'padel' | 'turf';
     id: string;
     name: string;
   }>;
@@ -111,6 +112,8 @@ export interface NamedCourt {
   name: string;
   tenantId?: string;
   businessLocationId?: string | null;
+  /** When true, this row is the single storage record for futsal + cricket on the same pitch. */
+  supportsCricket?: boolean;
   /** Optional shared-turf pairing (futsal <-> cricket). */
   linkedTwinCourtKind?: 'futsal_court' | 'cricket_court';
   linkedTwinCourtId?: string | null;

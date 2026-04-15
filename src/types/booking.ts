@@ -110,6 +110,11 @@ export interface CourtOption {
   label: string;
   businessLocationId?: string | null;
   timeSlotTemplateId?: string | null;
+  /**
+   * When set, use this as the facility control value instead of `${kind}:${id}`.
+   * Used for dual-sport turfs so one control maps to the correct `courtKind` for the selected sport.
+   */
+  facilityKey?: string;
 }
 
 export interface BookingAvailabilityRecord {

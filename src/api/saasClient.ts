@@ -385,15 +385,44 @@ export async function listBusinessLocations(opts?: {
    * active tenant (platform-owner cross-tenant overview needs every location).
    */
   ignoreActiveTenant?: boolean;
+  /** Case-insensitive substring on location name (`GET /businesses/locations?name=`). */
+  name?: string;
 }): Promise<BusinessLocationRow[]> {
   const base = headers() as Record<string, string>;
   if (opts?.ignoreActiveTenant) {
     base['X-Tenant-Id'] = '';
   }
-  return request<BusinessLocationRow[]>('/businesses/locations', {
-    method: 'GET',
-    headers: base,
-  });
+  const q = new URLSearchParams();
+  if (opts?.name?.trim()) q.set('name', opts.name.trim());
+  const qs = q.toString();
+  return request<BusinessLocationRow[]>(
+    `/businesses/locations${qs ? `?${qs}` : ''}`,
+    {
+      method: 'GET',
+      headers: base,
+    },
+  );
+}
+
+/** Row from `GET /businesses/locations/name-ids` (id + name only). */
+export type BusinessLocationNameId = { id: string; name: string };
+
+/** Lightweight location id/name list for boot or typeahead (same auth/tenant as full list). */
+export async function listBusinessLocationNameIds(opts?: {
+  ignoreActiveTenant?: boolean;
+  name?: string;
+}): Promise<{ locations: BusinessLocationNameId[] }> {
+  const base = headers() as Record<string, string>;
+  if (opts?.ignoreActiveTenant) {
+    base['X-Tenant-Id'] = '';
+  }
+  const q = new URLSearchParams();
+  if (opts?.name?.trim()) q.set('name', opts.name.trim());
+  const qs = q.toString();
+  return request<{ locations: BusinessLocationNameId[] }>(
+    `/businesses/locations/name-ids${qs ? `?${qs}` : ''}`,
+    { method: 'GET', headers: base },
+  );
 }
 
 /** Map/sidebar marker row from GET /public/venues/markers[...] */
@@ -492,6 +521,7 @@ export async function getVenueDetails(
 /** Query for GET /businesses/locations/search — matches API `SearchLocationsQueryDto`. */
 export type SearchPublicLocationsParams = {
   cities?: string;
+  /** Site kind (e.g. `arena`) or facility filter: `futsal` | `cricket` | `padel` (optional `-court`). */
   locationType?: string;
   bookingStatus?: 'unbooked';
   date?: string;
@@ -1607,16 +1637,31 @@ export async function listCourtOptions(
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });
       }
+      const dualTurfIds = new Set(
+        futsalCourts.filter((r) => r.supportsCricket === true).map((r) => r.id),
+      );
       for (const r of futsalCourts) {
-        out.push({
-          kind: 'futsal_court',
-          id: r.id,
-          label: `Futsal pitch — ${r.name}`,
-          businessLocationId: r.businessLocationId,
-          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
-        });
+        if (r.supportsCricket === true) {
+          out.push({
+            kind: 'futsal_court',
+            id: r.id,
+            facilityKey: `shared-turf:${r.id}`,
+            label: `Turf (futsal + cricket) — ${r.name}`,
+            businessLocationId: r.businessLocationId,
+            timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          });
+        } else {
+          out.push({
+            kind: 'futsal_court',
+            id: r.id,
+            label: `Futsal pitch — ${r.name}`,
+            businessLocationId: r.businessLocationId,
+            timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          });
+        }
       }
       for (const r of cricketCourts) {
+        if (dualTurfIds.has(r.id)) continue;
         out.push({
           kind: 'cricket_court',
           id: r.id,
@@ -1645,7 +1690,10 @@ export async function listCourtOptions(
         out.push({
           kind: 'futsal_court',
           id: r.id,
-          label: `Futsal pitch — ${r.name}`,
+          label:
+            r.supportsCricket === true
+              ? `Turf (futsal + cricket) — ${r.name}`
+              : `Futsal pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         });

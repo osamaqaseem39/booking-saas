@@ -457,6 +457,8 @@ export default function BookingCreatePage() {
     setFacilityLocationId('');
   }, [bookingTenant, topbarLocationLocked]);
 
+  const sportForCourtList = effectiveLocationId.trim() ? undefined : sport;
+
   useEffect(() => {
     void (async () => {
       const loc = effectiveLocationId.trim();
@@ -469,11 +471,28 @@ export default function BookingCreatePage() {
       setCourtOpts(
         loc
           ? await listCourtOptions(undefined, loc, tenantOpt)
-          : await listCourtOptions(sport, undefined, tenantOpt),
+          : await listCourtOptions(sportForCourtList, undefined, tenantOpt),
       );
       setLines([defaultLine()]);
     })();
-  }, [sport, effectiveLocationId, isPlatformOwner, bookingTenant]);
+  }, [sportForCourtList, effectiveLocationId, isPlatformOwner, bookingTenant]);
+
+  useEffect(() => {
+    if (!effectiveLocationId.trim()) return;
+    setLines((cur) =>
+      cur.map((ln) => {
+        if (!ln.facilityKey.startsWith('shared-turf:')) return ln;
+        return {
+          ...ln,
+          courtKind: sport === 'cricket' ? 'cricket_court' : 'futsal_court',
+        };
+      }),
+    );
+  }, [sport, effectiveLocationId]);
+
+  function courtOptionValue(o: (typeof courtOpts)[number]): string {
+    return o.facilityKey ?? `${o.kind}:${o.id}`;
+  }
 
   useEffect(() => {
     try {
@@ -583,12 +602,19 @@ export default function BookingCreatePage() {
       setLines(next);
       return;
     }
-    const opt = courtOpts.find((o) => `${o.kind}:${o.id}` === key);
+    const opt = courtOpts.find((o) => courtOptionValue(o) === key);
     if (!opt) return;
+    const shared = opt.facilityKey?.startsWith('shared-turf:') === true;
+    const courtKind: CourtKind =
+      shared && sport === 'cricket'
+        ? 'cricket_court'
+        : shared
+          ? 'futsal_court'
+          : opt.kind;
     next[lineIndex] = {
       ...line,
       facilityKey: key,
-      courtKind: opt.kind,
+      courtKind,
       courtId: opt.id,
     };
     setLines(next);
@@ -1007,7 +1033,7 @@ export default function BookingCreatePage() {
               const startTime = minutesToTime(ln.startMinutes);
               const endTime = minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60));
               const selectedCourt =
-                courtOpts.find((o) => `${o.kind}:${o.id}` === ln.facilityKey) ?? null;
+                courtOpts.find((o) => courtOptionValue(o) === ln.facilityKey) ?? null;
               const location = selectedCourt?.businessLocationId
                 ? locations.find((l) => l.id === selectedCourt.businessLocationId) ?? null
                 : null;
@@ -1065,7 +1091,7 @@ export default function BookingCreatePage() {
                         options={[
                           { value: '', label: 'Select…' },
                           ...courtOpts.map((o) => ({
-                            value: `${o.kind}:${o.id}`,
+                            value: courtOptionValue(o),
                             label: courtOnlyLabel(o.label),
                           })),
                         ]}
