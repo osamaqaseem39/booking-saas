@@ -1033,8 +1033,31 @@ export async function getCourtSlotGrid(params: {
             })
             .filter(Boolean)
         : []);
+    // Filter out past slots using browser local time (server is UTC-unaware of client TZ).
+    const resolvedDate = typeof row.date === 'string' ? row.date : date;
+    const now = new Date();
+    const localY = now.getFullYear();
+    const localM = String(now.getMonth() + 1).padStart(2, '0');
+    const localD = String(now.getDate()).padStart(2, '0');
+    const localTodayStr = `${localY}-${localM}-${localD}`;
+    const localCurrentMins = now.getHours() * 60 + now.getMinutes();
+
+    let filteredSegments = segments as CourtSlotGridRecord['segments'];
+    if (resolvedDate < localTodayStr) {
+      // Strictly past date — no slots
+      filteredSegments = [];
+    } else if (resolvedDate === localTodayStr) {
+      // Today — strip slots whose start time has already passed
+      filteredSegments = filteredSegments.filter((s) => {
+        if (!s) return false;
+        const [hStr, mStr] = (s.startTime ?? '').split(':');
+        const slotMins = Number(hStr || 0) * 60 + Number(mStr || 0);
+        return slotMins >= localCurrentMins;
+      });
+    }
+
     return {
-      date: typeof row.date === 'string' ? row.date : date,
+      date: resolvedDate,
       kind: (typeof row.kind === 'string' ? row.kind : courtKind) as CourtKind,
       courtId: typeof row.courtId === 'string' ? row.courtId : courtId,
       segmentMinutes:
@@ -1053,7 +1076,7 @@ export async function getCourtSlotGrid(params: {
         typeof row.locationClosed === 'boolean' ? row.locationClosed : undefined,
       availableOnly:
         typeof row.availableOnly === 'boolean' ? row.availableOnly : undefined,
-      segments: segments as CourtSlotGridRecord['segments'],
+      segments: filteredSegments,
     };
   };
   const tid = (tenantOverride ?? getTenantId()).trim();
