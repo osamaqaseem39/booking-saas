@@ -351,17 +351,23 @@ export default function BookingsPage() {
               courtKind: court.kind,
               courtId: court.id,
               date: availabilityDate,
-              availableOnly: true,
+              availableOnly: false, // get all states so we can detect booked/blocked
               useWorkingHours: false,
               startTime: availabilityStartTime,
               endTime: availabilityEndTime,
             });
-            const freeStarts = new Set(
-              grid.segments.filter((s) => s.state === 'free').map((s) => s.startTime),
+            // Only reject if the slot is explicitly booked or blocked.
+            // If the grid is empty (e.g. no facility slots generated), trust the availability API.
+            if (grid.segments.length === 0) return true;
+            const bookedOrBlocked = new Set(
+              grid.segments
+                .filter((s) => s.state === 'booked' || s.state === 'blocked')
+                .map((s) => s.startTime),
             );
-            return requestedStarts.every((t) => freeStarts.has(t));
+            return requestedStarts.every((t) => !bookedOrBlocked.has(t));
           } catch {
-            return false;
+            // On error, trust the availability API
+            return true;
           }
         }),
       );

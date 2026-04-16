@@ -995,6 +995,8 @@ export async function getCourtSlotGrid(params: {
   if (endTime) q.set('endTime', endTime);
   if (useWorkingHours) q.set('useWorkingHours', 'true');
   if (availableOnly) q.set('availableOnly', 'true');
+  // Cache-bust to prevent stale 304 responses (today's slots change every minute)
+  q.set('_t', Math.floor(Date.now() / 60000).toString()); // changes every minute
   const path = `/bookings/courts/${courtKind}/${courtId}/slot-grid?${q.toString()}`;
   const normalizeGrid = (raw: unknown): CourtSlotGridRecord => {
     const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
