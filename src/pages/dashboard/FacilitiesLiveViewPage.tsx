@@ -31,6 +31,8 @@ type FacilityCardRow = {
   timeSlotTemplateId?: string | null;
   facilityStatus?: string;
   facilityIsActive?: boolean;
+  pricePerSlot?: string | number | null;
+  pricing?: any | null;
 };
 
 type QuickBookingState = {
@@ -154,6 +156,8 @@ export default function FacilitiesLiveViewPage() {
               timeSlotTemplateId: r.timeSlotTemplateId ?? null,
               facilityStatus: r.courtStatus,
               facilityIsActive: r.isActive,
+              pricePerSlot: r.pricePerSlot,
+              pricing: r.pricing,
             }
           : {
               id: r.id,
@@ -163,6 +167,8 @@ export default function FacilitiesLiveViewPage() {
               timeSlotTemplateId: r.timeSlotTemplateId ?? null,
               facilityStatus: r.courtStatus,
               facilityIsActive: r.isActive,
+              pricePerSlot: r.pricePerSlot,
+              pricing: r.pricing,
             },
       );
       const cricketCards = cricketCourtRows
@@ -175,6 +181,8 @@ export default function FacilitiesLiveViewPage() {
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
           facilityStatus: r.courtStatus,
           facilityIsActive: r.isActive,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
         }));
       const padelCards = padelRows.map((r) => ({
         id: r.id,
@@ -184,6 +192,8 @@ export default function FacilitiesLiveViewPage() {
         timeSlotTemplateId: r.timeSlotTemplateId ?? null,
         facilityStatus: r.courtStatus,
         facilityIsActive: r.isActive,
+        pricePerSlot: r.pricePerSlot,
+        pricing: r.pricing,
       }));
       return [...futsalCards, ...cricketCards, ...padelCards];
     },
@@ -310,6 +320,7 @@ export default function FacilitiesLiveViewPage() {
     const endTime = state.endTime || endTimeFrom(startTime);
     setQuickPriceLoading(true);
     try {
+      // 1. Try fetching from availability API (most accurate for seasonal/peak pricing if implemented)
       const avail = await getBookingAvailability({
         date: state.date,
         startTime,
@@ -320,21 +331,30 @@ export default function FacilitiesLiveViewPage() {
       let row = avail.availableCourts.find(
         (c) => c.kind === courtKind && c.id === state.facility.id,
       );
-      if (
-        !row &&
-        state.facility.type === 'sharedTurfCourt'
-      ) {
+      if (!row && state.facility.type === 'sharedTurfCourt') {
         row = avail.availableCourts.find(
           (c) => c.kind === 'cricket_court' && c.id === state.facility.id,
         );
       }
-      if (!row || row.pricePerSlot == null) {
-        setQuickPrice(null);
+
+      if (row && row.pricePerSlot != null) {
+        const slotDuration = row.slotDurationMinutes && row.slotDurationMinutes > 0 ? row.slotDurationMinutes : 60;
+        const computed = row.pricePerSlot * (60 / slotDuration);
+        setQuickPrice(Number.isFinite(computed) ? Math.max(0, Math.round(computed)) : null);
         return;
       }
-      const slotDuration = row.slotDurationMinutes && row.slotDurationMinutes > 0 ? row.slotDurationMinutes : 60;
-      const computed = row.pricePerSlot * (60 / slotDuration);
-      setQuickPrice(Number.isFinite(computed) ? Math.max(0, Math.round(computed)) : null);
+
+      // 2. Fallback to static pricing on the facility card (if court is busy/blocked)
+      let basePrice: number | null = null;
+      if (state.facility.pricePerSlot != null) {
+        basePrice = Number(state.facility.pricePerSlot);
+      } else if (state.facility.pricing) {
+        const s = sportType.toLowerCase();
+        const p = state.facility.pricing[s]?.basePrice ?? state.facility.pricing[s === 'cricket' ? 'cricket' : 'futsal']?.basePrice;
+        if (p != null) basePrice = Number(p);
+      }
+
+      setQuickPrice(basePrice);
     } catch {
       setQuickPrice(null);
     } finally {
@@ -370,7 +390,7 @@ export default function FacilitiesLiveViewPage() {
       const availableSlots = gridRes.segments
         .filter((segment) => segment.state === 'free')
         .map((segment) => ({ startTime: segment.startTime, endTime: segment.endTime }));
-      const deduped = availableSlots.filter((slot, index, arr) => {
+      const deduped = availableSlots.filter((slot) => {
         const m = timeToMinutes(slot.startTime);
         return m <= 23 * 60;
       }).filter((slot, index, arr) => {
