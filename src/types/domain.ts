@@ -123,6 +123,10 @@ export interface NamedCourt {
   isActive?: boolean;
   /** Optional named hourly slot-start template for booking UI. */
   timeSlotTemplateId?: string | null;
+  /** Direct price for padel or simple facilities (string/number from API). */
+  pricePerSlot?: string | number | null;
+  /** Multi-sport or complex pricing for turf/gaming. */
+  pricing?: any | null;
 }
 
 export interface BusinessDashboardBusinessRow {

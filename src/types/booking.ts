@@ -115,6 +115,8 @@ export interface CourtOption {
    * Used for dual-sport turfs so one control maps to the correct `courtKind` for the selected sport.
    */
   facilityKey?: string;
+  pricePerSlot?: string | number | null;
+  pricing?: any | null;
 }
 
 export interface BookingAvailabilityRecord {

@@ -1179,6 +1179,8 @@ function normalizeTurfNamedCourtRows(raw: unknown): NamedCourt[] {
       courtStatus: typeof row.status === 'string' ? row.status : undefined,
       timeSlotTemplateId:
         typeof row.timeSlotTemplateId === 'string' ? row.timeSlotTemplateId : null,
+      pricePerSlot: row.pricePerSlot as any,
+      pricing: row.pricing,
     });
   }
   return out;
@@ -1693,28 +1695,34 @@ export async function listCourtOptions(
           label: `Padel — ${r.name}`,
           businessLocationId: r.businessLocationId,
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
         });
       }
       const dualTurfIds = new Set(
         futsalCourts.filter((r) => r.supportsCricket === true).map((r) => r.id),
       );
       for (const r of futsalCourts) {
+        const base = {
+          businessLocationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
+        };
         if (r.supportsCricket === true) {
           out.push({
             kind: 'futsal_court',
             id: r.id,
             facilityKey: `shared-turf:${r.id}`,
             label: `Turf (futsal + cricket) — ${r.name}`,
-            businessLocationId: r.businessLocationId,
-            timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+            ...base,
           });
         } else {
           out.push({
             kind: 'futsal_court',
             id: r.id,
             label: `Futsal pitch — ${r.name}`,
-            businessLocationId: r.businessLocationId,
-            timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+            ...base,
           });
         }
       }
@@ -1726,6 +1734,8 @@ export async function listCourtOptions(
           label: `Cricket pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
         });
       }
       return out;
@@ -1740,6 +1750,8 @@ export async function listCourtOptions(
           label: `Padel — ${r.name}`,
           businessLocationId: r.businessLocationId,
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
         });
       }
     } else if (sport === 'futsal') {
@@ -1754,6 +1766,8 @@ export async function listCourtOptions(
               : `Futsal pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
         });
       }
     } else {
@@ -1765,6 +1779,8 @@ export async function listCourtOptions(
           label: `Cricket pitch — ${r.name}`,
           businessLocationId: r.businessLocationId,
           timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
         });
       }
     }

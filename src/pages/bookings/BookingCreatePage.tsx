@@ -56,23 +56,10 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-function nextHalfHourTime(): string {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  const mins = d.getMinutes();
-  const rounded = mins <= 30 ? 30 : 60;
-  if (rounded === 60) {
-    d.setHours(d.getHours() + 1, 0, 0, 0);
-  } else {
-    d.setMinutes(30, 0, 0);
-  }
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
 
-function nextHourTime(): string {
+function currentHourTime(): string {
   const d = new Date();
-  d.setSeconds(0, 0);
-  d.setHours(d.getHours() + 1, 0, 0, 0);
+  d.setMinutes(0, 0, 0);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
@@ -112,6 +99,7 @@ type BookingLine = {
   price: string;
   status: BookingItemStatus;
   slotPage: number;
+  durationMinutes: number;
 };
 
 type ButtonOption = {
@@ -124,10 +112,11 @@ function defaultLine(): BookingLine {
     facilityKey: '',
     courtKind: 'futsal_court',
     courtId: '',
-    startMinutes: timeToMinutes(nextHourTime()),
-    price: '5000',
-    status: 'reserved',
+    startMinutes: timeToMinutes(currentHourTime()),
+    price: '0',
+    status: 'confirmed',
     slotPage: 0,
+    durationMinutes: 60,
   };
 }
 
@@ -290,22 +279,49 @@ export default function BookingCreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [users, setUsers] = useState<IamUserRow[]>([]);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
-  const [sport, setSport] = useState<BookingSportType>('futsal');
   /** Empty = all locations (facility list follows Sport). When set, facility list shows every court/field at that location (sport still used for booking validation). */
   const [facilityLocationId, setFacilityLocationId] = useState('');
   const topbarLocationLocked = selectedLocationId !== 'all';
   const effectiveLocationId = topbarLocationLocked ? selectedLocationId : facilityLocationId;
 
-  const [bookingDate, setBookingDate] = useState(() =>
-    localDateYmd(),
-  );
+  const [bookingDate, setBookingDate] = useState(() => {
+    const d = searchParams.get('date');
+    return d ? d.slice(0, 10) : localDateYmd();
+  });
   const [phone, setPhone] = useState('+92');
   const [customerMode, setCustomerMode] = useState<CustomerMode>('existing');
   const [customerId, setCustomerId] = useState('');
   const [bookingSource, setBookingSource] = useState<BookingSource>('walkin');
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('+92');
-  const [lines, setLines] = useState<BookingLine[]>([defaultLine()]);
+
+  const [sport, setSport] = useState<BookingSportType>(() => {
+    const s = searchParams.get('sport') as BookingSportType;
+    return ['futsal', 'cricket', 'padel'].includes(s) ? s : 'futsal';
+  });
+
+  const [lines, setLines] = useState<BookingLine[]>(() => {
+    const courtId = searchParams.get('courtId');
+    const startTime = searchParams.get('startTime');
+    const price = searchParams.get('price');
+    const kind = searchParams.get('kind') as CourtKind;
+
+    if (courtId && startTime) {
+      return [
+        {
+          facilityKey: `${kind}:${courtId}`,
+          courtKind: kind || 'futsal_court',
+          courtId,
+          startMinutes: timeToMinutes(startTime),
+          price: price || '0',
+          status: 'confirmed',
+          slotPage: 0,
+          durationMinutes: 60,
+        },
+      ];
+    }
+    return [defaultLine()];
+  });
   const [courtOpts, setCourtOpts] = useState<
     Awaited<ReturnType<typeof listCourtOptions>>
   >([]);
@@ -611,11 +627,23 @@ export default function BookingCreatePage() {
         : shared
           ? 'futsal_court'
           : opt.kind;
+
+    let price = '0';
+    if (opt.pricePerSlot != null) {
+      price = String(opt.pricePerSlot);
+    } else if (opt.pricing) {
+      // Pick price based on sport if it's a multi-sport turf
+      const s = sport.toLowerCase();
+      const p = opt.pricing[s]?.basePrice ?? opt.pricing[s === 'cricket' ? 'cricket' : 'futsal']?.basePrice;
+      if (p != null) price = String(p);
+    }
+
     next[lineIndex] = {
       ...line,
       facilityKey: key,
       courtKind,
       courtId: opt.id,
+      price,
     };
     setLines(next);
   }
@@ -630,10 +658,6 @@ export default function BookingCreatePage() {
       return;
     }
     setError(null);
-    const st = Number(subTotal);
-    const disc = Number(discount);
-    const tx = Number(tax);
-    const total = st - disc + tx;
     if (!digitsOnly(phone)) {
       setError('Customer phone is required.');
       return;
@@ -642,6 +666,11 @@ export default function BookingCreatePage() {
       setError('At least one facility line is required.');
       return;
     }
+
+    const st = Number(subTotal);
+    const disc = Number(discount);
+    const tx = Number(tax);
+    const total = st - disc + tx;
     const todayYmd = localDateYmd();
     if (bookingDate < todayYmd) {
       setError('Booking date cannot be in the past.');
@@ -657,7 +686,7 @@ export default function BookingCreatePage() {
         return;
       }
       const startTime = minutesToTime(ln.startMinutes);
-      const endTime = minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60));
+      const endTime = minutesToTime(Math.min(ln.startMinutes + ln.durationMinutes, 24 * 60));
       const startMinutes = timeToMinutes(startTime);
       const endMinutes = timeToMinutes(endTime);
       const duration = endMinutes - startMinutes;
@@ -668,7 +697,7 @@ export default function BookingCreatePage() {
         endTime,
         duration,
       });
-      if (duration !== 60 || startMinutes % 60 !== 0) {
+      if (duration < 60 || startMinutes % 30 !== 0) {
         console.warn(BOOKING_TIMING_LOG, 'line-time-invalid-interval', {
           lineIndex: idx,
           startTime,
@@ -678,16 +707,14 @@ export default function BookingCreatePage() {
         setError('Each booking line must use an hourly slot (for example 4:00 PM - 5:00 PM).');
         return;
       }
-      const startAt = toLocalDateTime(bookingDate, startTime);
-      const minStart = new Date(Date.now() + 30 * 60 * 1000);
-      if (startAt.getTime() < minStart.getTime()) {
-        console.warn(BOOKING_TIMING_LOG, 'line-time-too-soon', {
+      const endAt = toLocalDateTime(bookingDate, endTime);
+      if (endAt.getTime() < Date.now()) {
+        console.warn(BOOKING_TIMING_LOG, 'line-time-passed', {
           lineIndex: idx,
           bookingDate,
-          startTime,
-          minStartIso: minStart.toISOString(),
+          endTime,
         });
-        setError('Bookings must be at least 1 hour in the future.');
+        setError('Cannot book a slot that has already passed.');
         return;
       }
       const slotSource = lineSlotSource[idx];
@@ -748,7 +775,7 @@ export default function BookingCreatePage() {
           courtKind: ln.courtKind,
           courtId: ln.courtId.trim(),
           startTime: minutesToTime(ln.startMinutes),
-          endTime: minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60)),
+          endTime: minutesToTime(Math.min(ln.startMinutes + ln.durationMinutes, 24 * 60)),
           price: Number(ln.price),
           currency: 'PKR',
           status: ln.status,
@@ -763,7 +790,7 @@ export default function BookingCreatePage() {
           paymentStatus: 'pending' as const,
           paymentMethod: 'cash' as const,
         },
-        bookingStatus: 'pending' as const,
+        bookingStatus: 'confirmed' as const,
         notes:
           [`source:${bookingSource}`, notes.trim()]
             .filter(Boolean)
@@ -1107,7 +1134,7 @@ export default function BookingCreatePage() {
                     </div>
                     <div className="form-row-2">
                       <div>
-                        <label>Hourly slot start ({formatTime12h(startTime)})</label>
+                        <label>Select slots ({formatTime12h(startTime)} - {formatTime12h(endTime)})</label>
                         {startSlots.length > 0 && (
                           <div
                             style={{
@@ -1179,7 +1206,33 @@ export default function BookingCreatePage() {
                                 }}
                                 onClick={() => {
                                   const next = [...lines];
-                                  next[idx] = { ...ln, startMinutes: timeToMinutes(slot) };
+                                  const clickedMins = timeToMinutes(slot);
+                                  const currentStart = ln.startMinutes;
+                                  const currentEnd = currentStart + (ln.durationMinutes || 60);
+
+                                  let newStart = clickedMins;
+                                  let newDuration = 60;
+
+                                  if (clickedMins === currentEnd) {
+                                    newStart = currentStart;
+                                    newDuration = (ln.durationMinutes || 60) + 60;
+                                  } else if (clickedMins === currentStart - 60) {
+                                    newStart = clickedMins;
+                                    newDuration = (ln.durationMinutes || 60) + 60;
+                                  }
+
+                                  const selCourt = courtOpts.find((o) => courtOptionValue(o) === ln.facilityKey);
+                                  const base = (selCourt?.pricePerSlot != null) 
+                                     ? Number(selCourt.pricePerSlot) 
+                                     : (selCourt?.pricing?.[sport.toLowerCase()]?.basePrice ?? 0);
+                                  const priceStr = base > 0 ? String(base * (newDuration / 60)) : ln.price;
+
+                                  next[idx] = { 
+                                     ...ln, 
+                                     startMinutes: newStart, 
+                                     durationMinutes: newDuration,
+                                     price: priceStr
+                                  };
                                   setLines(next);
                                 }}
                               >
@@ -1205,7 +1258,7 @@ export default function BookingCreatePage() {
                             style={{ padding: '0.45rem 0.8rem', fontSize: '0.92rem' }}
                             disabled
                           >
-                            60 min (hourly)
+                            {ln.durationMinutes} min
                           </button>
                         </div>
                         <div className="muted" style={{ marginTop: '0.35rem' }}>

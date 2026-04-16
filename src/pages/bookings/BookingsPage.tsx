@@ -655,14 +655,34 @@ export default function BookingsPage() {
                               : ''}
                           </div>
                         ) : null}
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          style={{ marginTop: '0.35rem' }}
-                          onClick={() => void viewCourtSlots(court.kind, court.id)}
-                        >
-                          View booked slots
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.35rem' }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => void viewCourtSlots(court.kind, court.id)}
+                          >
+                            View booked slots
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+                            onClick={() => {
+                              const q = new URLSearchParams();
+                              q.set('date', availabilityDate);
+                              q.set('startTime', availabilityStartTime);
+                              q.set('sport', availabilitySport);
+                              q.set('courtId', court.id);
+                              q.set('kind', court.kind);
+                              if (court.pricePerSlot != null) {
+                                q.set('price', String(court.pricePerSlot));
+                              }
+                              navigate(`/app/bookings/new?${q.toString()}`);
+                            }}
+                          >
+                            Book now
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
