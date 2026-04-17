@@ -11,7 +11,8 @@ export type PaymentMethod = 'cash' | 'card' | 'jazzcash' | 'easypaisa';
 export type CourtKind =
   | 'futsal_court'
   | 'cricket_court'
-  | 'padel_court';
+  | 'padel_court'
+  | 'turf_court';
 
 export interface BookingItemRow {
   id: string;

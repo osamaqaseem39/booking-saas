@@ -282,8 +282,7 @@ export default function FacilitiesLiveViewPage() {
       const kind = facilityTypeToCourtKind(facility.type);
       const cardId = `${facility.type}-${facility.id}`;
       const isActive = facility.facilityIsActive !== false;
-      const linkedCourtKinds =
-        facility.type === 'sharedTurfCourt' ? (['cricket_court'] as const) : undefined;
+      const linkedCourtKinds = undefined;
       map.set(
         cardId,
         computeFacilityLiveSnapshot(bookings, kind, facility.id, {

@@ -9,8 +9,9 @@ export type FacilityLiveType =
   | 'sharedTurfCourt';
 
 export function facilityTypeToCourtKind(t: FacilityLiveType): CourtKind {
-  if (t === 'futsalCourt' || t === 'sharedTurfCourt') return 'futsal_court';
-  if (t === 'cricketCourt') return 'cricket_court';
+  if (t === 'futsalCourt' || t === 'cricketCourt' || t === 'sharedTurfCourt') {
+    return 'turf_court';
+  }
   return 'padel_court';
 }
 
