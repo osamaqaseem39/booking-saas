@@ -123,13 +123,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         refreshToken?: string;
       };
       setTokenState(data.token);
+      setTenantIdState('');
       persistConnection({
         apiBase: api,
-        tenantId: getTenantId(),
+        tenantId: '',
         token: data.token,
-        ...(data.refreshToken
-          ? { refreshToken: data.refreshToken }
-          : {}),
+        ...(data.refreshToken ? { refreshToken: data.refreshToken } : {}),
       });
 
       const me = await fetchSessionUser();
@@ -151,6 +150,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     clearAuthLocalStorage();
     setUserIdState('');
     setTokenState('');
+    setTenantIdState('');
     setSession(null);
     setError(null);
   }, []);

@@ -204,10 +204,11 @@ export function setTenantIdStorage(tenantId: string): void {
   localStorage.setItem(LS_TENANT, (tenantId ?? '').toString().trim());
 }
 
-/** Clears access + refresh tokens from local storage (e.g. sign out). */
+/** Clears access + refresh tokens plus active tenant from local storage (e.g. sign out). */
 export function clearAuthLocalStorage(): void {
   localStorage.removeItem(LS_TOKEN);
   localStorage.removeItem(LS_REFRESH);
+  localStorage.removeItem(LS_TENANT);
 }
 
 function headers(json = true): HeadersInit {

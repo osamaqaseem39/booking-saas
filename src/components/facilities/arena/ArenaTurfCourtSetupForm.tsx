@@ -83,6 +83,8 @@ export function ArenaTurfCourtSetupForm({
   const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
   /** One DB row on `futsal_courts` with `supportsCricket` (no twin link / no cricket row). */
   const [dualSingleTurfRow, setDualSingleTurfRow] = useState(false);
+  const [futsalId, setFutsalId] = useState<string | null>(null);
+  const [cricketId, setCricketId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!existingCourtId) {
@@ -100,8 +102,9 @@ export function ArenaTurfCourtSetupForm({
       setCricketBowlingMachine(false);
       setCricketPracticeMode('');
       setIncludeFutsal(defaultIncludesFutsal);
-      setIncludeCricket(defaultIncludesCricket);
       setDualSingleTurfRow(false);
+      setFutsalId(null);
+      setCricketId(null);
       return;
     }
     let cancelled = false;
@@ -118,6 +121,8 @@ export function ArenaTurfCourtSetupForm({
           if (f?.supportsCricket) {
             if (cancelled) return;
             setDualSingleTurfRow(true);
+            setFutsalId(existingCourtId);
+            setCricketId(null);
             setIncludeFutsal(true);
             setIncludeCricket(true);
             setShared({
@@ -157,6 +162,8 @@ export function ArenaTurfCourtSetupForm({
           if (f && f.linkedTwinCourtId) {
             if (cancelled) return;
             setDualSingleTurfRow(false);
+            setFutsalId(existingCourtId);
+            setCricketId(f.linkedTwinCourtId);
             setIncludeFutsal(true);
             setIncludeCricket(true);
             setShared({
@@ -198,7 +205,9 @@ export function ArenaTurfCourtSetupForm({
           const c: CricketCourtDetail = await getCricketCourt(existingCourtId);
           if (cancelled) return;
           setDualSingleTurfRow(false);
-          setIncludeFutsal(true);
+          setFutsalId(c.linkedTwinCourtId ?? null);
+          setCricketId(existingCourtId);
+          setIncludeFutsal(!!c.linkedTwinCourtId);
           setIncludeCricket(true);
           setShared({
             ...sharedDetailToFormState(c, emptySharedArenaTurfState()),
@@ -224,6 +233,7 @@ export function ArenaTurfCourtSetupForm({
           setCricketPracticeMode(
             pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
           );
+
           if (c.linkedTwinCourtId) {
             const twinF = await getFutsalCourt(c.linkedTwinCourtId);
             if (cancelled) return;
@@ -243,6 +253,8 @@ export function ArenaTurfCourtSetupForm({
           const d: FutsalCourtDetail = await getFutsalCourt(existingCourtId);
           if (cancelled) return;
           setDualSingleTurfRow(d.supportsCricket === true);
+          setFutsalId(existingCourtId);
+          setCricketId(null);
           setIncludeFutsal(true);
           setIncludeCricket(d.supportsCricket === true);
           setShared({
@@ -269,6 +281,8 @@ export function ArenaTurfCourtSetupForm({
           const d: CricketCourtDetail = await getCricketCourt(existingCourtId);
           if (cancelled) return;
           setDualSingleTurfRow(false);
+          setFutsalId(null);
+          setCricketId(existingCourtId);
           setIncludeFutsal(false);
           setIncludeCricket(true);
           setShared({
@@ -386,7 +400,7 @@ export function ArenaTurfCourtSetupForm({
           cricketPracticeMode: cricketPracticeMode || undefined,
         };
         const { businessLocationId: _b, ...patch } = body;
-        await updateFutsalCourt(existingCourtId, patch);
+        await updateFutsalCourt(futsalId!, patch);
         onSuccess();
         return;
       }
@@ -414,8 +428,6 @@ export function ArenaTurfCourtSetupForm({
         return;
       }
 
-      let createdFutsalId: string | null = null;
-      let createdCricketId: string | null = null;
       if (includesFutsal) {
         const body: CreateFutsalCourtBody = {
           businessLocationId: effectiveLocationId,
@@ -429,12 +441,11 @@ export function ArenaTurfCourtSetupForm({
           futsalGoalPostSize: futsalGoalPostSize.trim() || undefined,
           futsalLineMarkings: futsalLineMarkings || undefined,
         };
-        if (existingCourtId) {
+        if (futsalId && existingCourtId) {
           const { businessLocationId: _b, ...patch } = body;
-          await updateFutsalCourt(existingCourtId, patch);
+          await updateFutsalCourt(futsalId, patch);
         } else {
-          const created = await createFutsalCourt(body);
-          createdFutsalId = created.id;
+          await createFutsalCourt(body);
         }
       }
       if (includesCricket) {
@@ -450,12 +461,11 @@ export function ArenaTurfCourtSetupForm({
           cricketBowlingMachine: cricketBowlingMachine || undefined,
           cricketPracticeMode: cricketPracticeMode || undefined,
         };
-        if (existingCourtId) {
+        if (cricketId && existingCourtId) {
           const { businessLocationId: _b, ...patch } = body;
-          await updateCricketCourt(existingCourtId, patch);
+          await updateCricketCourt(cricketId, patch);
         } else {
-          const created = await createCricketCourt(body);
-          createdCricketId = created.id;
+          await createCricketCourt(body);
         }
       }
       onSuccess();

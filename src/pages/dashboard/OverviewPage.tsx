@@ -953,7 +953,7 @@ export default function OverviewPage() {
                         ownerAllBookings.slice(0, 10).map((bk) => {
                           const bizMatch = businesses.find((b) => b.tenantId === bk.tenantId);
                           const userName = bk.user?.fullName || 'Unknown User';
-                          const userEmail = bk.user?.email || bk.userId.slice(0, 8);
+                          const userEmail = bk.user?.email || bk.userId?.slice(0, 8) || '??';
                           return (
                             <tr
                               key={bk.bookingId}
@@ -968,7 +968,7 @@ export default function OverviewPage() {
                                   {userEmail}
                                 </div>
                               </td>
-                              <td>{bizMatch?.businessName || bk.tenantId.slice(0, 8)}</td>
+                              <td>{bizMatch?.businessName || bk.tenantId?.slice(0, 8) || '??'}</td>
                               <td>
                                 <span className={badgeClass(bk.sportType)}>
                                   {titleCase(bk.sportType)}

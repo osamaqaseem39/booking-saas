@@ -326,7 +326,7 @@ export default function BookingsPage() {
         );
         const map: Record<string, string> = {};
         for (const row of rows) {
-          map[row.id] = row.label.split('—').slice(1).join('—').trim() || row.label;
+          map[row.id] = (row.label ?? '').split('—').slice(1).join('—').trim() || row.label || row.id;
         }
         setCourtsMap(map);
       } catch {
@@ -776,7 +776,7 @@ export default function BookingsPage() {
                           </strong>
                         </div>
                         <div className="muted">
-                          {slot.status} · booking {slot.bookingId.slice(0, 8)}
+                          {slot.status} · booking {slot.bookingId?.slice(0, 8) ?? '??'}
                         </div>
                       </li>
                     ))}
@@ -895,7 +895,7 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {sortedBookings.map((b) => {
-                      const userName = b.user?.fullName || usersMap[b.userId]?.name || `User ${b.userId.slice(0, 8)}`;
+                      const userName = b.user?.fullName || usersMap[b.userId]?.name || `User ${b.userId?.slice(0, 8) ?? '??'}`;
                       const userPhone = b.user?.phone || usersMap[b.userId]?.phone || '-';
                       return (
                     <tr
@@ -970,13 +970,13 @@ export default function BookingsPage() {
                 <div className="detail-row">
                   <span>Booking</span>
                   <span style={{ wordBreak: 'break-word' }}>
-                    #{selected.bookingId.slice(0, 8)}
+                    #{selected.bookingId?.slice(0, 8) ?? '??'}
                   </span>
                 </div>
                 <div className="detail-row">
                   <span>User</span>
                   <span style={{ wordBreak: 'break-word' }}>
-                    {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId.slice(0, 8)}`}
+                    {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId?.slice(0, 8) ?? '??'}`}
                   </span>
                 </div>
                 <div className="detail-row">
