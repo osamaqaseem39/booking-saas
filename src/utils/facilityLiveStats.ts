@@ -77,14 +77,17 @@ function hoursBetween(a: Date, b: Date): number {
 
 function collectWindows(
   bookings: BookingRecord[],
-  courtKind: CourtKind,
-  courtId: string,
+  courtKinds: CourtKind[],
+  courtIds: string[],
 ): ItemWindow[] {
   const out: ItemWindow[] = [];
+  const kindSet = new Set(courtKinds);
+  const idSet = new Set(courtIds);
+
   for (const b of bookings) {
     if (b.bookingStatus === 'cancelled') continue;
     for (const item of b.items) {
-      if (item.courtKind !== courtKind || item.courtId !== courtId) continue;
+      if (!kindSet.has(item.courtKind) || !idSet.has(item.courtId)) continue;
       if (item.status === 'cancelled') continue;
       const { start, end } = itemWindow(b.bookingDate, item.startTime, item.endTime);
       out.push({ booking: b, item, start, end });
@@ -112,6 +115,8 @@ export function computeFacilityLiveSnapshot(
     facilityStatus?: string;
     /** Same pitch may appear as both `futsal_court` and `cricket_court` items (dual-sport turf). */
     linkedCourtKinds?: CourtKind[];
+    /** For dual-sport turfs that have TWO separate entity IDs for the same physical space. */
+    linkedCourtIds?: string[];
   },
 ): FacilityLiveSnapshot {
   const now = opts.now ?? new Date();
@@ -136,9 +141,16 @@ export function computeFacilityLiveSnapshot(
     courtKind,
     ...(opts.linkedCourtKinds?.filter((k) => k !== courtKind) ?? []),
   ];
-  const windows = kinds
-    .flatMap((k) => collectWindows(bookings, k, courtId))
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  if (courtKind === 'turf_court') {
+    if (!kinds.includes('futsal_court')) kinds.push('futsal_court' as any);
+    if (!kinds.includes('cricket_court')) kinds.push('cricket_court' as any);
+  }
+
+  const ids: string[] = [courtId, ...(opts.linkedCourtIds ?? [])];
+
+  const windows = collectWindows(bookings, kinds, ids).sort(
+    (a, b) => a.start.getTime() - b.start.getTime(),
+  );
 
   let hoursBookedToday = 0;
   const weekStarts: string[] = [];

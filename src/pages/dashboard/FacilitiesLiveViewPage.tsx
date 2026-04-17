@@ -33,6 +33,7 @@ type FacilityCardRow = {
   facilityIsActive?: boolean;
   pricePerSlot?: string | number | null;
   pricing?: any | null;
+  linkedTwinCourtId?: string | null;
 };
 
 type QuickBookingState = {
@@ -158,6 +159,7 @@ export default function FacilitiesLiveViewPage() {
               facilityIsActive: r.isActive,
               pricePerSlot: r.pricePerSlot,
               pricing: r.pricing,
+              linkedTwinCourtId: r.linkedTwinCourtId,
             }
           : {
               id: r.id,
@@ -169,6 +171,7 @@ export default function FacilitiesLiveViewPage() {
               facilityIsActive: r.isActive,
               pricePerSlot: r.pricePerSlot,
               pricing: r.pricing,
+              linkedTwinCourtId: r.linkedTwinCourtId,
             },
       );
       const cricketCards = cricketCourtRows
@@ -183,6 +186,7 @@ export default function FacilitiesLiveViewPage() {
           facilityIsActive: r.isActive,
           pricePerSlot: r.pricePerSlot,
           pricing: r.pricing,
+          linkedTwinCourtId: r.linkedTwinCourtId,
         }));
       const padelCards = padelRows.map((r) => ({
         id: r.id,
@@ -289,10 +293,7 @@ export default function FacilitiesLiveViewPage() {
           now,
           facilityActive: isActive,
           facilityStatus: facility.facilityStatus,
-          linkedCourtKinds:
-            linkedCourtKinds && linkedCourtKinds.length
-              ? [...linkedCourtKinds]
-              : undefined,
+          linkedCourtIds: facility.linkedTwinCourtId ? [facility.linkedTwinCourtId] : undefined,
         }),
       );
     }

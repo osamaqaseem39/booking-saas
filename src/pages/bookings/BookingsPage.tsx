@@ -119,6 +119,7 @@ export default function BookingsPage() {
   >('all');
   const [bookingStatusFilter] = useState<'all' | BookingStatus>('all');
   const [paymentStatusFilter] = useState<'all' | PaymentStatus>('all');
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
@@ -165,6 +166,70 @@ export default function BookingsPage() {
     bookingStatusFilter,
     paymentStatusFilter,
   ]);
+  const sortedBookings = useMemo(() => {
+    const sortableItems = [...filteredBookings];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+        switch (sortConfig.key) {
+          case 'date':
+            aValue = a.bookingDate + ' ' + (a.items[0]?.startTime ?? '');
+            bValue = b.bookingDate + ' ' + (b.items[0]?.startTime ?? '');
+            break;
+          case 'sport':
+            aValue = a.sportType ?? '';
+            bValue = b.sportType ?? '';
+            break;
+          case 'status':
+            aValue = a.bookingStatus;
+            bValue = b.bookingStatus;
+            break;
+          case 'payment':
+            aValue = a.payment.paymentStatus;
+            bValue = b.payment.paymentStatus;
+            break;
+          case 'total':
+            aValue = a.pricing.totalAmount;
+            bValue = b.pricing.totalAmount;
+            break;
+          case 'userName':
+            aValue = usersMap[a.userId]?.name ?? '';
+            bValue = usersMap[b.userId]?.name ?? '';
+            break;
+          case 'userPhone':
+            aValue = usersMap[a.userId]?.phone ?? '';
+            bValue = usersMap[b.userId]?.phone ?? '';
+            break;
+          case 'locationName':
+            aValue = a.arenaName ?? locationsMap[a.arenaId]?.name ?? '';
+            bValue = b.arenaName ?? locationsMap[b.arenaId]?.name ?? '';
+            break;
+          default:
+            aValue = '';
+            bValue = '';
+        }
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredBookings, sortConfig, usersMap, locationsMap]);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+  };
+
   const bookingStats = useMemo(() => {
     const total = filteredBookings.length;
     const pending = filteredBookings.filter((b) => b.bookingStatus === 'pending').length;
@@ -424,7 +489,7 @@ export default function BookingsPage() {
       )}
       <div className="toolbar">
         <span className="muted">
-          {loading ? 'Loading…' : `${filteredBookings.length} booking(s)`}
+          {loading ? 'Loading…' : `${sortedBookings.length} booking(s)`}
         </span>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="button" className="btn-ghost" onClick={() => void refresh()} disabled={loading}>
@@ -734,26 +799,26 @@ export default function BookingsPage() {
       <div className="main-area" style={{ padding: 0, marginTop: '0.5rem' }}>
         <div>
           <div className="table-wrap">
-            {filteredBookings.length === 0 && !loading ? (
+            {sortedBookings.length === 0 && !loading ? (
               <div className="empty-state">No bookings.</div>
             ) : (
               <table className="data">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Person name</th>
-                    <th>Person phone</th>
-                    <th>Location</th>
+                    <th onClick={() => requestSort('date')} style={{ cursor: 'pointer' }}>Date{getSortIndicator('date')}</th>
+                    <th onClick={() => requestSort('userName')} style={{ cursor: 'pointer' }}>Person name{getSortIndicator('userName')}</th>
+                    <th onClick={() => requestSort('userPhone')} style={{ cursor: 'pointer' }}>Person phone{getSortIndicator('userPhone')}</th>
+                    <th onClick={() => requestSort('locationName')} style={{ cursor: 'pointer' }}>Location{getSortIndicator('locationName')}</th>
                     <th>Location phone</th>
-                    <th>Sport</th>
-                    <th>Status</th>
-                    <th>Payment</th>
-                    <th>Total</th>
+                    <th onClick={() => requestSort('sport')} style={{ cursor: 'pointer' }}>Sport{getSortIndicator('sport')}</th>
+                    <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status{getSortIndicator('status')}</th>
+                    <th onClick={() => requestSort('payment')} style={{ cursor: 'pointer' }}>Payment{getSortIndicator('payment')}</th>
+                    <th onClick={() => requestSort('total')} style={{ cursor: 'pointer' }}>Total{getSortIndicator('total')}</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBookings.map((b) => (
+                  {sortedBookings.map((b) => (
                     (() => {
                       const user = usersMap[b.userId];
                       return (
