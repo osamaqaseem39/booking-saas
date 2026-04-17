@@ -29,6 +29,7 @@ export interface BookingItemRow {
 export interface BookingRecord {
   bookingId: string;
   arenaId: string;
+  arenaName?: string;
   userId: string;
   sportType: BookingSportType;
   bookingDate: string;

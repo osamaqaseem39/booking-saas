@@ -117,12 +117,8 @@ export default function BookingsPage() {
   const [gameFilter, setGameFilter] = useState<
     'all' | 'upcoming' | 'completed' | 'canceled'
   >('all');
-  const [bookingStatusFilter, setBookingStatusFilter] = useState<
-    'all' | BookingStatus
-  >('all');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<
-    'all' | PaymentStatus
-  >('all');
+  const [bookingStatusFilter] = useState<'all' | BookingStatus>('all');
+  const [paymentStatusFilter] = useState<'all' | PaymentStatus>('all');
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
@@ -231,6 +227,11 @@ export default function BookingsPage() {
 
   useEffect(() => {
     void refresh();
+    // Auto-refresh every 15 seconds to show "instantly" new bookings
+    const timer = setInterval(() => {
+      void refresh();
+    }, 15000);
+    return () => clearInterval(timer);
   }, [refresh]);
 
   useEffect(() => {
@@ -698,7 +699,9 @@ export default function BookingsPage() {
                   <div className="empty-state">No booked slots on selected date.</div>
                 ) : (
                   <ul className="items-list">
-                    {courtSlots.slots.map((slot) => (
+                    {courtSlots.slots
+                      .filter((s): s is Extract<typeof s, { availability: 'booked' }> => s.availability === 'booked')
+                      .map((slot) => (
                       <li key={slot.itemId}>
                         <div>
                           <strong>
@@ -762,7 +765,7 @@ export default function BookingsPage() {
                       <td>{b.bookingDate}</td>
                       <td>{user?.name ?? `User ${b.userId.slice(0, 8)}`}</td>
                       <td>{user?.phone ?? '-'}</td>
-                      <td>{locationsMap[b.arenaId]?.name ?? b.arenaId?.slice(0, 8) ?? '-'}</td>
+                      <td>{b.arenaName ?? locationsMap[b.arenaId]?.name ?? b.arenaId?.slice(0, 8) ?? '-'}</td>
                       <td>{locationsMap[b.arenaId]?.phone ?? '-'}</td>
                       <td>
                         <span className={sportBadgeClass(b.sportType)}>
