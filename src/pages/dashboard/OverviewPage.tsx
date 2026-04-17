@@ -149,6 +149,8 @@ export default function OverviewPage() {
   const [ownerLoading, setOwnerLoading] = useState(false);
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [ownerCustomerCount, setOwnerCustomerCount] = useState<number | null>(null);
+  const [ownerUsersMap, setOwnerUsersMap] = useState<Record<string, { name: string; email: string }>>({});
+  const [ownerAllBookings, setOwnerAllBookings] = useState<BookingRecord[]>([]);
   const [dateRange, setDateRange] = useState<'7' | '30' | '90' | 'all'>('30');
   const [ownerBookingStatus, setOwnerBookingStatus] = useState<'all' | BookingStatus>('all');
   const [invoiceStatus, setInvoiceStatus] = useState<'all' | string>('all');
@@ -205,15 +207,22 @@ export default function OverviewPage() {
       setOwnerLoading(true);
       setOwnerError(null);
       try {
-        const [biz, loc, endUsers, allBookings, allInvoices] = await Promise.all([
+        const [biz, loc, endUsers, allBookings, allInvoices, globalUsers] = await Promise.all([
           listBusinesses(),
           listBusinessLocations({ ignoreActiveTenant: true }),
           listEndUsers().catch(() => [] as Awaited<ReturnType<typeof listEndUsers>>),
           listAllBookings().catch(() => [] as BookingRecord[]),
           listAllInvoices().catch(() => [] as InvoiceRow[]),
+          listIamUsers(undefined, undefined, true).catch(() => [] as IamUserRow[]),
         ]);
         setBusinesses(biz);
         setOwnerLocations(loc);
+        setOwnerAllBookings(allBookings);
+
+        const uMap: Record<string, { name: string; email: string }> = {};
+        for (const u of endUsers) uMap[u.id] = { name: u.fullName || 'Customer', email: u.email };
+        for (const u of globalUsers) uMap[u.id] = { name: u.fullName || u.email, email: u.email };
+        setOwnerUsersMap(uMap);
         setOwnerCustomerCount(
           endUsers.filter((u) => (u.roles ?? []).some((r) => r === 'customer-end-user')).length,
         );
@@ -889,6 +898,98 @@ export default function OverviewPage() {
                             </td>
                           </tr>
                         ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="connection-panel overview-panel" style={{ marginTop: '1.5rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    marginBottom: '0.65rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <h3 className="overview-subtitle" style={{ margin: 0 }}>
+                    Recent Platform Bookings
+                  </h3>
+                  <Link
+                    to="/app/bookings"
+                    className="action-link"
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    View all bookings
+                  </Link>
+                </div>
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>User / Customer</th>
+                        <th>Business</th>
+                        <th>Sport</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ownerAllBookings.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="muted"
+                            style={{ textAlign: 'center', padding: '1.5rem' }}
+                          >
+                            No recent bookings.
+                          </td>
+                        </tr>
+                      ) : (
+                        ownerAllBookings.slice(0, 10).map((bk) => {
+                          const bizMatch = businesses.find((b) => b.tenantId === bk.tenantId);
+                          const userName = bk.user?.fullName || 'Unknown User';
+                          const userEmail = bk.user?.email || bk.userId.slice(0, 8);
+                          return (
+                            <tr
+                              key={bk.bookingId}
+                              onClick={() => navigate(`/app/bookings/${bk.bookingId}/edit`)}
+                            >
+                              <td>{bk.bookingDate}</td>
+                              <td>
+                                <div>
+                                  <strong>{userName}</strong>
+                                </div>
+                                <div className="muted" style={{ fontSize: '0.75rem' }}>
+                                  {userEmail}
+                                </div>
+                              </td>
+                              <td>{bizMatch?.businessName || bk.tenantId.slice(0, 8)}</td>
+                              <td>
+                                <span className={badgeClass(bk.sportType)}>
+                                  {titleCase(bk.sportType)}
+                                </span>
+                              </td>
+                              <td>
+                                <strong>
+                                  {fmtCurrency(
+                                    bk.pricing?.totalAmount || 0,
+                                    bk.items?.[0]?.currency,
+                                  )}
+                                </strong>
+                              </td>
+                              <td>
+                                <span className={badgeClass(bk.bookingStatus)}>
+                                  {titleCase(bk.bookingStatus)}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>

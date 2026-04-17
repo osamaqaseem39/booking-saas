@@ -894,9 +894,9 @@ export default function BookingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedBookings.map((b) => (
-                    (() => {
-                      const user = usersMap[b.userId];
+                  {sortedBookings.map((b) => {
+                      const userName = b.user?.fullName || usersMap[b.userId]?.name || `User ${b.userId.slice(0, 8)}`;
+                      const userPhone = b.user?.phone || usersMap[b.userId]?.phone || '-';
                       return (
                     <tr
                       key={b.bookingId}
@@ -904,8 +904,8 @@ export default function BookingsPage() {
                       onClick={() => setSelectedId(b.bookingId)}
                     >
                       <td>{b.bookingDate}</td>
-                      <td>{user?.name ?? `User ${b.userId.slice(0, 8)}`}</td>
-                      <td>{user?.phone ?? '-'}</td>
+                      <td>{userName}</td>
+                      <td>{userPhone}</td>
                       <td>{b.arenaName ?? locationsMap[b.arenaId]?.name ?? b.arenaId?.slice(0, 8) ?? '-'}</td>
                       <td>{locationsMap[b.arenaId]?.phone ?? '-'}</td>
                       <td>
@@ -952,8 +952,7 @@ export default function BookingsPage() {
                       </td>
                     </tr>
                       );
-                    })()
-                  ))}
+                  })}
                 </tbody>
               </table>
             )}
@@ -977,13 +976,13 @@ export default function BookingsPage() {
                 <div className="detail-row">
                   <span>User</span>
                   <span style={{ wordBreak: 'break-word' }}>
-                    {usersMap[selected.userId]?.name ?? `User ${selected.userId.slice(0, 8)}`}
+                    {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId.slice(0, 8)}`}
                   </span>
                 </div>
                 <div className="detail-row">
                   <span>Phone</span>
                   <span style={{ wordBreak: 'break-word' }}>
-                    {usersMap[selected.userId]?.phone ?? '-'}
+                    {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
                   </span>
                 </div>
               </div>

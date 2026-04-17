@@ -31,6 +31,11 @@ export interface BookingRecord {
   arenaId: string;
   arenaName?: string;
   userId: string;
+  user?: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+  };
   sportType: BookingSportType;
   bookingDate: string;
   items: BookingItemRow[];
