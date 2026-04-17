@@ -130,15 +130,21 @@ type SharedDetail = Partial<
 >;
 
 export function sharedDetailToFormState(
-  d: SharedDetail,
+  d: SharedDetail | any,
   base: SharedArenaTurfFormState,
 ): SharedArenaTurfFormState {
   const vent = d.ventilation;
   const arr = Array.isArray(vent) ? vent : [];
+
+  const apiPricing = d.pricing?.futsal ?? d.pricing?.cricket;
+  const pricePerSlot = d.pricePerSlot ?? apiPricing?.basePrice;
+  const peakWd = d.peakPricing?.weekdayEvening ?? apiPricing?.peakPrice;
+  const peakWe = d.peakPricing?.weekend ?? apiPricing?.weekendPrice;
+
   return {
     ...base,
     imageLines: Array.isArray(d.imageUrls) ? d.imageUrls.join('\n') : base.imageLines,
-    ceilingHeightValue: strFromApi(d.ceilingHeightValue),
+    ceilingHeightValue: strFromApi(d.ceilingHeightValue ?? d.ceilingHeight),
     ceilingHeightUnit:
       d.ceilingHeightUnit === 'ft' || d.ceilingHeightUnit === 'm'
         ? d.ceilingHeightUnit
@@ -162,17 +168,17 @@ export function sharedDetailToFormState(
       d.lighting === 'daylight'
         ? d.lighting
         : '',
-    lengthM: strFromApi(d.lengthM),
-    widthM: strFromApi(d.widthM),
+    lengthM: strFromApi(d.lengthM ?? d.length),
+    widthM: strFromApi(d.widthM ?? d.width),
     surfaceType:
       d.surfaceType === 'artificial_turf' || d.surfaceType === 'hard_surface'
         ? d.surfaceType
         : '',
     turfQuality: d.turfQuality ?? '',
     shockAbsorptionLayer: d.shockAbsorptionLayer === true,
-    pricePerSlot: strFromApi(d.pricePerSlot),
-    peakWeekdayEvening: strFromApi(d.peakPricing?.weekdayEvening),
-    peakWeekend: strFromApi(d.peakPricing?.weekend),
+    pricePerSlot: strFromApi(pricePerSlot),
+    peakWeekdayEvening: strFromApi(peakWd),
+    peakWeekend: strFromApi(peakWe),
     discountLabel: d.discountMembership?.label ?? '',
     discountAmount: strFromApi(d.discountMembership?.amount),
     discountPercentOff: strFromApi(d.discountMembership?.percentOff),
@@ -188,12 +194,12 @@ export function sharedDetailToFormState(
     safetyInstructions: d.rules?.safetyInstructions ?? '',
     cancellationPolicy: d.rules?.cancellationPolicy ?? '',
     slotDuration:
-      d.slotDurationMinutes === 60 ||
-      d.slotDurationMinutes === 90 ||
-      d.slotDurationMinutes === 120
+      (d.slotDurationMinutes || d.slotDuration) === 60 ||
+      (d.slotDurationMinutes || d.slotDuration) === 90 ||
+      (d.slotDurationMinutes || d.slotDuration) === 120
         ? '60'
         : '',
-    bufferMinutes: strFromApi(d.bufferBetweenSlotsMinutes),
+    bufferMinutes: strFromApi(d.bufferBetweenSlotsMinutes ?? d.bufferTime),
     allowParallelBooking: d.allowParallelBooking === true,
     timeSlotTemplateId:
       typeof d.timeSlotTemplateId === 'string' && d.timeSlotTemplateId

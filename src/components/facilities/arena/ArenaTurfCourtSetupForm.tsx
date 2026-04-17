@@ -137,22 +137,33 @@ export function ArenaTurfCourtSetupForm({
                   ? 'draft'
                   : 'active',
             );
-            const ff = f.futsalFormat;
+            const ff = f.futsalFormat ?? (f as any).sportConfig?.futsal?.format;
             setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
-            setFutsalGoalPostsAvailable(f.futsalGoalPostsAvailable === true);
-            setFutsalGoalPostSize(f.futsalGoalPostSize ?? '');
-            const lm = f.futsalLineMarkings;
+            setFutsalGoalPostsAvailable(
+              f.futsalGoalPostsAvailable === true ||
+                (f as any).sportConfig?.futsal?.goalPostAvailable === true,
+            );
+            setFutsalGoalPostSize(
+              f.futsalGoalPostSize ?? (f as any).sportConfig?.futsal?.goalPostSize ?? '',
+            );
+            const lm = f.futsalLineMarkings ?? (f as any).sportConfig?.futsal?.lineMarkings;
             setFutsalLineMarkings(
               lm === 'permanent' || lm === 'temporary' ? lm : '',
             );
-            const cf = f.cricketFormat;
+            const cf = f.cricketFormat ?? (f as any).sportConfig?.cricket?.type;
             setCricketFormat(
               cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
                 ? cf
                 : '',
             );
-            setCricketStumpsAvailable(f.cricketStumpsAvailable === true);
-            setCricketBowlingMachine(f.cricketBowlingMachine === true);
+            setCricketStumpsAvailable(
+              f.cricketStumpsAvailable === true ||
+                (f as any).sportConfig?.cricket?.stumpsAvailable === true,
+            );
+            setCricketBowlingMachine(
+              f.cricketBowlingMachine === true ||
+                (f as any).sportConfig?.cricket?.bowlingMachine === true,
+            );
             const pm = f.cricketPracticeMode;
             setCricketPracticeMode(
               pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
@@ -188,14 +199,20 @@ export function ArenaTurfCourtSetupForm({
             );
             const twin = await getCricketCourt(f.linkedTwinCourtId);
             if (cancelled) return;
-            const cf = twin.cricketFormat;
+            const cf = twin.cricketFormat ?? (twin as any).sportConfig?.cricket?.type;
             setCricketFormat(
               cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
                 ? cf
                 : '',
             );
-            setCricketStumpsAvailable(twin.cricketStumpsAvailable === true);
-            setCricketBowlingMachine(twin.cricketBowlingMachine === true);
+            setCricketStumpsAvailable(
+              twin.cricketStumpsAvailable === true ||
+                (twin as any).sportConfig?.cricket?.stumpsAvailable === true,
+            );
+            setCricketBowlingMachine(
+              twin.cricketBowlingMachine === true ||
+                (twin as any).sportConfig?.cricket?.bowlingMachine === true,
+            );
             const pm = twin.cricketPracticeMode;
             setCricketPracticeMode(
               pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
@@ -221,14 +238,20 @@ export function ArenaTurfCourtSetupForm({
                 ? 'draft'
                 : 'active',
           );
-          const cf = c.cricketFormat;
+          const cf = c.cricketFormat ?? (c as any).sportConfig?.cricket?.type;
           setCricketFormat(
             cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
               ? cf
               : '',
           );
-          setCricketStumpsAvailable(c.cricketStumpsAvailable === true);
-          setCricketBowlingMachine(c.cricketBowlingMachine === true);
+          setCricketStumpsAvailable(
+            c.cricketStumpsAvailable === true ||
+              (c as any).sportConfig?.cricket?.stumpsAvailable === true,
+          );
+          setCricketBowlingMachine(
+            c.cricketBowlingMachine === true ||
+              (c as any).sportConfig?.cricket?.bowlingMachine === true,
+          );
           const pm = c.cricketPracticeMode;
           setCricketPracticeMode(
             pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
@@ -237,11 +260,16 @@ export function ArenaTurfCourtSetupForm({
           if (c.linkedTwinCourtId) {
             const twinF = await getFutsalCourt(c.linkedTwinCourtId);
             if (cancelled) return;
-            const ff = twinF.futsalFormat;
+            const ff = twinF.futsalFormat ?? (twinF as any).sportConfig?.futsal?.format;
             setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
-            setFutsalGoalPostsAvailable(twinF.futsalGoalPostsAvailable === true);
-            setFutsalGoalPostSize(twinF.futsalGoalPostSize ?? '');
-            const lm = twinF.futsalLineMarkings;
+            setFutsalGoalPostsAvailable(
+              twinF.futsalGoalPostsAvailable === true ||
+                (twinF as any).sportConfig?.futsal?.goalPostAvailable === true,
+            );
+            setFutsalGoalPostSize(
+              twinF.futsalGoalPostSize ?? (twinF as any).sportConfig?.futsal?.goalPostSize ?? '',
+            );
+            const lm = twinF.futsalLineMarkings ?? (twinF as any).sportConfig?.futsal?.lineMarkings;
             setFutsalLineMarkings(
               lm === 'permanent' || lm === 'temporary' ? lm : '',
             );
@@ -269,13 +297,36 @@ export function ArenaTurfCourtSetupForm({
                 ? 'draft'
                 : 'active',
           );
-          const ff = d.futsalFormat;
+          const ff = d.futsalFormat ?? (d as any).sportConfig?.futsal?.format;
           setFutsalFormat(ff === '5v5' || ff === '6v6' || ff === '7v7' ? ff : '');
-          setFutsalGoalPostsAvailable(d.futsalGoalPostsAvailable === true);
-          setFutsalGoalPostSize(d.futsalGoalPostSize ?? '');
-          const lm = d.futsalLineMarkings;
+          setFutsalGoalPostsAvailable(
+            d.futsalGoalPostsAvailable === true ||
+              (d as any).sportConfig?.futsal?.goalPostAvailable === true,
+          );
+          setFutsalGoalPostSize(
+            d.futsalGoalPostSize ?? (d as any).sportConfig?.futsal?.goalPostSize ?? '',
+          );
+          const lm = d.futsalLineMarkings ?? (d as any).sportConfig?.futsal?.lineMarkings;
           setFutsalLineMarkings(
             lm === 'permanent' || lm === 'temporary' ? lm : '',
+          );
+          const cf = d.cricketFormat ?? (d as any).sportConfig?.cricket?.type;
+          setCricketFormat(
+            cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
+              ? cf
+              : '',
+          );
+          setCricketStumpsAvailable(
+            d.cricketStumpsAvailable === true ||
+              (d as any).sportConfig?.cricket?.stumpsAvailable === true,
+          );
+          setCricketBowlingMachine(
+            d.cricketBowlingMachine === true ||
+              (d as any).sportConfig?.cricket?.bowlingMachine === true,
+          );
+          const pm = d.cricketPracticeMode;
+          setCricketPracticeMode(
+            pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
           );
         } else {
           const d: CricketCourtDetail = await getCricketCourt(existingCourtId);
@@ -297,14 +348,20 @@ export function ArenaTurfCourtSetupForm({
                 ? 'draft'
                 : 'active',
           );
-          const cf = d.cricketFormat;
+          const cf = d.cricketFormat ?? (d as any).sportConfig?.cricket?.type;
           setCricketFormat(
             cf === 'tape_ball' || cf === 'tennis_ball' || cf === 'hard_ball'
               ? cf
               : '',
           );
-          setCricketStumpsAvailable(d.cricketStumpsAvailable === true);
-          setCricketBowlingMachine(d.cricketBowlingMachine === true);
+          setCricketStumpsAvailable(
+            d.cricketStumpsAvailable === true ||
+              (d as any).sportConfig?.cricket?.stumpsAvailable === true,
+          );
+          setCricketBowlingMachine(
+            d.cricketBowlingMachine === true ||
+              (d as any).sportConfig?.cricket?.bowlingMachine === true,
+          );
           const pm = d.cricketPracticeMode;
           setCricketPracticeMode(
             pm === 'full_ground' || pm === 'nets_mode' ? pm : '',
