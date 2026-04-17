@@ -152,8 +152,11 @@ export function sharedDetailToFormState(
     coveredType:
       d.coveredType === 'open' ||
       d.coveredType === 'semi_covered' ||
-      d.coveredType === 'fully_indoor'
-        ? d.coveredType
+      d.coveredType === 'fully_indoor' ||
+      d.coveredType === 'indoor'
+        ? d.coveredType === 'indoor'
+          ? 'fully_indoor'
+          : d.coveredType
         : '',
     sideNetting: d.sideNetting === true,
     netHeight: d.netHeight ?? '',
