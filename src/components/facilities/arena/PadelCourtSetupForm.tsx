@@ -199,7 +199,7 @@ export function PadelCourtSetupForm({
   const [widthM, setWidthM] = useState('10');
 
   const [surfaceType, setSurfaceType] = useState<
-    '' | 'synthetic_turf' | 'acrylic'
+    '' | 'synthetic' | 'acrylic'
   >('');
   const [matchType, setMatchType] = useState<'singles' | 'doubles'>('doubles');
   const [maxPlayers, setMaxPlayers] = useState('4');
@@ -293,7 +293,9 @@ export function PadelCourtSetupForm({
         setWidthM(strFromApi(d.widthM) || '10');
         const st = d.surfaceType;
         setSurfaceType(
-          st === 'synthetic_turf' || st === 'acrylic' ? st : '',
+          st === 'synthetic' || st === 'acrylic' || st === 'synthetic_turf'
+            ? (st === 'synthetic_turf' ? 'synthetic' : st) as any
+            : '',
         );
         setMatchType(d.matchType === 'singles' ? 'singles' : 'doubles');
         setPricePerSlot(strFromApi(d.pricePerSlot));
@@ -633,12 +635,12 @@ export function PadelCourtSetupForm({
             value={surfaceType}
             onChange={(e) =>
               setSurfaceType(
-                e.target.value as '' | 'synthetic_turf' | 'acrylic',
+                e.target.value as '' | 'synthetic' | 'acrylic',
               )
             }
           >
             <option value="">—</option>
-            <option value="synthetic_turf">Synthetic turf</option>
+            <option value="synthetic">Synthetic turf</option>
             <option value="acrylic">Acrylic</option>
           </select>
         </div>

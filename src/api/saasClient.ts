@@ -1524,7 +1524,7 @@ export type CreatePadelCourtBody = {
   ventilation?: string;
   lengthM?: number;
   widthM?: number;
-  surfaceType?: 'synthetic_turf' | 'acrylic';
+  surfaceType?: 'synthetic' | 'acrylic' | 'synthetic_turf';
   matchType?: 'singles' | 'doubles';
   maxPlayers?: number;
   pricePerSlot?: number;
