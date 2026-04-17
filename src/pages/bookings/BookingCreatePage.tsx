@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
+  assignRole,
   createBooking,
   createBookingForTenant,
   createIamUser,
@@ -649,14 +650,14 @@ export default function BookingCreatePage() {
   }
 
   async function submitCreate() {
-    if (!bookingTenant) {
-      setError(
-        isPlatformOwner
-          ? 'Select a business before creating a booking.'
-          : 'Pick an active tenant in the top bar.',
-      );
-      return;
-    }
+      if (!bookingTenant) {
+        setError(
+          isPlatformOwner
+            ? 'Select a business before creating a booking.'
+            : 'No active tenant found.',
+        );
+        return;
+      }
     setError(null);
     if (!digitsOnly(phone)) {
       setError('Customer phone is required.');
@@ -758,6 +759,10 @@ export default function BookingCreatePage() {
         isPlatformOwner ? bookingTenant : undefined,
       );
       resolvedCustomerId = created.id;
+      // Ensure they have the end-customer role
+      await assignRole(resolvedCustomerId, 'customer-end-user').catch((e) => {
+        console.warn('Failed to assign end-customer role to walk-in user:', e);
+      });
       customerNameToSave = created.fullName;
       customerPhoneToSave = normalizePhoneForStorage(created.phone ?? walkInPhone);
     }
@@ -870,8 +875,7 @@ export default function BookingCreatePage() {
                   ))}
                 </select>
                 <p className="muted" style={{ marginTop: '0.35rem', marginBottom: 0 }}>
-                  Only this booking uses the selected tenant — the top bar can stay on “all
-                  businesses”.
+                  Only this booking is scoped to the selected business.
                 </p>
               </div>
             </>

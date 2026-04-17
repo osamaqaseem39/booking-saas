@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Navigate, Outlet } from 'react-router-dom';
 import { listBusinesses, listBusinessLocations } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
 import { navSectionsForRoles } from '../rbac';
@@ -26,7 +26,6 @@ export default function ConsoleLayout() {
   const [dashboardLocations, setDashboardLocations] = useState<BusinessLocationRow[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
-  const location = useLocation();
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -157,7 +156,6 @@ export default function ConsoleLayout() {
     if (to === '/app/health') return '🛡️';
     return '•';
   };
-  const navPathname = (to: string): string => to.split('?')[0] ?? to;
 
   return (
     <div className={`console-root ${isNavCollapsed ? 'console-root--collapsed' : ''}`}>
@@ -228,35 +226,6 @@ export default function ConsoleLayout() {
       <div className="console-main">
         <header className="console-topbar">
           <div className="console-topbar-left">
-            {showBusinessContext && (
-              <div className="tenant-select">
-                <span className="muted" style={{ fontSize: '0.75rem' }}>
-                  Active business
-                </span>
-                {businesses.length > 0 ? (
-                  <select
-                    value={tenantId}
-                    onChange={(e) => setTenantId(e.target.value)}
-                  >
-                    {isPlatformOwner ? (
-                      <option value="">All businesses (no tenant scope)</option>
-                    ) : null}
-                    {businesses.map((b) => (
-                      <option key={b.id} value={b.tenantId}>
-                        {b.businessName} · {b.tenantId.slice(0, 8)}…
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    value={tenantId}
-                    onChange={(e) => setTenantId(e.target.value)}
-                    placeholder="Tenant UUID"
-                    style={{ minWidth: '260px' }}
-                  />
-                )}
-              </div>
-            )}
 
             {/* Location filter — same tenant as active business */}
             {showBusinessContext && dashboardLocations.length > 0 && (
@@ -273,7 +242,15 @@ export default function ConsoleLayout() {
                     key={loc.id}
                     type="button"
                     className={selectedLocationId === loc.id ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
-                    onClick={() => setSelectedLocationId(loc.id)}
+                    onClick={() => {
+                      setSelectedLocationId(loc.id);
+                      if (isPlatformOwner) {
+                        const tid = (loc.business?.tenantId ?? '').trim();
+                        if (tid && tid !== tenantId) {
+                          setTenantId(tid);
+                        }
+                      }
+                    }}
                   >
                     {loc.name}
                   </button>

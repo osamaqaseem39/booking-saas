@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { assignRole, createIamUser } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
@@ -44,7 +44,7 @@ export default function UserCreatePage() {
       if (canAssign) {
         const uniqueRoles = Array.from(new Set(selectedRoles));
         for (const role of uniqueRoles) {
-          await assignRole({ userId: createdUser.id, role });
+          await assignRole(createdUser.id, role);
         }
       }
       navigate('/app/users', { replace: true });
@@ -68,8 +68,7 @@ export default function UserCreatePage() {
         {!canAssign && (
           <>
             {' '}
-            New users are added as staff for your active tenant (use the tenant
-            selector in the header).
+            New users are added as staff for your active tenant.
           </>
         )}
       </p>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import {
+  assignRole,
   createBooking,
   createIamUser,
   getBookingAvailability,
@@ -43,6 +44,7 @@ type QuickBookingState = {
   startTime: string;
   endTime: string;
   phone: string;
+  name: string;
 };
 
 function pad2(n: number): string {
@@ -286,7 +288,6 @@ export default function FacilitiesLiveViewPage() {
       const kind = facilityTypeToCourtKind(facility.type);
       const cardId = `${facility.type}-${facility.id}`;
       const isActive = facility.facilityIsActive !== false;
-      const linkedCourtKinds = undefined;
       map.set(
         cardId,
         computeFacilityLiveSnapshot(bookings, kind, facility.id, {
@@ -445,6 +446,11 @@ export default function FacilitiesLiveViewPage() {
       setQuickBookingError('Phone number is required.');
       return;
     }
+    const fullName = quickBooking.name.trim();
+    if (!fullName) {
+      setQuickBookingError('Customer name is required.');
+      return;
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(quickBooking.date)) {
       setQuickBookingError('Please select a valid booking date.');
       return;
@@ -543,12 +549,16 @@ export default function FacilitiesLiveViewPage() {
       let userId = existing?.id ?? '';
       if (!userId) {
         const created = await createIamUser({
-          fullName: `Guest ${digits.slice(-4) || 'User'}`,
+          fullName,
           email: `quick-${digits}-${Date.now()}@bukit.local`,
           phone,
           password: `Quick!${Math.random().toString(36).slice(2, 8)}9`,
         });
         userId = created.id;
+        // Ensure they have the end-customer role
+        await assignRole(userId, 'customer-end-user').catch((e) => {
+          console.warn('Failed to assign end-customer role to quick booking user:', e);
+        });
       }
 
       await createBooking({
@@ -676,6 +686,7 @@ export default function FacilitiesLiveViewPage() {
                       startTime: safeStart,
                       endTime: endTimeFrom(safeStart),
                       phone: '+92',
+                      name: '',
                     });
                   }
                 }
@@ -692,6 +703,7 @@ export default function FacilitiesLiveViewPage() {
                       startTime: safeStart,
                       endTime: endTimeFrom(safeStart),
                       phone: '+92',
+                      name: '',
                     });
                   }
                 }}
@@ -818,6 +830,19 @@ export default function FacilitiesLiveViewPage() {
                     )
                   }
                   placeholder="+92..."
+                  disabled={quickBookingSubmitting}
+                />
+              </div>
+              <div>
+                <label>Customer name</label>
+                <input
+                  value={quickBooking.name}
+                  onChange={(e) =>
+                    setQuickBooking((cur) =>
+                      cur ? { ...cur, name: e.target.value } : cur,
+                    )
+                  }
+                  placeholder="Full name"
                   disabled={quickBookingSubmitting}
                 />
               </div>

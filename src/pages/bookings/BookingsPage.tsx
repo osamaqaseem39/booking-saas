@@ -4,10 +4,9 @@ import {
   getBookingAvailability,
   getCourtBookedSlots,
   getCourtSlotGrid,
+  listAllBookings,
   listBookings,
-  listBookingsForTenant,
   listBusinessLocations,
-  listBusinesses,
   listCourtOptions,
   listIamUsers,
   patchCourtFacilitySlot,
@@ -22,6 +21,7 @@ import type {
   CourtKind,
   PaymentMethod,
   PaymentStatus,
+  UpdateBookingPayload,
 } from '../../types/booking';
 import type { IamUserRow } from '../../types/domain';
 import { formatTime12h, formatTimeRange12h } from '../../utils/timeDisplay';
@@ -51,6 +51,14 @@ function titleCaseWords(v: string): string {
     .join(' ');
 }
 
+function sportBadgeClass(sport: string | null | undefined): string {
+  const normalized = (sport ?? '').toLowerCase();
+  if (normalized === 'futsal') return 'badge sport-badge sport-badge--futsal';
+  if (normalized === 'cricket') return 'badge sport-badge sport-badge--cricket';
+  if (normalized === 'padel') return 'badge sport-badge sport-badge--padel';
+  return 'badge badge-neutral';
+}
+
 function toMinutes(time: string): number {
   const [hRaw, mRaw] = time.split(':');
   const h = Number(hRaw || 0);
@@ -73,14 +81,6 @@ function hourlyStartsInRange(startTime: string, endTime: string): string[] {
     out.push(minutesToTimeString(m));
   }
   return out;
-}
-
-function sportBadgeClass(sport: string | null | undefined): string {
-  const normalized = (sport ?? '').toLowerCase();
-  if (normalized === 'futsal') return 'badge sport-badge sport-badge--futsal';
-  if (normalized === 'cricket') return 'badge sport-badge sport-badge--cricket';
-  if (normalized === 'padel') return 'badge sport-badge sport-badge--padel';
-  return 'badge badge-neutral';
 }
 
 export default function BookingsPage() {
@@ -125,6 +125,7 @@ export default function BookingsPage() {
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
     [bookings, selectedId],
   );
+
   const filteredBookings = useMemo(() => {
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
@@ -205,6 +206,10 @@ export default function BookingsPage() {
             aValue = a.arenaName ?? locationsMap[a.arenaId]?.name ?? '';
             bValue = b.arenaName ?? locationsMap[b.arenaId]?.name ?? '';
             break;
+          case 'locationPhone':
+            aValue = locationsMap[a.arenaId]?.phone ?? '';
+            bValue = locationsMap[b.arenaId]?.phone ?? '';
+            break;
           default:
             aValue = '';
             bValue = '';
@@ -227,7 +232,11 @@ export default function BookingsPage() {
 
   const getSortIndicator = (key: string) => {
     if (!sortConfig || sortConfig.key !== key) return null;
-    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+    return (
+      <span className="data-sort-btn__arrow">
+        {sortConfig.direction === 'asc' ? '↑' : '↓'}
+      </span>
+    );
   };
 
   const bookingStats = useMemo(() => {
@@ -239,6 +248,7 @@ export default function BookingsPage() {
     const revenue = filteredBookings.reduce((sum, b) => sum + (b.pricing.totalAmount || 0), 0);
     return { total, pending, confirmed, cancelled, paid, revenue };
   }, [filteredBookings]);
+
   const sportStats = useMemo(() => {
     const stats = { futsal: 0, cricket: 0, padel: 0 };
     for (const b of filteredBookings) {
@@ -255,13 +265,7 @@ export default function BookingsPage() {
     setError(null);
     try {
       if (isPlatformOwner) {
-        const biz = await listBusinesses();
-        const chunks = await Promise.all(
-          biz.map((b) =>
-            listBookingsForTenant(b.tenantId).catch(() => [] as BookingRecord[]),
-          ),
-        );
-        const merged = chunks.flat();
+        const merged = await listAllBookings();
         merged.sort(
           (a, b) =>
             (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
@@ -292,7 +296,6 @@ export default function BookingsPage() {
 
   useEffect(() => {
     void refresh();
-    // Auto-refresh every 15 seconds to show "instantly" new bookings
     const timer = setInterval(() => {
       void refresh();
     }, 15000);
@@ -302,7 +305,7 @@ export default function BookingsPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const users: IamUserRow[] = await listIamUsers();
+        const users: IamUserRow[] = await listIamUsers(undefined, undefined, isPlatformOwner);
         const map: Record<string, UserSummary> = {};
         for (const u of users) {
           map[u.id] = {
@@ -332,7 +335,7 @@ export default function BookingsPage() {
     })();
     void (async () => {
       try {
-        const rows = await listBusinessLocations();
+        const rows = await listBusinessLocations({ ignoreActiveTenant: isPlatformOwner });
         const map: Record<string, { name: string; phone: string; businessId: string }> = {};
         for (const row of rows) {
           map[row.id] = {
@@ -348,12 +351,11 @@ export default function BookingsPage() {
     })();
   }, [selectedLocationId]);
 
-
-  async function patchBooking(patch: Parameters<typeof updateBooking>[1]) {
+  async function patchBooking(patch: UpdateBookingPayload) {
     if (!selectedId) return;
     setError(null);
     try {
-      const updated = await updateBooking(selectedId, patch);
+      const updated = await updateBooking(selectedId, patch as any);
       setBookings((prev) =>
         prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
       );
@@ -485,7 +487,7 @@ export default function BookingsPage() {
         </p>
       )}
       {!tenantId.trim() && !isPlatformOwner && (
-        <div className="err-banner">Pick an active tenant in the top bar.</div>
+        <div className="err-banner">No active tenant found. Please ensure you are logged in correctly.</div>
       )}
       <div className="toolbar">
         <span className="muted">
@@ -805,16 +807,90 @@ export default function BookingsPage() {
               <table className="data">
                 <thead>
                   <tr>
-                    <th onClick={() => requestSort('date')} style={{ cursor: 'pointer' }}>Date{getSortIndicator('date')}</th>
-                    <th onClick={() => requestSort('userName')} style={{ cursor: 'pointer' }}>Person name{getSortIndicator('userName')}</th>
-                    <th onClick={() => requestSort('userPhone')} style={{ cursor: 'pointer' }}>Person phone{getSortIndicator('userPhone')}</th>
-                    <th onClick={() => requestSort('locationName')} style={{ cursor: 'pointer' }}>Location{getSortIndicator('locationName')}</th>
-                    <th>Location phone</th>
-                    <th onClick={() => requestSort('sport')} style={{ cursor: 'pointer' }}>Sport{getSortIndicator('sport')}</th>
-                    <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status{getSortIndicator('status')}</th>
-                    <th onClick={() => requestSort('payment')} style={{ cursor: 'pointer' }}>Payment{getSortIndicator('payment')}</th>
-                    <th onClick={() => requestSort('total')} style={{ cursor: 'pointer' }}>Total{getSortIndicator('total')}</th>
-                    <th>Actions</th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'date' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('date')}
+                      >
+                        Date {getSortIndicator('date')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'userName' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('userName')}
+                      >
+                        Person name {getSortIndicator('userName')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'userPhone' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('userPhone')}
+                      >
+                        Person phone {getSortIndicator('userPhone')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'locationName' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('locationName')}
+                      >
+                        Location {getSortIndicator('locationName')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'locationPhone' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('locationPhone')}
+                      >
+                        Location phone {getSortIndicator('locationPhone')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'sport' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('sport')}
+                      >
+                        Sport {getSortIndicator('sport')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'status' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('status')}
+                      >
+                        Status {getSortIndicator('status')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'payment' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('payment')}
+                      >
+                        Payment {getSortIndicator('payment')}
+                      </button>
+                    </th>
+                    <th className="data-th-sortable">
+                      <button
+                        type="button"
+                        className={`data-sort-btn ${sortConfig?.key === 'total' ? 'data-sort-btn--active' : ''}`}
+                        onClick={() => requestSort('total')}
+                      >
+                        Total {getSortIndicator('total')}
+                      </button>
+                    </th>
+                    <th>
+                      <span className="data-th-static">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

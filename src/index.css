@@ -1208,13 +1208,6 @@ table.data.data--noninteractive tbody tr:hover {
   min-width: 0;
 }
 
-.console-topbar .tenant-select {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
 
 /* Location filter pill row in the topbar */
 .topbar-loc-bar {

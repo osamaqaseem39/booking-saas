@@ -49,6 +49,7 @@ export interface BookingRecord {
   bookingStatus: BookingStatus;
   notes?: string;
   cancellationReason?: string;
+  tenantId?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
+  listAllBookings,
+  listAllInvoices,
   listBookingsForTenant,
   listBusinesses,
   listBusinessLocations,
@@ -203,35 +205,27 @@ export default function OverviewPage() {
       setOwnerLoading(true);
       setOwnerError(null);
       try {
-        const [biz, loc, endUsers] = await Promise.all([
+        const [biz, loc, endUsers, allBookings, allInvoices] = await Promise.all([
           listBusinesses(),
           listBusinessLocations({ ignoreActiveTenant: true }),
           listEndUsers().catch(() => [] as Awaited<ReturnType<typeof listEndUsers>>),
+          listAllBookings().catch(() => [] as BookingRecord[]),
+          listAllInvoices().catch(() => [] as InvoiceRow[]),
         ]);
         setBusinesses(biz);
         setOwnerLocations(loc);
         setOwnerCustomerCount(
           endUsers.filter((u) => (u.roles ?? []).some((r) => r === 'customer-end-user')).length,
         );
-        const results = await Promise.all(
-          biz.map(async (b) => {
-            try {
-              const [bookings, invoices] = await Promise.all([
-                listBookingsForTenant(b.tenantId),
-                listInvoicesForTenant(b.tenantId),
-              ]);
-              return { tenantId: b.tenantId, bookings, invoices };
-            } catch {
-              return { tenantId: b.tenantId, bookings: [], invoices: [] };
-            }
-          }),
-        );
+
         const nextBookings: Record<string, BookingRecord[]> = {};
         const nextInvoices: Record<string, InvoiceRow[]> = {};
-        for (const row of results) {
-          nextBookings[row.tenantId] = row.bookings;
-          nextInvoices[row.tenantId] = row.invoices;
+        
+        for (const b of biz) {
+          nextBookings[b.tenantId] = allBookings.filter((bk) => bk.tenantId === b.tenantId);
+          nextInvoices[b.tenantId] = allInvoices.filter((inv) => inv.tenantId === b.tenantId);
         }
+        
         setBookingsByTenant(nextBookings);
         setInvoicesByTenant(nextInvoices);
       } catch (e) {
@@ -659,12 +653,11 @@ export default function OverviewPage() {
 
       {isPlatformOwner && (
         <p className="muted" style={{ marginTop: '-0.35rem', marginBottom: '1rem', maxWidth: '52rem' }}>
-          <strong>Overview</strong> below is <strong>platform-wide</strong> (all businesses). Optionally
-          narrow the top bar to one business and location for <Link to="/app/Facilites">Facilities</Link>;
-          leave it on <strong>All businesses</strong> for a global view.{' '}
-          <Link to="/app/bookings/new">Add booking</Link> picks the tenant on the form.{' '}
-          <Link to="/app/bookings">Bookings</Link> lists all tenants. Open{' '}
-          <Link to="/app/businesses">Businesses</Link> for detail pages without changing your global scope.
+          <strong>Overview</strong> below is <strong>platform-wide</strong> (all businesses). Use the location
+          filter in the top bar to narrow to one site.{' '}
+          <Link to="/app/bookings/new">Add booking</Link> picks the business on the form.{' '}
+          <Link to="/app/bookings">Bookings</Link> lists all businesses. Open{' '}
+          <Link to="/app/businesses">Businesses</Link> for detail pages.
         </p>
       )}
 

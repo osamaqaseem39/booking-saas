@@ -771,6 +771,8 @@ export async function listIamUsers(
   },
   /** When set, uses this tenant for `X-Tenant-Id` instead of the stored active tenant. */
   tenantIdOverride?: string,
+  /** When true, explicitly sends an empty X-Tenant-Id to fetch global users (platform-owner). */
+  ignoreActiveTenant?: boolean,
 ): Promise<IamUserRow[]> {
   const q = new URLSearchParams();
   const search = params?.search?.trim();
@@ -779,9 +781,18 @@ export async function listIamUsers(
   if (params?.sortOrder) q.set('sortOrder', params.sortOrder);
   const query = q.toString();
   const path = query ? `/iam/users?${query}` : '/iam/users';
+  
+  if (ignoreActiveTenant) {
+    const h = headers() as Record<string, string>;
+    h['X-Tenant-Id'] = '';
+    return request<IamUserRow[]>(path, { method: 'GET', headers: h });
+  }
+
   const tid = (tenantIdOverride ?? getTenantId()).trim();
-  if (!tid) return [];
-  return requestForTenant<IamUserRow[]>(tid, path, { method: 'GET' });
+  if (tid) {
+    return requestForTenant<IamUserRow[]>(tid, path, { method: 'GET' });
+  }
+  return request<IamUserRow[]>(path, { method: 'GET' });
 }
 
 /** Platform owner only — users with customer-end-user role. */
@@ -839,18 +850,27 @@ export async function activateIamUser(userId: string): Promise<IamUserRow> {
   });
 }
 
-export async function assignRole(body: {
-  userId: string;
-  role: string;
-}): Promise<unknown> {
+export async function assignRole(userId: string, role: string): Promise<unknown> {
   return request('/iam/roles/assign', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify({ userId, role }),
   });
 }
 
+/** GET /bookings — active tenant list only. */
 export async function listBookings(): Promise<BookingRecord[]> {
   return request<BookingRecord[]>('/bookings', { method: 'GET' });
+}
+
+/** GET /bookings — global list (all businesses). Usually platform-owner only. */
+export async function listAllBookings(): Promise<BookingRecord[]> {
+  const h = headers() as Record<string, string>;
+  // Explicitly clear tenant header to ensure global fetch
+  h['X-Tenant-Id'] = '';
+  return request<BookingRecord[]>('/bookings', {
+    method: 'GET',
+    headers: h,
+  });
 }
 
 export async function listBookingsForTenant(
@@ -1116,6 +1136,16 @@ export async function listInvoices(): Promise<InvoiceRow[]> {
 export async function listInvoicesForTenant(tenantId: string): Promise<InvoiceRow[]> {
   return requestForTenant<InvoiceRow[]>(tenantId, '/billing/invoices', {
     method: 'GET',
+  });
+}
+
+/** GET /billing/invoices — global list (all businesses). Usually platform-owner only. */
+export async function listAllInvoices(): Promise<InvoiceRow[]> {
+  const h = headers() as Record<string, string>;
+  h['X-Tenant-Id'] = '';
+  return request<InvoiceRow[]>('/billing/invoices', {
+    method: 'GET',
+    headers: h,
   });
 }
 

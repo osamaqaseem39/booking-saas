@@ -206,7 +206,7 @@ export default function AddTimeSlotTemplatePage() {
         </Link>
       </p>
       <h1 className="page-title">{pageTitle}</h1>
-      {!tenantId.trim() && <div className="err-banner">Pick an active tenant in the top bar.</div>}
+      {!tenantId.trim() && <div className="err-banner">No active tenant found. Select a business from the businesses page to manage its slots.</div>}
       {tplErr && <div className="err-banner">{tplErr}</div>}
       {loadingTemplate && <p className="muted">Loading template…</p>}
 

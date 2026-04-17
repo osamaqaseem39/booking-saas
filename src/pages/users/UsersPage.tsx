@@ -1,11 +1,10 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   activateIamUser,
   deleteIamUser,
+  listAllBookings,
   listBookings,
-  listBookingsForTenant,
-  listBusinesses,
   listEndUsers,
   listIamUsers,
 } from '../../api/saasClient';
@@ -83,7 +82,7 @@ export default function UsersPage() {
     setLoading(true);
     setErr(null);
     try {
-      const raw = await listIamUsers({ search, sortBy, sortOrder });
+      const raw = await listIamUsers({ search, sortBy, sortOrder }, undefined, isPlatformOwner);
       const filtered = isPlatformOwner ? raw.filter((u) => !isCustomerOnly(u)) : raw;
       setStaffRows(filtered);
     } catch (e) {
@@ -109,13 +108,7 @@ export default function UsersPage() {
           listEndUsers(),
           (async () => {
             if (isPlatformOwner) {
-              const businesses = await listBusinesses();
-              const chunks = await Promise.all(
-                businesses.map((b) =>
-                  listBookingsForTenant(b.tenantId).catch(() => [] as BookingRecord[]),
-                ),
-              );
-              return chunks.flat();
+              return listAllBookings();
             }
             return listBookings().catch(() => [] as BookingRecord[]);
           })(),

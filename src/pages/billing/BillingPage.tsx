@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   issueInvoice,
   listBusinesses,
@@ -55,7 +55,7 @@ export default function BillingPage() {
         In-memory invoices per API process.{' '}
         {isPlatformOwner
           ? 'As platform owner, the table merges invoices from all businesses.'
-          : 'Scoped by active tenant.'}
+          : 'Scoped by assigned tenant.'}
       </p>
       {err && <div className="err-banner">{err}</div>}
       <div className="toolbar" style={{ marginBottom: '0.75rem' }}>
