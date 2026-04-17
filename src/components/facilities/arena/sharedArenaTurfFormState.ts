@@ -133,7 +133,8 @@ export function sharedDetailToFormState(
   d: SharedDetail | any,
   base: SharedArenaTurfFormState,
 ): SharedArenaTurfFormState {
-  const vent = d.ventilation;
+  const common = d.sportConfig?.common || {};
+  const vent = d.ventilation ?? common.ventilation;
   const arr = Array.isArray(vent) ? vent : [];
 
   const apiPricing = d.pricing?.futsal ?? d.pricing?.cricket;
@@ -141,13 +142,27 @@ export function sharedDetailToFormState(
   const peakWd = d.peakPricing?.weekdayEvening ?? apiPricing?.peakPrice;
   const peakWe = d.peakPricing?.weekend ?? apiPricing?.weekendPrice;
 
+  const imageUrls = d.imageUrls ?? common.imageUrls;
+  const ceilingHeightUnit = d.ceilingHeightUnit ?? common.ceilingHeightUnit;
+  const sideNetting = d.sideNetting ?? common.sideNetting;
+  const netHeight = d.netHeight ?? common.netHeight;
+  const boundaryType = d.boundaryType ?? common.boundaryType;
+  const lighting = d.lighting ?? common.lighting;
+  const shockAbsorptionLayer =
+    d.shockAbsorptionLayer ?? common.shockAbsorptionLayer;
+  const discountMembership = d.discountMembership ?? common.discountMembership;
+  const amenities = d.amenities ?? common.amenities;
+  const rules = d.rules ?? common.rules;
+  const allowParallelBooking =
+    d.allowParallelBooking ?? common.allowParallelBooking;
+
   return {
     ...base,
-    imageLines: Array.isArray(d.imageUrls) ? d.imageUrls.join('\n') : base.imageLines,
+    imageLines: Array.isArray(imageUrls) ? imageUrls.join('\n') : base.imageLines,
     ceilingHeightValue: strFromApi(d.ceilingHeightValue ?? d.ceilingHeight),
     ceilingHeightUnit:
-      d.ceilingHeightUnit === 'ft' || d.ceilingHeightUnit === 'm'
-        ? d.ceilingHeightUnit
+      ceilingHeightUnit === 'ft' || ceilingHeightUnit === 'm'
+        ? ceilingHeightUnit
         : base.ceilingHeightUnit,
     coveredType:
       d.coveredType === 'open' ||
@@ -158,18 +173,18 @@ export function sharedDetailToFormState(
           ? 'fully_indoor'
           : d.coveredType
         : '',
-    sideNetting: d.sideNetting === true,
-    netHeight: d.netHeight ?? '',
+    sideNetting: sideNetting === true,
+    netHeight: netHeight ?? '',
     boundaryType:
-      d.boundaryType === 'net' || d.boundaryType === 'wall' ? d.boundaryType : '',
+      boundaryType === 'net' || boundaryType === 'wall' ? boundaryType : '',
     ventNatural: arr.includes('natural'),
     ventFans: arr.includes('fans'),
     ventAc: arr.includes('ac'),
     lighting:
-      d.lighting === 'led_floodlights' ||
-      d.lighting === 'mixed' ||
-      d.lighting === 'daylight'
-        ? d.lighting
+      lighting === 'led_floodlights' ||
+      lighting === 'mixed' ||
+      lighting === 'daylight'
+        ? lighting
         : '',
     lengthM: strFromApi(d.lengthM ?? d.length),
     widthM: strFromApi(d.widthM ?? d.width),
@@ -178,24 +193,24 @@ export function sharedDetailToFormState(
         ? d.surfaceType
         : '',
     turfQuality: d.turfQuality ?? '',
-    shockAbsorptionLayer: d.shockAbsorptionLayer === true,
+    shockAbsorptionLayer: shockAbsorptionLayer === true,
     pricePerSlot: strFromApi(pricePerSlot),
     peakWeekdayEvening: strFromApi(peakWd),
     peakWeekend: strFromApi(peakWe),
-    discountLabel: d.discountMembership?.label ?? '',
-    discountAmount: strFromApi(d.discountMembership?.amount),
-    discountPercentOff: strFromApi(d.discountMembership?.percentOff),
-    amenChanging: d.amenities?.changingRoom === true,
-    amenWashroom: d.amenities?.washroom === true,
-    amenParking: d.amenities?.parking === true,
-    amenWater: d.amenities?.drinkingWater === true,
-    amenSeating: d.amenities?.seatingArea === true,
+    discountLabel: discountMembership?.label ?? '',
+    discountAmount: strFromApi(discountMembership?.amount),
+    discountPercentOff: strFromApi(discountMembership?.percentOff),
+    amenChanging: amenities?.changingRoom === true,
+    amenWashroom: amenities?.washroom === true,
+    amenParking: amenities?.parking === true,
+    amenWater: amenities?.drinkingWater === true,
+    amenSeating: amenities?.seatingArea === true,
     maxPlayers:
-      d.rules?.maxPlayers != null && Number.isFinite(d.rules.maxPlayers)
-        ? String(d.rules.maxPlayers)
+      rules?.maxPlayers != null && Number.isFinite(rules.maxPlayers)
+        ? String(rules.maxPlayers)
         : '',
-    safetyInstructions: d.rules?.safetyInstructions ?? '',
-    cancellationPolicy: d.rules?.cancellationPolicy ?? '',
+    safetyInstructions: rules?.safetyInstructions ?? '',
+    cancellationPolicy: rules?.cancellationPolicy ?? '',
     slotDuration:
       (d.slotDurationMinutes || d.slotDuration) === 60 ||
       (d.slotDurationMinutes || d.slotDuration) === 90 ||
@@ -203,7 +218,7 @@ export function sharedDetailToFormState(
         ? '60'
         : '',
     bufferMinutes: strFromApi(d.bufferBetweenSlotsMinutes ?? d.bufferTime),
-    allowParallelBooking: d.allowParallelBooking === true,
+    allowParallelBooking: allowParallelBooking === true,
     timeSlotTemplateId:
       typeof d.timeSlotTemplateId === 'string' && d.timeSlotTemplateId
         ? d.timeSlotTemplateId

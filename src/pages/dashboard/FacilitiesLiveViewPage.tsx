@@ -574,7 +574,7 @@ export default function FacilitiesLiveViewPage() {
             endTime,
             price: quickPrice,
             currency: location.currency ?? 'PKR',
-            status: 'reserved',
+            status: 'confirmed',
           },
         ],
         pricing: {
@@ -587,7 +587,7 @@ export default function FacilitiesLiveViewPage() {
           paymentStatus: 'pending',
           paymentMethod: 'cash',
         },
-        bookingStatus: 'pending',
+        bookingStatus: 'confirmed',
         notes: 'source:walkin',
       });
 
