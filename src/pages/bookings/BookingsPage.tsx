@@ -9,8 +9,8 @@ import {
   listBusinessLocations,
   listCourtOptions,
   listIamUsers,
-  patchCourtFacilitySlot,
   updateBooking,
+  deleteBooking,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
@@ -364,26 +364,27 @@ export default function BookingsPage() {
     }
   }
 
+  async function removeBooking() {
+    if (!selectedId) return;
+    if (!window.confirm('Are you sure you want to delete this booking? This will also unblock the time slots.')) {
+      return;
+    }
+    setError(null);
+    try {
+      await deleteBooking(selectedId);
+      setBookings((prev) => prev.filter((b) => b.bookingId !== selectedId));
+      setSelectedId(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed');
+    }
+  }
+
   async function patchBookingStatus(bookingId: string, nextStatus: BookingStatus) {
     setError(null);
     try {
       const updated = await updateBooking(bookingId, {
         bookingStatus: nextStatus,
       });
-      const nextSlotStatus = nextStatus === 'confirmed' ? 'blocked' : 'available';
-      for (const item of updated.items) {
-        const startMins = toMinutes(item.startTime);
-        const endMins = toMinutes(item.endTime);
-        for (let m = startMins; m < endMins; m += 60) {
-          await patchCourtFacilitySlot({
-            courtKind: item.courtKind,
-            courtId: item.courtId,
-            date: updated.bookingDate,
-            startTime: minutesToTimeString(m),
-            status: nextSlotStatus,
-          });
-        }
-      }
       setBookings((prev) =>
         prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
       );
@@ -1096,6 +1097,16 @@ export default function BookingsPage() {
                         }
                       }}
                     />
+                  </div>
+                  <div style={{ marginTop: '0.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      style={{ color: '#d32f2f' }}
+                      onClick={() => void removeBooking()}
+                    >
+                      Delete booking
+                    </button>
                   </div>
                 </div>
               </div>

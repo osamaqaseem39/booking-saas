@@ -149,7 +149,7 @@ export default function OverviewPage() {
   const [ownerLoading, setOwnerLoading] = useState(false);
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [ownerCustomerCount, setOwnerCustomerCount] = useState<number | null>(null);
-  const [ownerUsersMap, setOwnerUsersMap] = useState<Record<string, { name: string; email: string }>>({});
+
   const [ownerAllBookings, setOwnerAllBookings] = useState<BookingRecord[]>([]);
   const [dateRange, setDateRange] = useState<'7' | '30' | '90' | 'all'>('30');
   const [ownerBookingStatus, setOwnerBookingStatus] = useState<'all' | BookingStatus>('all');
@@ -207,22 +207,18 @@ export default function OverviewPage() {
       setOwnerLoading(true);
       setOwnerError(null);
       try {
-        const [biz, loc, endUsers, allBookings, allInvoices, globalUsers] = await Promise.all([
+        const [biz, loc, endUsers, allBookings, allInvoices] = await Promise.all([
           listBusinesses(),
           listBusinessLocations({ ignoreActiveTenant: true }),
           listEndUsers().catch(() => [] as Awaited<ReturnType<typeof listEndUsers>>),
           listAllBookings().catch(() => [] as BookingRecord[]),
           listAllInvoices().catch(() => [] as InvoiceRow[]),
-          listIamUsers(undefined, undefined, true).catch(() => [] as IamUserRow[]),
         ]);
         setBusinesses(biz);
         setOwnerLocations(loc);
         setOwnerAllBookings(allBookings);
 
-        const uMap: Record<string, { name: string; email: string }> = {};
-        for (const u of endUsers) uMap[u.id] = { name: u.fullName || 'Customer', email: u.email };
-        for (const u of globalUsers) uMap[u.id] = { name: u.fullName || u.email, email: u.email };
-        setOwnerUsersMap(uMap);
+
         setOwnerCustomerCount(
           endUsers.filter((u) => (u.roles ?? []).some((r) => r === 'customer-end-user')).length,
         );

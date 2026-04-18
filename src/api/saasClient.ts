@@ -915,6 +915,14 @@ export async function updateBooking(
   });
 }
 
+export async function deleteBooking(
+  bookingId: string,
+): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/bookings/${bookingId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getBookingAvailability(params: {
   date: string;
   startTime: string;
