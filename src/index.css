@@ -510,6 +510,17 @@ table.data th {
   top: 0;
   z-index: 1;
   backdrop-filter: blur(3px);
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+table.data.data--sortable th {
+  cursor: pointer;
+  user-select: none;
+}
+
+table.data.data--sortable th:hover {
+  color: var(--text);
+  background: rgba(45, 212, 191, 0.08);
 }
 
 table.data th.data-th-sortable {
