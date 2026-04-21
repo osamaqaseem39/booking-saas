@@ -863,6 +863,13 @@ export async function assignRole(
   });
 }
 
+export async function unassignRole(userId: string, role: string): Promise<unknown> {
+  return request('/iam/roles/unassign', {
+    method: 'POST',
+    body: JSON.stringify({ userId, role }),
+  });
+}
+
 /** GET /bookings — active tenant list only. */
 export async function listBookings(): Promise<BookingRecord[]> {
   return request<BookingRecord[]>('/bookings', { method: 'GET' });

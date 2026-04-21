@@ -7,6 +7,7 @@ import {
   listIamUsers,
   updateIamUser,
   listBusinessLocationNameIds,
+  unassignRole,
   type BusinessLocationNameId,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
@@ -39,7 +40,6 @@ export default function UserEditPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [assignRoleCode, setAssignRoleCode] = useState<string>('customer-end-user');
   const [locations, setLocations] = useState<BusinessLocationNameId[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState('');
 
@@ -131,17 +131,26 @@ export default function UserEditPage() {
     }
   }
 
-  async function onAssignRole() {
-    if (!userId.trim()) return;
+  async function onToggleRole(role: string) {
+    if (!userId.trim() || !user) return;
+    const currentRoles = user.roles ?? [];
+    const isActive = currentRoles.includes(role);
     setAssigning(true);
     setErr(null);
     try {
-      const locId = assignRoleCode === 'location-admin' ? selectedLocationId : undefined;
-      await assignRole(userId, assignRoleCode, locId);
+      if (isActive) {
+        await unassignRole(userId, role);
+      } else {
+        const locId = role === 'location-admin' ? selectedLocationId : undefined;
+        if (role === 'location-admin' && !locId) {
+          throw new Error('Please select a location first');
+        }
+        await assignRole(userId, role, locId);
+      }
       const users = await listIamUsers();
       setRows(users);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Assign failed');
+      setErr(e instanceof Error ? e.message : 'Role update failed');
     } finally {
       setAssigning(false);
     }
@@ -252,26 +261,35 @@ export default function UserEditPage() {
           </form>
 
           {canAssign && (
-            <div className="form-grid" style={{ maxWidth: '520px', marginTop: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem' }}>Assign role</h3>
-              <div>
-                <label>Role</label>
-                <select value={assignRoleCode} onChange={(e) => setAssignRoleCode(e.target.value)}>
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+            <div className="connection-panel" style={{ maxWidth: '760px', marginTop: '1.25rem' }}>
+              <h2>User roles</h2>
+              <p className="muted" style={{ marginTop: 0 }}>
+                Select roles for this user. Changes are applied immediately.
+              </p>
+              <div className="checkbox-grid">
+                {ROLES.map((r) => (
+                  <label key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <input
+                      type="checkbox"
+                      disabled={assigning}
+                      checked={(user.roles ?? []).includes(r)}
+                      onChange={() => void onToggleRole(r)}
+                    />
+                    <span style={{ textTransform: 'none', color: 'var(--text)' }}>
+                      {r.replace(/-/g, ' ')}
+                    </span>
+                  </label>
+                ))}
               </div>
 
-              {assignRoleCode === 'location-admin' && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.35rem' }}>Location access *</label>
+              {!(user.roles ?? []).includes('location-admin') && (
+                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.35rem' }}>Location access (required for Location Admin) *</label>
                   <select
                     value={selectedLocationId}
                     onChange={(e) => setSelectedLocationId(e.target.value)}
-                    style={{ width: '100%' }}
+                    disabled={assigning}
+                    style={{ width: '100%', maxWidth: '400px' }}
                   >
                     <option value="">— Select a location —</option>
                     {locations.map((loc) => (
@@ -282,15 +300,6 @@ export default function UserEditPage() {
                   </select>
                 </div>
               )}
-
-              <button
-                type="button"
-                className="btn-ghost"
-                disabled={assigning || (assignRoleCode === 'location-admin' && !selectedLocationId)}
-                onClick={() => void onAssignRole()}
-              >
-                {assigning ? 'Assigning…' : 'Assign role'}
-              </button>
             </div>
           )}
         </>
