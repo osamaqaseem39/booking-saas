@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
-  assignRole,
   createBooking,
   createBookingForTenant,
   createIamUser,
@@ -755,14 +754,11 @@ export default function BookingCreatePage() {
           email: generatedEmail,
           phone: normalizePhoneForStorage(walkInPhone),
           password: makePassword(),
+          roles: ['customer-end-user'],
         },
         isPlatformOwner ? bookingTenant : undefined,
       );
       resolvedCustomerId = created.id;
-      // Ensure they have the end-customer role
-      await assignRole(resolvedCustomerId, 'customer-end-user').catch((e) => {
-        console.warn('Failed to assign end-customer role to walk-in user:', e);
-      });
       customerNameToSave = created.fullName;
       customerPhoneToSave = normalizePhoneForStorage(created.phone ?? walkInPhone);
     }

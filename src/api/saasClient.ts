@@ -807,6 +807,7 @@ export async function createIamUser(
     email: string;
     phone?: string;
     password: string;
+    roles?: string[];
   },
   /** When set, uses this tenant for `X-Tenant-Id` instead of the stored active tenant. */
   tenantIdOverride?: string,
