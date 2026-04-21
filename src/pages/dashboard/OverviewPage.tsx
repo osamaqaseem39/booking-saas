@@ -847,62 +847,86 @@ export default function OverviewPage() {
 
 
 
-              <div className="connection-panel overview-panel" style={{ marginTop: '1rem' }}>
-                <h3 className="overview-subtitle" style={{ marginBottom: '0.4rem' }}>
-                  Booking insights
-                </h3>
-                <p className="muted" style={{ marginTop: 0 }}>
-                  High-level breakdown of your bookings by sport and source.
-                </p>
-                <div className="overview-chart-grid overview-chart-grid--simplified">
-                  <article className="overview-chart-card overview-chart-card--proper">
-                    <header className="chart-header">
-                      <h4>Bookings by sport</h4>
-                    </header>
-                    <div className="chart-content">
-                      <div className="overview-source-bars">
-                        {sportChartStats.map((row) => (
-                          <div key={row.sport} className="overview-source-row">
-                            <span className="overview-source-label">{titleCase(row.sport)}</span>
-                            <div className="overview-source-track">
-                              <div
-                                className={`overview-sport-bar-fill overview-sport-bar-fill--${row.sport}`}
-                                style={{ width: `${row.widthPct}%` }}
-                              />
-                            </div>
-                            <span className="overview-source-value">
-                              <strong>{row.count}</strong> <small className="muted">({row.pct}%)</small>
-                            </span>
-                          </div>
-                        ))}
+              <div className="overview-mosaic-grid">
+                {/* Main Highlight: Bookings by Sport */}
+                <article className="overview-mosaic-card mosaic-card--large">
+                  <header className="mosaic-header">
+                    <h4>Bookings by sport</h4>
+                    <span className="muted small">Distribution of activities</span>
+                  </header>
+                  <div className="mosaic-content mosaic-content--flex">
+                    <div className="mosaic-donut-wrap">
+                      <div 
+                        className="mosaic-donut" 
+                        style={{
+                          background: `conic-gradient(
+                            #10b981 0% ${sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0}%,
+                            #3b82f6 ${sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0}% ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) }%,
+                            #f59e0b ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) }% ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'padel')?.pct ?? 0) }%,
+                            #64748b ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'padel')?.pct ?? 0) }% 100%
+                          )`
+                        }}
+                      >
+                        <div className="mosaic-donut-hole">
+                          <strong>{locationFilteredBookings.length}</strong>
+                          <span>Total</span>
+                        </div>
                       </div>
                     </div>
-                  </article>
+                    <div className="mosaic-legend">
+                      {sportChartStats.map((row) => (
+                        <div key={row.sport} className="mosaic-legend-item">
+                          <span className={`mosaic-swatch mosaic-swatch--${row.sport}`} />
+                          <span className="mosaic-legend-label">{titleCase(row.sport)}</span>
+                          <span className="mosaic-legend-value">{row.pct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </article>
 
-                  <article className="overview-chart-card overview-chart-card--proper">
-                    <header className="chart-header">
-                      <h4>Booking from</h4>
-                    </header>
-                    <div className="chart-content">
-                      <div className="overview-source-bars">
-                        {sourceChartStats.map((row) => (
-                          <div key={row.source} className="overview-source-row">
-                            <span className="overview-source-label">{bookingFromLabel(row.source)}</span>
-                            <div className="overview-source-track">
-                              <div
-                                className={`overview-source-fill overview-source-fill--${row.source}`}
-                                style={{ width: `${row.widthPct}%` }}
-                              />
-                            </div>
-                            <span className="overview-source-value">
-                              <strong>{row.count}</strong> <small className="muted">({row.pct}%)</small>
-                            </span>
+                {/* Secondary Highlight: Booking From */}
+                <article className="overview-mosaic-card mosaic-card--medium">
+                  <header className="mosaic-header">
+                    <h4>Booking from</h4>
+                    <span className="muted small">Source analytics</span>
+                  </header>
+                  <div className="mosaic-content">
+                    <div className="mosaic-mini-bars">
+                      {sourceChartStats.map((row) => (
+                        <div key={row.source} className="mosaic-mini-bar-row">
+                          <div className="mosaic-mini-bar-info">
+                            <span>{bookingFromLabel(row.source)}</span>
+                            <span>{row.pct}%</span>
                           </div>
-                        ))}
-                      </div>
+                          <div className="mosaic-mini-bar-track">
+                             <div 
+                               className={`mosaic-mini-bar-fill mosaic-mini-bar-fill--${row.source}`}
+                               style={{ width: `${row.widthPct}%` }}
+                             />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </article>
-                </div>
+                  </div>
+                </article>
+
+                {/* Smaller context cards (Quick Stats) */}
+                <article className="overview-mosaic-card mosaic-card--small">
+                   <div className="mosaic-stat-box">
+                      <span className="muted small">Average Value</span>
+                      <strong>{fmtCurrency(Math.round(locationFilteredBookings.length > 0 ? kpis.monthRevenue / Math.max(1, kpis.monthCount) : 0), kpis.currency)}</strong>
+                      <span className="small ok">Per booking</span>
+                   </div>
+                </article>
+
+                <article className="overview-mosaic-card mosaic-card--small">
+                   <div className="mosaic-stat-box">
+                      <span className="muted small">Peak Day</span>
+                      <strong>Today</strong>
+                      <span className="small muted">{kpis.todayCount} bookings</span>
+                   </div>
+                </article>
               </div>
             </>
           )}
