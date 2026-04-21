@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { assignRole, createIamUser, listBusinessLocationNameIds, type BusinessLocationNameId } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
@@ -40,6 +40,13 @@ export default function UserCreatePage() {
       }
     })();
   }, [canAssign]);
+
+  const availableRoles = useMemo(() => {
+    const r = session?.roles ?? [];
+    if (r.includes('platform-owner')) return ROLES;
+    // Business admins can't create platform owners
+    return ROLES.filter((role) => role !== 'platform-owner');
+  }, [session?.roles]);
 
   function toggleRole(role: SystemRole) {
     setSelectedRoles((prev) =>
@@ -133,7 +140,7 @@ export default function UserCreatePage() {
               Select one or more roles to assign after user creation.
             </p>
             <div className="checkbox-grid">
-              {ROLES.map((role) => (
+              {availableRoles.map((role: SystemRole) => (
                 <label key={role} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                   <input
                     type="checkbox"

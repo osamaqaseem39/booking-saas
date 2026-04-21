@@ -15,7 +15,7 @@ import { userMayAssignRoles } from '../../rbac';
 import type { IamUserRow } from '../../types/domain';
 import { normalizePhoneForStorage } from '../../utils/phone';
 
-const ROLES = [
+const SYSTEM_ROLES = [
   'platform-owner',
   'business-admin',
   'location-admin',
@@ -42,6 +42,11 @@ export default function UserEditPage() {
   const [password, setPassword] = useState('');
   const [locations, setLocations] = useState<BusinessLocationNameId[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState('');
+
+  const availableRoles = useMemo(() => {
+    if (isPlatformOwner) return SYSTEM_ROLES;
+    return SYSTEM_ROLES.filter((r) => r !== 'platform-owner');
+  }, [isPlatformOwner]);
 
   const user = useMemo(() => rows.find((r) => r.id === userId) ?? null, [rows, userId]);
 
@@ -267,7 +272,7 @@ export default function UserEditPage() {
                 Select roles for this user. Changes are applied immediately.
               </p>
               <div className="checkbox-grid">
-                {ROLES.map((r) => (
+                {availableRoles.map((r) => (
                   <label key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                     <input
                       type="checkbox"

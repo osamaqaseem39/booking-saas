@@ -138,5 +138,7 @@ export function navVisibleForRoles(userRoles: string[]): NavItem[] {
 }
 
 export function userMayAssignRoles(userRoles: string[]): boolean {
-  return userRoles.includes('platform-owner');
+  return (
+    userRoles.includes('platform-owner') || userRoles.includes('business-admin')
+  );
 }
