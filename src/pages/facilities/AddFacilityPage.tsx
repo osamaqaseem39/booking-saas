@@ -412,7 +412,7 @@ export default function AddFacilityPage() {
       ) : null}
 
       <h3 style={{ fontSize: '1rem', marginTop: '1.25rem' }}>Add facility</h3>
-      <div className="facility-setup-grid">
+      <div className="facility-setup-grid" style={{ marginBottom: '1.25rem' }}>
         {isArenaLocation ? (
           <>
             {arenaAddButtons.sharedArenaCode ? (
