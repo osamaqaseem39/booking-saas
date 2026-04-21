@@ -7,17 +7,14 @@ import {
   listBusinesses,
   listBusinessLocations,
   listEndUsers,
-  listIamUsers,
-  listInvoicesForTenant,
 } from '../../api/saasClient';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
 import { useSession } from '../../context/SessionContext';
-import type { BookingRecord, BookingStatus, PaymentStatus } from '../../types/booking';
-import { LOCATION_TYPE_OPTIONS } from '../../constants/locationTypes';
+import type { BookingRecord, BookingStatus } from '../../types/booking';
+
 import type {
   BusinessLocationRow,
   BusinessRow,
-  IamUserRow,
   InvoiceRow,
 } from '../../types/domain';
 
@@ -36,12 +33,7 @@ function titleCase(v: string): string {
   return v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatLocationTypeLabel(typeKey: string): string {
-  if (typeKey === 'unknown') return 'Unknown';
-  const opt = LOCATION_TYPE_OPTIONS.find((o) => o.value === typeKey);
-  if (opt) return opt.label;
-  return titleCase(typeKey.replace(/-/g, ' '));
-}
+
 
 function fmtCurrency(amount: number, currency = 'PKR'): string {
   return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -60,24 +52,9 @@ function trendMeta(current: number, previous: number): {
   return { delta: 0, pct: 0, tone: 'flat', sign: '' };
 }
 
-function localDateYmd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
-function lastNDates(days: number): string[] {
-  const out: string[] = [];
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    out.push(localDateYmd(d));
-  }
-  return out;
-}
+
+
 
 type BookingSource = 'walkin' | 'app' | 'call';
 
@@ -105,10 +82,7 @@ function bookingSourceFromRecord(booking: BookingRecord): BookingSource {
   return 'walkin';
 }
 
-function sortArrow(active: boolean, asc: boolean): string {
-  if (!active) return '';
-  return asc ? ' ↑' : ' ↓';
-}
+
 
 type OwnerTenantSortColumn =
   | 'businessName'
@@ -162,15 +136,11 @@ export default function OverviewPage() {
   // ── Tenant-scoped dashboard (business staff / admin only) ───────────────
   const [tenantBusinessName, setTenantBusinessName] = useState('Your business');
   const [tenantBookings, setTenantBookings] = useState<BookingRecord[]>([]);
-  const [tenantInvoices, setTenantInvoices] = useState<InvoiceRow[]>([]);
-  const [tenantIamUsers, setTenantIamUsers] = useState<IamUserRow[]>([]);
+
   const [tenantLoading, setTenantLoading] = useState(false);
   const [tenantError, setTenantError] = useState<string | null>(null);
-  const [bizBookingStatus, setBizBookingStatus] = useState<'all' | BookingStatus>('all');
-  const [bizPayStatus, setBizPayStatus] = useState<'all' | PaymentStatus>('all');
-  const [bizListSort, setBizListSort] = useState<
-    'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'status'
-  >('date_desc');
+
+
 
   useEffect(() => {
     if (!showTenantDashboard || !tenantId.trim()) return;
@@ -178,23 +148,17 @@ export default function OverviewPage() {
       setTenantLoading(true);
       setTenantError(null);
       try {
-        const [biz, bookings, invoices, iamUsers] = await Promise.all([
+        const [biz, bookings] = await Promise.all([
           listBusinesses(),
           listBookingsForTenant(tenantId),
-          listInvoicesForTenant(tenantId).catch(() => [] as InvoiceRow[]),
-          listIamUsers().catch(() => [] as IamUserRow[]),
         ]);
         const match = biz.find((b) => b.tenantId === tenantId);
         setTenantBusinessName(
           match?.businessName ?? biz[0]?.businessName ?? 'Your business',
         );
         setTenantBookings(bookings);
-        setTenantInvoices(invoices);
-        setTenantIamUsers(iamUsers);
       } catch (e) {
         setTenantError(e instanceof Error ? e.message : 'Failed to load business overview');
-        setTenantInvoices([]);
-        setTenantIamUsers([]);
       } finally {
         setTenantLoading(false);
       }
@@ -367,27 +331,8 @@ export default function OverviewPage() {
     return tenantBookings.filter((b) => b.arenaId === selectedLocationId);
   }, [tenantBookings, selectedLocationId]);
 
-  const bizRollup = useMemo(() => {
-    const currency =
-      locationFilteredBookings.find((b) => b.items?.[0]?.currency)?.items?.[0]?.currency ?? 'PKR';
-    const totalBookingValue = locationFilteredBookings.reduce(
-      (s, b) => s + Number(b.pricing?.totalAmount ?? 0),
-      0,
-    );
-    const totalInvoiced = tenantInvoices.reduce((s, i) => s + Number(i.amount ?? 0), 0);
-    const customerAccounts = tenantIamUsers.filter((u) =>
-      (u.roles ?? []).includes('customer-end-user'),
-    ).length;
-    return { totalBookingValue, totalInvoiced, customerAccounts, currency };
-  }, [locationFilteredBookings, tenantInvoices, tenantIamUsers]);
 
-  const filteredBookings = useMemo(() => {
-    return locationFilteredBookings.filter((b) => {
-      if (bizBookingStatus !== 'all' && b.bookingStatus !== bizBookingStatus) return false;
-      if (bizPayStatus !== 'all' && b.payment.paymentStatus !== bizPayStatus) return false;
-      return true;
-    });
-  }, [locationFilteredBookings, bizBookingStatus, bizPayStatus]);
+  const filteredBookings = locationFilteredBookings;
 
   const kpis = useMemo(() => {
     const locBase = locationFilteredBookings;
@@ -414,26 +359,7 @@ export default function OverviewPage() {
     };
   }, [locationFilteredBookings, prevMonthStr, thisMonthStr, todayStr, yesterdayStr]);
 
-  const sourceStats = useMemo(() => {
-    const sourceOrder: BookingSource[] = ['walkin', 'app', 'call'];
-    const sourceMap = new Map<string, { current: number; previous: number }>();
-    for (const src of sourceOrder) {
-      sourceMap.set(src, { current: 0, previous: 0 });
-    }
-    for (const b of locationFilteredBookings) {
-      const source = bookingSourceFromRecord(b);
-      if (!sourceMap.has(source)) sourceMap.set(source, { current: 0, previous: 0 });
-      const stat = sourceMap.get(source)!;
-      const monthTag = b.bookingDate?.slice(0, 7);
-      if (monthTag === thisMonthStr) stat.current += 1;
-      if (monthTag === prevMonthStr) stat.previous += 1;
-    }
-    return [...sourceMap.entries()].map(([source, counts]) => ({
-      source,
-      ...counts,
-      trend: trendMeta(counts.current, counts.previous),
-    }));
-  }, [locationFilteredBookings, prevMonthStr, thisMonthStr]);
+
 
   const sourceChartStats = useMemo(() => {
     const sourceOrder: BookingSource[] = ['walkin', 'app', 'call'];
@@ -471,150 +397,9 @@ export default function OverviewPage() {
     }));
   }, [filteredBookings]);
 
-  const sportStackByDay = useMemo(() => {
-    const days = lastNDates(7);
-    const dayIndex = new Map(days.map((d, i) => [d, i]));
-    const buckets = days.map(() => ({
-      futsal: 0,
-      cricket: 0,
-      padel: 0,
-      other: 0,
-    }));
-    for (const b of filteredBookings) {
-      const day = b.bookingDate?.slice(0, 10) ?? '';
-      const idx = dayIndex.get(day);
-      if (idx === undefined) continue;
-      const k = sportChartBucket(b.sportType);
-      buckets[idx][k] += 1;
-    }
-    const totals = buckets.map((b) => b.futsal + b.cricket + b.padel + b.other);
-    const maxDay = Math.max(1, ...totals);
-    return days.map((day, i) => {
-      const b = buckets[i];
-      const total = totals[i];
-      return {
-        day,
-        label: day.slice(5),
-        ...b,
-        total,
-        trackFillPct: maxDay > 0 ? Math.max(10, Math.round((total / maxDay) * 100)) : 0,
-      };
-    });
-  }, [filteredBookings]);
 
-  const locationTypeBreakdown = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const b of filteredBookings) {
-      const loc = dashboardLocations.find((l) => l.id === b.arenaId);
-      const key = (loc?.locationType ?? '').trim() || 'unknown';
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-    const total = entries.reduce((s, [, c]) => s + c, 0);
-    const max = entries.reduce((m, [, c]) => Math.max(m, c), 0);
-    const order = entries.map(([k]) => k);
-    const chartStats = entries.map(([typeKey, count], i) => ({
-      typeKey,
-      label: formatLocationTypeLabel(typeKey),
-      count,
-      pct: total > 0 ? Math.round((count / total) * 100) : 0,
-      widthPct: max > 0 ? Math.max(8, Math.round((count / max) * 100)) : 0,
-      colorIndex: i % 8,
-    }));
-    return { chartStats, order };
-  }, [filteredBookings, dashboardLocations]);
 
-  const locationTypeStackByDay = useMemo(() => {
-    const days = lastNDates(7);
-    const dayIndex = new Map(days.map((d, i) => [d, i]));
-    const order = locationTypeBreakdown.order;
-    const keyToColor = new Map<string, number>();
-    for (const r of locationTypeBreakdown.chartStats) {
-      keyToColor.set(r.typeKey, r.colorIndex % 8);
-    }
-    if (order.length === 0) {
-      return days.map((day) => ({
-        day,
-        label: day.slice(5),
-        total: 0,
-        trackFillPct: 0,
-        segments: [] as { typeKey: string; n: number; colorIndex: number }[],
-      }));
-    }
-    const dayBuckets = days.map(() => {
-      const m = new Map<string, number>();
-      for (const k of order) m.set(k, 0);
-      return m;
-    });
-    for (const b of filteredBookings) {
-      const day = b.bookingDate?.slice(0, 10) ?? '';
-      const idx = dayIndex.get(day);
-      if (idx === undefined) continue;
-      const loc = dashboardLocations.find((l) => l.id === b.arenaId);
-      const key = (loc?.locationType ?? '').trim() || 'unknown';
-      const m = dayBuckets[idx];
-      if (!m.has(key)) m.set(key, 0);
-      m.set(key, (m.get(key) ?? 0) + 1);
-    }
-    const totals = dayBuckets.map((m) => [...m.values()].reduce((a, b) => a + b, 0));
-    const maxDay = Math.max(1, ...totals);
-    return days.map((day, i) => {
-      const m = dayBuckets[i];
-      const total = totals[i];
-      const segments = order
-        .filter((k) => (m.get(k) ?? 0) > 0)
-        .map((typeKey) => ({
-          typeKey,
-          n: m.get(typeKey) ?? 0,
-          colorIndex: keyToColor.get(typeKey) ?? 0,
-        }));
-      return {
-        day,
-        label: day.slice(5),
-        total,
-        trackFillPct: maxDay > 0 ? Math.max(10, Math.round((total / maxDay) * 100)) : 0,
-        segments,
-      };
-    });
-  }, [filteredBookings, dashboardLocations, locationTypeBreakdown]);
 
-  const bookingTrend = useMemo(() => {
-    const days = lastNDates(7);
-    const countsByDay = new Map<string, number>();
-    const revenueByDay = new Map<string, number>();
-    for (const day of days) {
-      countsByDay.set(day, 0);
-      revenueByDay.set(day, 0);
-    }
-    for (const b of filteredBookings) {
-      const day = b.bookingDate?.slice(0, 10) ?? '';
-      if (!countsByDay.has(day)) continue;
-      countsByDay.set(day, (countsByDay.get(day) ?? 0) + 1);
-      revenueByDay.set(day, (revenueByDay.get(day) ?? 0) + (b.pricing?.totalAmount ?? 0));
-    }
-    const bookingSeries = days.map((day) => ({
-      day,
-      label: day.slice(5),
-      value: countsByDay.get(day) ?? 0,
-    }));
-    const revenueSeries = days.map((day) => ({
-      day,
-      label: day.slice(5),
-      value: Math.round(revenueByDay.get(day) ?? 0),
-    }));
-    const bookingMax = bookingSeries.reduce((m, x) => Math.max(m, x.value), 0);
-    const revenueMax = revenueSeries.reduce((m, x) => Math.max(m, x.value), 0);
-    return {
-      bookingSeries: bookingSeries.map((r) => ({
-        ...r,
-        heightPct: bookingMax > 0 ? Math.max(8, Math.round((r.value / bookingMax) * 100)) : 0,
-      })),
-      revenueSeries: revenueSeries.map((r) => ({
-        ...r,
-        heightPct: revenueMax > 0 ? Math.max(8, Math.round((r.value / revenueMax) * 100)) : 0,
-      })),
-    };
-  }, [filteredBookings]);
 
   const activeLocationName = useMemo(() => {
     if (selectedLocationId === 'all') return tenantBusinessName;
@@ -630,17 +415,7 @@ export default function OverviewPage() {
     }
   }
 
-  const sortedFilteredBookings = useMemo(() => {
-    const rows = [...filteredBookings];
-    rows.sort((a, b) => {
-      if (bizListSort === 'date_desc') return (Date.parse(b.bookingDate || b.createdAt) || 0) - (Date.parse(a.bookingDate || a.createdAt) || 0);
-      if (bizListSort === 'date_asc') return (Date.parse(a.bookingDate || a.createdAt) || 0) - (Date.parse(b.bookingDate || b.createdAt) || 0);
-      if (bizListSort === 'amount_desc') return (b.pricing?.totalAmount ?? 0) - (a.pricing?.totalAmount ?? 0);
-      if (bizListSort === 'amount_asc') return (a.pricing?.totalAmount ?? 0) - (b.pricing?.totalAmount ?? 0);
-      return a.bookingStatus.localeCompare(b.bookingStatus);
-    });
-    return rows;
-  }, [filteredBookings, bizListSort]);
+
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -1069,454 +844,64 @@ export default function OverviewPage() {
                 </div>
               </div>
 
-              <div className="overview-totals-grid biz-kpi-grid overview-rollup-grid">
-                <div className="overview-metric-card biz-kpi-card">
-                  <span className="overview-metric-label">Customer accounts</span>
-                  <strong className="overview-metric-value biz-kpi-value">
-                    {bizRollup.customerAccounts}
-                  </strong>
-                  <span className="biz-kpi-trend biz-kpi-trend--flat">
-                    IAM users with customer role (tenant)
-                  </span>
-                </div>
-                <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
-                  <span className="overview-metric-label">Total booking value</span>
-                  <strong className="overview-metric-value biz-kpi-value">
-                    {fmtCurrency(bizRollup.totalBookingValue, bizRollup.currency)}
-                  </strong>
-                  <span className="biz-kpi-trend biz-kpi-trend--flat">
-                    Sum of booking totals · current location scope
-                  </span>
-                </div>
-                <div className="overview-metric-card biz-kpi-card biz-kpi-card--revenue">
-                  <span className="overview-metric-label">Total invoiced</span>
-                  <strong className="overview-metric-value biz-kpi-value">
-                    {fmtCurrency(bizRollup.totalInvoiced, bizRollup.currency)}
-                  </strong>
-                  <span className="biz-kpi-trend biz-kpi-trend--flat">
-                    All invoices for this tenant
-                  </span>
-                </div>
-              </div>
 
-              <div className="overview-filter-card connection-panel biz-filter-panel">
-                <div className="overview-filter-card-head">
-                  <h3 className="overview-filter-card-title">Booking list filters</h3>
-                  <p className="overview-filter-card-desc muted">
-                    Narrow the table below. Location scope uses the pills in the top bar.
-                  </p>
-                </div>
-                <div className="overview-filter-toolbar overview-filter-toolbar--row">
-                  <div className="overview-filter-field overview-filter-field--inline">
-                    <label htmlFor="ov-biz-booking-status">Booking status</label>
-                    <select
-                      id="ov-biz-booking-status"
-                      className="overview-select"
-                      value={bizBookingStatus}
-                      onChange={(e) =>
-                        setBizBookingStatus(e.target.value as typeof bizBookingStatus)
-                      }
-                    >
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="no_show">No show</option>
-                    </select>
-                  </div>
-                  <div className="overview-filter-field overview-filter-field--inline">
-                    <label htmlFor="ov-biz-pay-status">Payment status</label>
-                    <select
-                      id="ov-biz-pay-status"
-                      className="overview-select"
-                      value={bizPayStatus}
-                      onChange={(e) => setBizPayStatus(e.target.value as typeof bizPayStatus)}
-                    >
-                      <option value="all">All payments</option>
-                      <option value="pending">Pending</option>
-                      <option value="paid">Paid</option>
-                      <option value="failed">Failed</option>
-                      <option value="refunded">Refunded</option>
-                    </select>
-                  </div>
-                  <div className="overview-filter-toolbar-meta">
-                    <span className="overview-result-pill">
-                      {sortedFilteredBookings.length} / {locationFilteredBookings.length} bookings
-                    </span>
-                    {selectedLocationId !== 'all' && (
-                      <span className="overview-scope-pill">
-                        {dashboardLocations.find((l) => l.id === selectedLocationId)?.name ?? 'Location'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              {/* Booking list */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  marginTop: '1rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <h3 className="overview-subtitle" style={{ margin: 0 }}>
-                  Booking list
-                </h3>
-                <span className="muted" style={{ fontSize: '0.8rem' }}>
-                  Click Date / Amount / Booking headings to sort
-                </span>
-              </div>
-              <div className="table-wrap" style={{ marginTop: '1rem' }}>
-                <table className="data">
-                  <thead>
-                    <tr>
-                      <th
-                        style={{ cursor: 'pointer' }}
-                        onClick={() =>
-                          setBizListSort((cur) =>
-                            cur === 'date_desc' ? 'date_asc' : 'date_desc',
-                          )
-                        }
-                      >
-                        Date
-                        {sortArrow(
-                          bizListSort === 'date_asc' || bizListSort === 'date_desc',
-                          bizListSort === 'date_asc',
-                        )}
-                      </th>
-                      <th>Sport</th>
-                      <th>Location</th>
-                      <th
-                        style={{ cursor: 'pointer' }}
-                        onClick={() =>
-                          setBizListSort((cur) =>
-                            cur === 'amount_desc' ? 'amount_asc' : 'amount_desc',
-                          )
-                        }
-                      >
-                        Amount
-                        {sortArrow(
-                          bizListSort === 'amount_asc' || bizListSort === 'amount_desc',
-                          bizListSort === 'amount_asc',
-                        )}
-                      </th>
-                      <th
-                        style={{ cursor: 'pointer' }}
-                        onClick={() =>
-                          setBizListSort((cur) =>
-                            cur === 'status' ? 'date_desc' : 'status',
-                          )
-                        }
-                      >
-                        Booking
-                        {sortArrow(bizListSort === 'status', true)}
-                      </th>
-                      <th>Payment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedFilteredBookings.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '2rem' }}>
-                          No bookings match the selected filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      sortedFilteredBookings.map((bk) => {
-                        const loc = dashboardLocations.find((l) => l.id === bk.arenaId);
-                        return (
-                          <tr
-                            key={bk.bookingId}
-                            onClick={() => navigate(`/app/bookings/${bk.bookingId}/edit`)}
-                          >
-                            <td>{bk.bookingDate?.slice(0, 10) ?? '—'}</td>
-                            <td>{titleCase(bk.sportType ?? '')}</td>
-                            <td className="muted" style={{ fontSize: '0.82rem' }}>
-                              {loc?.name ?? bk.arenaId?.slice(0, 8) ?? '—'}
-                            </td>
-                            <td>
-                              <strong>
-                                {fmtCurrency(
-                                  bk.pricing?.totalAmount ?? 0,
-                                  bk.items?.[0]?.currency,
-                                )}
-                              </strong>
-                            </td>
-                            <td>
-                              <span className={badgeClass(bk.bookingStatus)}>
-                                {titleCase(bk.bookingStatus)}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={badgeClass(bk.payment?.paymentStatus ?? '')}>
-                                {titleCase(bk.payment?.paymentStatus ?? 'unknown')}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
 
               <div className="connection-panel overview-panel" style={{ marginTop: '1rem' }}>
                 <h3 className="overview-subtitle" style={{ marginBottom: '0.4rem' }}>
-                  Booking insights charts
+                  Booking insights
                 </h3>
                 <p className="muted" style={{ marginTop: 0 }}>
-                  Sport, location type, and booking-from (walk-in / app / call), plus last 7 days trends —
-                  all respect the booking list filters above.
+                  High-level breakdown of your bookings by sport and source.
                 </p>
-                <div className="overview-chart-grid">
-                  <article className="overview-chart-card">
-                    <h4>Bookings by sport</h4>
-                    <div className="overview-source-bars">
-                      {sportChartStats.map((row) => (
-                        <div key={row.sport} className="overview-source-row">
-                          <span className="overview-source-label">{titleCase(row.sport)}</span>
-                          <div className="overview-source-track">
-                            <div
-                              className={`overview-sport-bar-fill overview-sport-bar-fill--${row.sport}`}
-                              style={{ width: `${row.widthPct}%` }}
-                            />
-                          </div>
-                          <span className="overview-source-value">
-                            {row.count} ({row.pct}%)
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-
-                  <article className="overview-chart-card overview-chart-card--wide">
-                    <h4>Sport mix by day (last 7 days)</h4>
-                    <p className="muted" style={{ margin: '0 0 0.5rem', fontSize: '0.76rem' }}>
-                      Each column is one day; stack height is total bookings that day; colors are sport
-                      share.
-                    </p>
-                    <div className="overview-sport-stack-wrap">
-                      {sportStackByDay.map((d) => (
-                        <div key={d.day} className="overview-sport-stack-col">
-                          <div
-                            className="overview-sport-stack-track"
-                            style={{ height: '120px' }}
-                            title={`${d.day}: ${d.total} bookings`}
-                          >
-                            <div
-                              className="overview-sport-stack-inner"
-                              style={{ height: `${d.trackFillPct}%` }}
-                            >
-                              {d.total === 0 ? (
-                                <div className="overview-sport-stack-empty" />
-                              ) : (
-                                (
-                                  [
-                                    ['futsal', d.futsal],
-                                    ['cricket', d.cricket],
-                                    ['padel', d.padel],
-                                    ['other', d.other],
-                                  ] as const
-                                )
-                                  .filter(([, n]) => n > 0)
-                                  .map(([sport, n]) => (
-                                    <div
-                                      key={sport}
-                                      className={`overview-sport-seg overview-sport-seg--${sport}`}
-                                      style={{ flex: n }}
-                                      title={`${titleCase(sport)}: ${n}`}
-                                    />
-                                  ))
-                              )}
-                            </div>
-                          </div>
-                          <span className="overview-sport-stack-day-label">{d.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="overview-sport-legend" aria-hidden="true">
-                      <span>
-                        <span className="overview-sport-legend-swatch overview-sport-legend-swatch--futsal" />{' '}
-                        Futsal
-                      </span>
-                      <span>
-                        <span className="overview-sport-legend-swatch overview-sport-legend-swatch--cricket" />{' '}
-                        Cricket
-                      </span>
-                      <span>
-                        <span className="overview-sport-legend-swatch overview-sport-legend-swatch--padel" />{' '}
-                        Padel
-                      </span>
-                      <span>
-                        <span className="overview-sport-legend-swatch overview-sport-legend-swatch--other" />{' '}
-                        Other
-                      </span>
-                    </div>
-                  </article>
-
-                  <article className="overview-chart-card">
-                    <h4>Bookings by location type</h4>
-                    <p className="muted" style={{ margin: '0 0 0.5rem', fontSize: '0.76rem' }}>
-                      Uses each location&apos;s type (arena, gaming zone, …). Bookings without a matching
-                      location count as Unknown.
-                    </p>
-                    <div className="overview-source-bars">
-                      {locationTypeBreakdown.chartStats.length === 0 ? (
-                        <p className="muted" style={{ margin: 0, fontSize: '0.82rem' }}>
-                          No bookings in the current filter.
-                        </p>
-                      ) : (
-                        locationTypeBreakdown.chartStats.map((row) => (
-                          <div
-                            key={row.typeKey}
-                            className="overview-source-row overview-source-row--location-type"
-                          >
-                            <span className="overview-source-label" title={row.typeKey}>
-                              {row.label}
-                            </span>
+                <div className="overview-chart-grid overview-chart-grid--simplified">
+                  <article className="overview-chart-card overview-chart-card--proper">
+                    <header className="chart-header">
+                      <h4>Bookings by sport</h4>
+                    </header>
+                    <div className="chart-content">
+                      <div className="overview-source-bars">
+                        {sportChartStats.map((row) => (
+                          <div key={row.sport} className="overview-source-row">
+                            <span className="overview-source-label">{titleCase(row.sport)}</span>
                             <div className="overview-source-track">
                               <div
-                                className={`overview-loc-type-fill overview-loc-type-fill--${row.colorIndex % 8}`}
+                                className={`overview-sport-bar-fill overview-sport-bar-fill--${row.sport}`}
                                 style={{ width: `${row.widthPct}%` }}
                               />
                             </div>
                             <span className="overview-source-value">
-                              {row.count} ({row.pct}%)
+                              <strong>{row.count}</strong> <small className="muted">({row.pct}%)</small>
                             </span>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </article>
-
-                  <article className="overview-chart-card overview-chart-card--wide">
-                    <h4>Location type mix by day (last 7 days)</h4>
-                    <p className="muted" style={{ margin: '0 0 0.5rem', fontSize: '0.76rem' }}>
-                      Each column is one day; stack height is total bookings; colors are location types.
-                    </p>
-                    <div className="overview-sport-stack-wrap">
-                      {locationTypeStackByDay.map((d) => (
-                        <div key={d.day} className="overview-sport-stack-col">
-                          <div
-                            className="overview-sport-stack-track"
-                            style={{ height: '120px' }}
-                            title={`${d.day}: ${d.total} bookings`}
-                          >
-                            <div
-                              className="overview-sport-stack-inner"
-                              style={{ height: `${d.trackFillPct}%` }}
-                            >
-                              {d.total === 0 ? (
-                                <div className="overview-sport-stack-empty" />
-                              ) : (
-                                d.segments.map((seg) => (
-                                  <div
-                                    key={seg.typeKey}
-                                    className={`overview-loc-type-seg overview-loc-type-seg--${seg.colorIndex % 8}`}
-                                    style={{ flex: seg.n }}
-                                    title={`${formatLocationTypeLabel(seg.typeKey)}: ${seg.n}`}
-                                  />
-                                ))
-                              )}
-                            </div>
-                          </div>
-                          <span className="overview-sport-stack-day-label">{d.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {locationTypeBreakdown.chartStats.length > 0 ? (
-                      <div className="overview-sport-legend" aria-hidden="true">
-                        {locationTypeBreakdown.chartStats.map((row) => (
-                          <span key={row.typeKey}>
-                            <span
-                              className={`overview-loc-type-legend-swatch overview-loc-type-legend-swatch--${row.colorIndex % 8}`}
-                            />{' '}
-                            {row.label}
-                          </span>
                         ))}
                       </div>
-                    ) : null}
+                    </div>
                   </article>
 
-                  <article className="overview-chart-card">
-                    <h4>Booking from</h4>
-                    <p className="muted" style={{ margin: '0 0 0.5rem', fontSize: '0.76rem' }}>
-                      Walk-in, app, or call — parsed from booking notes when the booking was created.
-                    </p>
-                    <div className="overview-source-bars">
-                      {sourceChartStats.map((row) => (
-                        <div key={row.source} className="overview-source-row">
-                          <span className="overview-source-label">{bookingFromLabel(row.source)}</span>
-                          <div className="overview-source-track">
-                            <div
-                              className={`overview-source-fill overview-source-fill--${row.source}`}
-                              style={{ width: `${row.widthPct}%` }}
-                            />
+                  <article className="overview-chart-card overview-chart-card--proper">
+                    <header className="chart-header">
+                      <h4>Booking from</h4>
+                    </header>
+                    <div className="chart-content">
+                      <div className="overview-source-bars">
+                        {sourceChartStats.map((row) => (
+                          <div key={row.source} className="overview-source-row">
+                            <span className="overview-source-label">{bookingFromLabel(row.source)}</span>
+                            <div className="overview-source-track">
+                              <div
+                                className={`overview-source-fill overview-source-fill--${row.source}`}
+                                style={{ width: `${row.widthPct}%` }}
+                              />
+                            </div>
+                            <span className="overview-source-value">
+                              <strong>{row.count}</strong> <small className="muted">({row.pct}%)</small>
+                            </span>
                           </div>
-                          <span className="overview-source-value">
-                            {row.count} ({row.pct}%)
-                          </span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </article>
-
-                  <article className="overview-chart-card">
-                    <h4>Bookings trend (last 7 days)</h4>
-                    <div className="overview-mini-columns">
-                      {bookingTrend.bookingSeries.map((point) => (
-                        <div key={point.day} className="overview-mini-col">
-                          <div
-                            className="overview-mini-col-bar overview-mini-col-bar--bookings"
-                            style={{ height: `${point.heightPct}%` }}
-                            title={`${point.day}: ${point.value} bookings`}
-                          />
-                          <span className="overview-mini-col-label">{point.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-
-                  <article className="overview-chart-card">
-                    <h4>Revenue trend (last 7 days)</h4>
-                    <div className="overview-mini-columns">
-                      {bookingTrend.revenueSeries.map((point) => (
-                        <div key={point.day} className="overview-mini-col">
-                          <div
-                            className="overview-mini-col-bar overview-mini-col-bar--revenue"
-                            style={{ height: `${point.heightPct}%` }}
-                            title={`${point.day}: ${fmtCurrency(point.value, kpis.currency)}`}
-                          />
-                          <span className="overview-mini-col-label">{point.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                </div>
-              </div>
-
-              <div className="connection-panel overview-panel biz-source-panel">
-                <h3 className="overview-subtitle" style={{ marginBottom: '0.65rem' }}>
-                  Booking from — this month vs last month
-                </h3>
-                <div className="biz-source-grid">
-                  {sourceStats.map((row) => (
-                    <div key={row.source} className="biz-source-card">
-                      <strong>{bookingFromLabel(row.source)}</strong>
-                      <span className="muted">
-                        {row.current} this month · {row.previous} last month
-                      </span>
-                      <span className={`biz-kpi-trend biz-kpi-trend--${row.trend.tone}`}>
-                        {row.trend.sign}
-                        {Math.abs(row.trend.delta)} ({Math.abs(row.trend.pct).toFixed(0)}%)
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </>
