@@ -12,7 +12,7 @@ import { useSession } from '../../context/SessionContext';
 import type { IamUserRow } from '../../types/domain';
 import type { BookingRecord } from '../../types/booking';
 
-
+type PeopleKind = 'staff' | 'customers';
 
 function isCustomerOnly(u: IamUserRow): boolean {
   const roles = u.roles ?? [];
@@ -52,6 +52,8 @@ function classifyUserSource(roles: string[] | undefined): string {
 export default function UsersPage() {
   const { session } = useSession();
   const isPlatformOwner = session?.roles?.includes('platform-owner') ?? false;
+
+  const [kind, setKind] = useState<PeopleKind>('staff');
 
   const [staffRows, setStaffRows] = useState<IamUserRow[]>([]);
   const [customerRows, setCustomerRows] = useState<IamUserRow[]>([]);
@@ -294,340 +296,359 @@ export default function UsersPage() {
           Add user
         </Link>
       </div>
-      <p className="muted" style={{ marginBottom: '1.25rem' }}>{pageSubtitle}</p>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className={kind === 'staff' ? 'btn-primary' : 'btn-ghost'}
+          style={{ padding: '0.45rem 1rem', borderRadius: '999px', fontSize: '0.9rem' }}
+          onClick={() => setKind('staff')}
+        >
+          Staff & Admins
+        </button>
+        <button
+          type="button"
+          className={kind === 'customers' ? 'btn-primary' : 'btn-ghost'}
+          style={{ padding: '0.45rem 1rem', borderRadius: '999px', fontSize: '0.9rem' }}
+          onClick={() => setKind('customers')}
+        >
+          Customers
+        </button>
+      </div>
 
       {err && <div className="err-banner" style={{ marginBottom: '1.25rem' }}>{err}</div>}
 
-      <section style={{ marginBottom: '3.5rem' }}>
-        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.75rem' }}>Business Admins & Staff</h2>
-        <div className="connection-grid" style={{ marginBottom: '1.25rem' }}>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Total</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{staffRows.length}</strong>
+      {kind === 'staff' && (
+        <section style={{ marginBottom: '2rem' }}>
+          <div className="connection-grid" style={{ marginBottom: '1.25rem' }}>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Total</h2>
+              <strong style={{ fontSize: '1.25rem' }}>{staffRows.length}</strong>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Business admins</h2>
+              <strong style={{ fontSize: '1.25rem' }}>{businessAdminCount}</strong>
+            </div>
           </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Business admins</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{businessAdminCount}</strong>
-          </div>
-        </div>
 
-        <div className="connection-panel" style={{ margin: 0, marginBottom: '1.25rem' }}>
+          <div className="connection-panel" style={{ margin: 0, marginBottom: '1.25rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(220px, 1fr) 180px 140px',
+                gap: '0.75rem',
+                alignItems: 'end',
+              }}
+            >
+              <label>
+                <span className="muted">Search staff</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Name, email, or phone"
+                />
+              </label>
+              <label>
+                <span className="muted">Sort by</span>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+                  <option value="createdAt">Newest</option>
+                  <option value="fullName">Name</option>
+                  <option value="email">Email</option>
+                </select>
+              </label>
+              <label>
+                <span className="muted">Order</span>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                >
+                  <option value="DESC">Descending</option>
+                  <option value="ASC">Ascending</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="table-wrap">
+            {loading && staffRows.length === 0 ? (
+              <div className="empty-state">Loading staff…</div>
+            ) : staffRows.length === 0 ? (
+              <div className="empty-state">No staff accounts found.</div>
+            ) : (
+              <table className="data data--sortable">
+                <thead>
+                  <tr>
+                    <th onClick={() => handleStaffSort('fullName')}>
+                      Name {renderSortArrow(sortBy === 'fullName', sortOrder)}
+                    </th>
+                    <th onClick={() => handleStaffSort('email')}>
+                      Email {renderSortArrow(sortBy === 'email', sortOrder)}
+                    </th>
+                    <th>Phone</th>
+                    <th>Roles</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffRows.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.fullName}</td>
+                      <td>{u.email}</td>
+                      <td>{u.phone ?? '—'}</td>
+                      <td>
+                        <code style={{ fontSize: '0.75rem' }}>
+                          {(u.roles ?? []).join(', ') || '—'}
+                        </code>
+                      </td>
+                      <td>
+                        {iamUserIsActive(u) ? (
+                          <span className="muted">Active</span>
+                        ) : (
+                          <span className="muted">Inactive</span>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <Link to={`/app/users/${u.id}`} className="action-link">
+                            View
+                          </Link>
+                          <Link to={`/app/users/${u.id}/edit`} className="action-link">
+                            Edit
+                          </Link>
+                          {iamUserIsActive(u) ? (
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={deletingId === u.id}
+                              onClick={() => void onDeactivate(u.id)}
+                            >
+                              {deletingId === u.id ? 'Working…' : 'Deactivate'}
+                            </button>
+                          ) : isPlatformOwner ? (
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={activatingId === u.id}
+                              onClick={() => void onActivate(u.id)}
+                            >
+                              {activatingId === u.id ? 'Working…' : 'Activate'}
+                            </button>
+                          ) : (
+                            <span className="muted" style={{ fontSize: '0.75rem' }}>
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
+
+      {kind === 'customers' && (
+        <section>
+          <div className="connection-grid" style={{ marginBottom: '1.25rem' }}>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Total customers</h2>
+              <strong style={{ fontSize: '1.25rem' }}>{customerRows.length}</strong>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>New this month</h2>
+              <strong style={{ fontSize: '1.25rem' }}>{thisMonthCustomerCount}</strong>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Total spend</h2>
+              <strong style={{ fontSize: '1.25rem' }}>
+                {Math.round(customerSpendTotals.totalSpend).toLocaleString()} PKR
+              </strong>
+            </div>
+          </div>
+
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(220px, 1fr) 180px 140px',
-              gap: '0.75rem',
-              alignItems: 'end',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1rem',
+              marginBottom: '1.25rem',
             }}
           >
-            <label>
-              <span className="muted">Search staff</span>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Name, email, or phone"
-              />
-            </label>
-            <label>
-              <span className="muted">Sort by</span>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
-                <option value="createdAt">Newest</option>
-                <option value="fullName">Name</option>
-                <option value="email">Email</option>
-              </select>
-            </label>
-            <label>
-              <span className="muted">Order</span>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
-              >
-                <option value="DESC">Descending</option>
-                <option value="ASC">Ascending</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div className="table-wrap">
-          {loading && staffRows.length === 0 ? (
-            <div className="empty-state">Loading staff…</div>
-          ) : staffRows.length === 0 ? (
-            <div className="empty-state">No staff accounts found.</div>
-          ) : (
-            <table className="data data--sortable">
-              <thead>
-                <tr>
-                  <th onClick={() => handleStaffSort('fullName')}>
-                    Name {renderSortArrow(sortBy === 'fullName', sortOrder)}
-                  </th>
-                  <th onClick={() => handleStaffSort('email')}>
-                    Email {renderSortArrow(sortBy === 'email', sortOrder)}
-                  </th>
-                  <th>Phone</th>
-                  <th>Roles</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffRows.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.fullName}</td>
-                    <td>{u.email}</td>
-                    <td>{u.phone ?? '—'}</td>
-                    <td>
-                      <code style={{ fontSize: '0.75rem' }}>
-                        {(u.roles ?? []).join(', ') || '—'}
-                      </code>
-                    </td>
-                    <td>
-                      {iamUserIsActive(u) ? (
-                        <span className="muted">Active</span>
-                      ) : (
-                        <span className="muted">Inactive</span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <Link to={`/app/users/${u.id}`} className="action-link">
-                          View
-                        </Link>
-                        <Link to={`/app/users/${u.id}/edit`} className="action-link">
-                          Edit
-                        </Link>
-                        {iamUserIsActive(u) ? (
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                            disabled={deletingId === u.id}
-                            onClick={() => void onDeactivate(u.id)}
-                          >
-                            {deletingId === u.id ? 'Working…' : 'Deactivate'}
-                          </button>
-                        ) : isPlatformOwner ? (
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                            disabled={activatingId === u.id}
-                            onClick={() => void onActivate(u.id)}
-                          >
-                            {activatingId === u.id ? 'Working…' : 'Activate'}
-                          </button>
-                        ) : (
-                          <span className="muted" style={{ fontSize: '0.75rem' }}>
-                            Inactive
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.75rem' }}>Customers</h2>
-        <div className="connection-grid" style={{ marginBottom: '1.25rem' }}>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Total customers</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{customerRows.length}</strong>
-          </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>New this month</h2>
-            <strong style={{ fontSize: '1.25rem' }}>{thisMonthCustomerCount}</strong>
-          </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h2>Total spend</h2>
-            <strong style={{ fontSize: '1.25rem' }}>
-              {Math.round(customerSpendTotals.totalSpend).toLocaleString()} PKR
-            </strong>
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1rem',
-            marginBottom: '1.25rem',
-          }}
-        >
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Users source</h3>
-            <div className="overview-source-bars">
-              {customerSourceChart.map((row) => (
-                <div key={row.key} className="overview-source-row">
-                  <span className="overview-source-label">{row.label}</span>
-                  <div className="overview-source-track">
-                    <div
-                      className="overview-source-fill overview-source-fill--app"
-                      style={{ width: `${row.widthPct}%` }}
-                    />
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Users source</h3>
+              <div className="overview-source-bars">
+                {customerSourceChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--app"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {row.value} ({row.pct}%)
+                    </span>
                   </div>
-                  <span className="overview-source-value">
-                    {row.value} ({row.pct}%)
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Spending bands</h3>
+              <div className="overview-source-bars">
+                {customerSpendingBandChart.map((row) => (
+                  <div key={row.key} className="overview-source-row">
+                    <span className="overview-source-label">{row.label}</span>
+                    <div className="overview-source-track">
+                      <div
+                        className="overview-source-fill overview-source-fill--call"
+                        style={{ width: `${row.widthPct}%` }}
+                      />
+                    </div>
+                    <span className="overview-source-value">
+                      {row.value} ({row.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
-            <h3 style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>Spending bands</h3>
-            <div className="overview-source-bars">
-              {customerSpendingBandChart.map((row) => (
-                <div key={row.key} className="overview-source-row">
-                  <span className="overview-source-label">{row.label}</span>
-                  <div className="overview-source-track">
-                    <div
-                      className="overview-source-fill overview-source-fill--call"
-                      style={{ width: `${row.widthPct}%` }}
-                    />
-                  </div>
-                  <span className="overview-source-value">
-                    {row.value} ({row.pct}%)
-                  </span>
-                </div>
-              ))}
+
+          <div className="connection-panel" style={{ margin: 0, marginBottom: '1.25rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(220px, 1fr) 180px 140px',
+                gap: '0.75rem',
+                alignItems: 'end',
+              }}
+            >
+              <label>
+                <span className="muted">Search customers</span>
+                <input
+                  placeholder="Name, email, phone, or role"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+              <label>
+                <span className="muted">Sort by</span>
+                <select
+                  value={custSortBy}
+                  onChange={(e) => setCustSortBy(e.target.value as typeof custSortBy)}
+                >
+                  <option value="name">Name</option>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                  <option value="bookings">Bookings</option>
+                  <option value="spending">Spending</option>
+                </select>
+              </label>
+              <label>
+                <span className="muted">Order</span>
+                <select
+                  value={custSortDir}
+                  onChange={(e) => setCustSortDir(e.target.value as typeof custSortDir)}
+                >
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </select>
+              </label>
             </div>
           </div>
-        </div>
 
-        <div className="connection-panel" style={{ margin: 0, marginBottom: '1.25rem' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(220px, 1fr) 180px 140px',
-              gap: '0.75rem',
-              alignItems: 'end',
-            }}
-          >
-            <label>
-              <span className="muted">Search customers</span>
-              <input
-                placeholder="Name, email, phone, or role"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </label>
-            <label>
-              <span className="muted">Sort by</span>
-              <select
-                value={custSortBy}
-                onChange={(e) => setCustSortBy(e.target.value as typeof custSortBy)}
-              >
-                <option value="name">Name</option>
-                <option value="email">Email</option>
-                <option value="phone">Phone</option>
-                <option value="bookings">Bookings</option>
-                <option value="spending">Spending</option>
-              </select>
-            </label>
-            <label>
-              <span className="muted">Order</span>
-              <select
-                value={custSortDir}
-                onChange={(e) => setCustSortDir(e.target.value as typeof custSortDir)}
-              >
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div className="table-wrap">
-          {loading && customerRows.length === 0 ? (
-            <div className="empty-state">Loading customers…</div>
-          ) : visibleCustomers.length === 0 ? (
-            <div className="empty-state">No customers found.</div>
-          ) : (
-            <table className="data data--sortable">
-              <thead>
-                <tr>
-                  <th onClick={() => handleCustomerSort('name')}>
-                    Name {renderSortArrow(custSortBy === 'name', custSortDir)}
-                  </th>
-                  <th onClick={() => handleCustomerSort('email')}>
-                    Email {renderSortArrow(custSortBy === 'email', custSortDir)}
-                  </th>
-                  <th onClick={() => handleCustomerSort('phone')}>
-                    Phone {renderSortArrow(custSortBy === 'phone', custSortDir)}
-                  </th>
-                  <th>Roles</th>
-                  <th>Status</th>
-                  <th onClick={() => handleCustomerSort('bookings')}>
-                    Bookings {renderSortArrow(custSortBy === 'bookings', custSortDir)}
-                  </th>
-                  <th onClick={() => handleCustomerSort('spending')}>
-                    Spending {renderSortArrow(custSortBy === 'spending', custSortDir)}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleCustomers.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.fullName}</td>
-                    <td>{u.email}</td>
-                    <td>{u.phone ?? '—'}</td>
-                    <td>
-                      <code style={{ fontSize: '0.75rem' }}>
-                        {(u.roles ?? []).join(', ')}
-                      </code>
-                    </td>
-                    <td>
-                      {iamUserIsActive(u) ? (
-                        <span className="muted">Active</span>
-                      ) : (
-                        <span className="muted">Inactive</span>
-                      )}
-                    </td>
-                    <td>{customerSpendById[u.id]?.bookings ?? 0}</td>
-                    <td>{Math.round(customerSpendById[u.id]?.amount ?? 0).toLocaleString()} PKR</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <Link to={`/app/users/${u.id}`} className="action-link">
-                          View
-                        </Link>
-                        <Link to={`/app/users/${u.id}/edit`} className="action-link">
-                          Edit
-                        </Link>
-                        {iamUserIsActive(u) ? (
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                            disabled={deletingId === u.id}
-                            onClick={() => void onDeactivate(u.id)}
-                          >
-                            {deletingId === u.id ? 'Working…' : 'Deactivate'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
-                            disabled={activatingId === u.id}
-                            onClick={() => void onActivate(u.id)}
-                          >
-                            {activatingId === u.id ? 'Working…' : 'Activate'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <div className="table-wrap">
+            {loading && customerRows.length === 0 ? (
+              <div className="empty-state">Loading customers…</div>
+            ) : visibleCustomers.length === 0 ? (
+              <div className="empty-state">No customers found.</div>
+            ) : (
+              <table className="data data--sortable">
+                <thead>
+                  <tr>
+                    <th onClick={() => handleCustomerSort('name')}>
+                      Name {renderSortArrow(custSortBy === 'name', custSortDir)}
+                    </th>
+                    <th onClick={() => handleCustomerSort('email')}>
+                      Email {renderSortArrow(custSortBy === 'email', custSortDir)}
+                    </th>
+                    <th onClick={() => handleCustomerSort('phone')}>
+                      Phone {renderSortArrow(custSortBy === 'phone', custSortDir)}
+                    </th>
+                    <th>Roles</th>
+                    <th>Status</th>
+                    <th onClick={() => handleCustomerSort('bookings')}>
+                      Bookings {renderSortArrow(custSortBy === 'bookings', custSortDir)}
+                    </th>
+                    <th onClick={() => handleCustomerSort('spending')}>
+                      Spending {renderSortArrow(custSortBy === 'spending', custSortDir)}
+                    </th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
+                </thead>
+                <tbody>
+                  {visibleCustomers.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.fullName}</td>
+                      <td>{u.email}</td>
+                      <td>{u.phone ?? '—'}</td>
+                      <td>
+                        <code style={{ fontSize: '0.75rem' }}>
+                          {(u.roles ?? []).join(', ')}
+                        </code>
+                      </td>
+                      <td>
+                        {iamUserIsActive(u) ? (
+                          <span className="muted">Active</span>
+                        ) : (
+                          <span className="muted">Inactive</span>
+                        )}
+                      </td>
+                      <td>{customerSpendById[u.id]?.bookings ?? 0}</td>
+                      <td>{Math.round(customerSpendById[u.id]?.amount ?? 0).toLocaleString()} PKR</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <Link to={`/app/users/${u.id}`} className="action-link">
+                            View
+                          </Link>
+                          <Link to={`/app/users/${u.id}/edit`} className="action-link">
+                            Edit
+                          </Link>
+                          {iamUserIsActive(u) ? (
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={deletingId === u.id}
+                              onClick={() => void onDeactivate(u.id)}
+                            >
+                              {deletingId === u.id ? 'Working…' : 'Deactivate'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.75rem' }}
+                              disabled={activatingId === u.id}
+                              onClick={() => void onActivate(u.id)}
+                            >
+                              {activatingId === u.id ? 'Working…' : 'Activate'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
