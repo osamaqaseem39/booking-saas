@@ -1,9 +1,9 @@
-﻿import type { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 
-const OWNER_SIGNUP_HIDDEN_KEY = 'bukit_owner_signup_hidden';
+const OWNER_SIGNUP_HIDDEN_KEY = 'velay_owner_signup_hidden';
 
 export default function OwnerSignupPage() {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function OwnerSignupPage() {
   const [api, setApi] = useState(
     () =>
       import.meta.env.VITE_API_URL ||
-      localStorage.getItem('bukit_saas_api_url') ||
+      localStorage.getItem('velay_saas_api_url') ||
       'http://localhost:3000',
   );
   const [fullName, setFullName] = useState('');

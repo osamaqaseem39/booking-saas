@@ -1,9 +1,9 @@
-﻿import type { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 
-const OWNER_SIGNUP_HIDDEN_KEY = 'bukit_owner_signup_hidden';
+const OWNER_SIGNUP_HIDDEN_KEY = 'velay_owner_signup_hidden';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -62,7 +62,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>Bukit SaaS console</h1>
+        <h1>Velay SaaS console</h1>
         <p className="muted">
           Sign in with <code>email + password</code>.
         </p>

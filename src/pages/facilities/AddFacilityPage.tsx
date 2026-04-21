@@ -87,10 +87,6 @@ export default function AddFacilityPage() {
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const topbarLocationLocked = selectedLocationId !== 'all';
   const [locationId, setLocationId] = useState('');
-  const [query, setQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'type' | 'name' | 'id'>('name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [turfCourts, setTurfCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
   const [gamingStations, setGamingStations] = useState<
@@ -249,8 +245,8 @@ export default function AddFacilityPage() {
     }));
   }, [gamingStations, isGamingLocation, locationId, routeLocation.pathname]);
 
-  const allFacilities = useMemo(
-    () => [
+  const allFacilities = useMemo(() => {
+    const list = [
       ...turfCourts.map((r) => ({
         ...r,
         type: 'Turf field',
@@ -258,67 +254,17 @@ export default function AddFacilityPage() {
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
       ...gamingRows,
-    ],
-    [turfCourts, padel, gamingRows],
-  );
+    ];
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [turfCourts, padel, gamingRows]);
 
-  const gamingFacilityCards = useMemo(() => {
-    if (!isGamingLocation || !locationId) return [];
-    const rows = gamingStations;
-    return GAMING_SETUP_OPTIONS.map((o) => ({
-      key: o.value,
-      label: o.label,
-      count: rows.filter((r) => r.setupCode === o.value).length,
-    })).filter((c) => c.count > 0);
-  }, [gamingStations, isGamingLocation, locationId, routeLocation.pathname]);
-  const facilityTypeOptions = useMemo(
-    () => Array.from(new Set(allFacilities.map((f) => f.type))).sort((a, b) => a.localeCompare(b)),
-    [allFacilities],
-  );
 
-  useEffect(() => {
-    if (typeFilter === 'all') return;
-    if (!facilityTypeOptions.includes(typeFilter)) {
-      setTypeFilter('all');
-    }
-  }, [facilityTypeOptions, locationId, typeFilter]);
-
-  const filteredFacilities = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = allFacilities.filter((f) => {
-      if (typeFilter !== 'all' && f.type !== typeFilter) return false;
-      if (!q) return true;
-      return (
-        f.type.toLowerCase().includes(q) ||
-        f.name.toLowerCase().includes(q) ||
-        f.id.toLowerCase().includes(q)
-      );
-    });
-    const dir = sortDir === 'asc' ? 1 : -1;
-    return [...filtered].sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name) * dir;
-      if (sortBy === 'type') return a.type.localeCompare(b.type) * dir;
-      return a.id.localeCompare(b.id) * dir;
-    });
-  }, [allFacilities, query, sortBy, sortDir, typeFilter]);
-  const availableFacilityCards = useMemo(
-    () =>
-      [
-        {
-          key: 'turfCourts',
-          label: 'Turf fields',
-          count: turfCourts.length,
-        },
-        { key: 'padel', label: 'Padel courts', count: padel.length },
-      ].filter((item) => item.count > 0),
-    [turfCourts.length, padel.length],
-  );
 
   async function deleteFacilityRow(row: {
     id: string;
     code: string;
     name: string;
-    businessLocationId?: string;
+    businessLocationId?: string | null;
   }) {
     const yes = window.confirm(
       `Delete facility “${row.name}”? This cannot be undone.`,
@@ -522,122 +468,12 @@ export default function AddFacilityPage() {
         )}
       </div>
 
-      {isArenaLocation ? (
-        availableFacilityCards.length > 0 ? (
-          <div className="connection-grid" style={{ marginTop: '1rem' }}>
-            {availableFacilityCards.map((card) => (
-              <div
-                key={card.key}
-                className="connection-panel"
-                style={{ margin: 0, padding: '0.9rem 1rem' }}
-              >
-                <h2>{card.label}</h2>
-                <strong style={{ fontSize: '1.25rem' }}>{card.count}</strong>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="connection-panel" style={{ marginTop: '1rem' }}>
-            <h2>Available facility types</h2>
-            <p className="muted" style={{ marginTop: '0.45rem' }}>
-              No facilities added yet for this location.
-            </p>
-          </div>
-        )
-      ) : isGamingLocation ? (
-        gamingFacilityCards.length > 0 ? (
-          <div className="connection-grid" style={{ marginTop: '1rem' }}>
-            {gamingFacilityCards.map((card) => (
-              <div
-                key={card.key}
-                className="connection-panel"
-                style={{ margin: 0, padding: '0.9rem 1rem' }}
-              >
-                <h2>{card.label}</h2>
-                <strong style={{ fontSize: '1.25rem' }}>{card.count}</strong>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="connection-panel" style={{ marginTop: '1rem' }}>
-            <h2>Gaming stations</h2>
-            <p className="muted" style={{ marginTop: '0.45rem' }}>
-              No stations saved yet. Use the buttons above (stored in this browser
-              until the gaming API is connected).
-            </p>
-          </div>
-        )
-      ) : (
-        <div className="connection-panel" style={{ marginTop: '1rem' }}>
-          <h2>Facilities for {location?.locationType ?? 'this location type'}</h2>
-          <p className="muted" style={{ marginTop: '0.45rem' }}>
-            Showing location-type specific facility options. Setup forms for these
-            types will be available in upcoming updates.
-          </p>
-        </div>
-      )}
 
-      <h3 style={{ fontSize: '1rem', marginTop: '1.5rem' }}>All facilities</h3>
-      <div className="connection-panel" style={{ marginTop: '0.75rem' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '0.75rem',
-            maxWidth: '980px',
-          }}
-        >
-          <div>
-            <label>Search facilities</label>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Type, name, or ID"
-            />
-          </div>
-          <div>
-            <label>Filter by type</label>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="all">All types</option>
-              {facilityTypeOptions.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label>Sort by</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'type' | 'name' | 'id')}
-            >
-              <option value="name">Name</option>
-              <option value="type">Type</option>
-              <option value="id">ID</option>
-            </select>
-          </div>
-          <div>
-            <label>Order</label>
-            <select
-              value={sortDir}
-              onChange={(e) => setSortDir(e.target.value as 'asc' | 'desc')}
-            >
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
-            </select>
-          </div>
-          <div>
-            <label>In view</label>
-            <input value={String(filteredFacilities.length)} readOnly />
-          </div>
-        </div>
-      </div>
 
       <div className="table-wrap">
         {loading ? (
           <div className="empty-state">Loading…</div>
-        ) : filteredFacilities.length === 0 ? (
+        ) : allFacilities.length === 0 ? (
           <div className="empty-state">None yet</div>
         ) : (
           <table className="data">
@@ -650,7 +486,7 @@ export default function AddFacilityPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredFacilities.map((row) => {
+              {allFacilities.map((row) => {
                 const rowLocId =
                   row.businessLocationId?.trim() || locationId || '';
                 const canEdit = Boolean(rowLocId);
@@ -670,12 +506,7 @@ export default function AddFacilityPage() {
                           alignItems: 'center',
                         }}
                       >
-                        <Link
-                          to="/app/time-slots"
-                          className="btn-ghost btn-compact"
-                        >
-                          Time slots
-                        </Link>
+
                         {canEdit ? (
                           <Link
                             to={editFacilityPath(

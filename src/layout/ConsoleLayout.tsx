@@ -162,7 +162,7 @@ export default function ConsoleLayout() {
       <nav className={`console-nav ${isNavCollapsed ? 'console-nav--collapsed' : ''}`}>
         <div className="console-nav-brand">
           <div className="console-nav-brand-text">
-            <strong>{isNavCollapsed ? 'BS' : 'Bukit SaaS'}</strong>
+            <strong>{isNavCollapsed ? 'VS' : 'Velay SaaS'}</strong>
             {!isNavCollapsed && (
               <span className="muted" style={{ fontSize: '0.75rem' }}>
                 Console

@@ -19,10 +19,10 @@ import type {
   SessionUser,
 } from '../types/domain';
 
-const LS_API = 'bukit_saas_api_url';
-const LS_TENANT = 'bukit_saas_tenant_id';
-const LS_TOKEN = 'bukit_saas_token';
-const LS_REFRESH = 'bukit_saas_refresh_token';
+const LS_API = 'velay_saas_api_url';
+const LS_TENANT = 'velay_saas_tenant_id';
+const LS_TOKEN = 'velay_saas_token';
+const LS_REFRESH = 'velay_saas_refresh_token';
 
 /** Used when `VITE_IMAGE_UPLOAD_URL` is missing or blank in `.env` at build time. */
 const DEFAULT_IMAGE_UPLOAD_URL = 'https://bukit.osamaqaseem.online/upload.php';
@@ -38,7 +38,7 @@ const IMAGE_UPLOAD_URL =
 const IMAGE_UPLOAD_FORM_FIELD =
   (import.meta.env.VITE_IMAGE_UPLOAD_FORM_FIELD || 'file').trim() || 'file';
 
-const TOKENS_UPDATED = 'bukit_saas_tokens_updated';
+const TOKENS_UPDATED = 'velay_saas_tokens_updated';
 
 function notifyTokensUpdated(): void {
   window.dispatchEvent(new CustomEvent(TOKENS_UPDATED));

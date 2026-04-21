@@ -550,7 +550,7 @@ export default function FacilitiesLiveViewPage() {
       if (!userId) {
         const created = await createIamUser({
           fullName,
-          email: `quick-${digits}-${Date.now()}@bukit.local`,
+          email: `quick-${digits}-${Date.now()}@velay.local`,
           phone,
           password: `Quick!${Math.random().toString(36).slice(2, 8)}9`,
         });

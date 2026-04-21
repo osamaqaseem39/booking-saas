@@ -748,7 +748,7 @@ export default function BookingCreatePage() {
         return;
       }
       const normalizedPhone = digitsOnly(walkInPhone);
-      const generatedEmail = `walkin-${normalizedPhone}-${Date.now()}@bukit.local`;
+      const generatedEmail = `walkin-${normalizedPhone}-${Date.now()}@velay.local`;
       const created = await createIamUser(
         {
           fullName: walkInName.trim(),
