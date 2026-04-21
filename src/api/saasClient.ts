@@ -852,10 +852,14 @@ export async function activateIamUser(userId: string): Promise<IamUserRow> {
   });
 }
 
-export async function assignRole(userId: string, role: string): Promise<unknown> {
+export async function assignRole(
+  userId: string,
+  role: string,
+  locationId?: string,
+): Promise<unknown> {
   return request('/iam/roles/assign', {
     method: 'POST',
-    body: JSON.stringify({ userId, role }),
+    body: JSON.stringify({ userId, role, locationId }),
   });
 }
 

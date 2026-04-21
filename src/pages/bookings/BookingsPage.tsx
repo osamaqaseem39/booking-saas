@@ -206,10 +206,7 @@ export default function BookingsPage() {
             aValue = a.arenaName ?? locationsMap[a.arenaId]?.name ?? '';
             bValue = b.arenaName ?? locationsMap[b.arenaId]?.name ?? '';
             break;
-          case 'locationPhone':
-            aValue = locationsMap[a.arenaId]?.phone ?? '';
-            bValue = locationsMap[b.arenaId]?.phone ?? '';
-            break;
+
           default:
             aValue = '';
             bValue = '';
@@ -844,15 +841,7 @@ export default function BookingsPage() {
                         Location {getSortIndicator('locationName')}
                       </button>
                     </th>
-                    <th className="data-th-sortable">
-                      <button
-                        type="button"
-                        className={`data-sort-btn ${sortConfig?.key === 'locationPhone' ? 'data-sort-btn--active' : ''}`}
-                        onClick={() => requestSort('locationPhone')}
-                      >
-                        Location phone {getSortIndicator('locationPhone')}
-                      </button>
-                    </th>
+
                     <th className="data-th-sortable">
                       <button
                         type="button"
@@ -908,7 +897,7 @@ export default function BookingsPage() {
                       <td>{userName}</td>
                       <td>{userPhone}</td>
                       <td>{b.arenaName ?? locationsMap[b.arenaId]?.name ?? b.arenaId?.slice(0, 8) ?? '-'}</td>
-                      <td>{locationsMap[b.arenaId]?.phone ?? '-'}</td>
+
                       <td>
                         <span className={sportBadgeClass(b.sportType)}>
                           {titleCaseWords(b.sportType ?? 'unknown')}

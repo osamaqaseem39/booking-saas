@@ -44,6 +44,7 @@ function classifyUserSource(roles: string[] | undefined): string {
   const r = new Set(roles ?? []);
   if (r.has('platform-owner')) return 'Platform';
   if (r.has('business-admin')) return 'Business admin';
+  if (r.has('location-admin')) return 'Location admin';
   if (r.has('business-staff')) return 'Business staff';
   if (r.has('customer-end-user')) return 'Customer app';
   return 'Unknown';
@@ -227,9 +228,6 @@ export default function UsersPage() {
     });
   }, [query, customerRows, custSortBy, custSortDir]);
 
-  const pageSubtitle = isPlatformOwner
-    ? 'Manage business admins, staff, and customer accounts platform-wide.'
-    : 'Manage business staff and customer access.';
 
   const customerSpendById = useMemo(() => {
     const out: Record<string, { amount: number; bookings: number }> = {};

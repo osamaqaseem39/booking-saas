@@ -1,6 +1,7 @@
 export type SystemRole =
   | 'platform-owner'
   | 'business-admin'
+  | 'location-admin'
   | 'business-staff'
   | 'customer-end-user';
 

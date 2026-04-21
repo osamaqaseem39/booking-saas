@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { assignRole, createIamUser } from '../../api/saasClient';
+import { assignRole, createIamUser, listBusinessLocationNameIds, type BusinessLocationNameId } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
+import { useEffect } from 'react';
 import { userMayAssignRoles } from '../../rbac';
 import type { SystemRole } from '../../types/domain';
 import { normalizePhoneForStorage } from '../../utils/phone';
@@ -9,6 +10,7 @@ import { normalizePhoneForStorage } from '../../utils/phone';
 const ROLES: SystemRole[] = [
   'platform-owner',
   'business-admin',
+  'location-admin',
   'business-staff',
   'customer-end-user',
 ];
@@ -22,8 +24,22 @@ export default function UserCreatePage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>(['business-staff']);
+  const [locations, setLocations] = useState<BusinessLocationNameId[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canAssign) return;
+    void (async () => {
+      try {
+        const res = await listBusinessLocationNameIds();
+        setLocations(res.locations || []);
+      } catch (e) {
+        console.error('Failed to load locations', e);
+      }
+    })();
+  }, [canAssign]);
 
   function toggleRole(role: SystemRole) {
     setSelectedRoles((prev) =>
@@ -44,7 +60,8 @@ export default function UserCreatePage() {
       if (canAssign) {
         const uniqueRoles = Array.from(new Set(selectedRoles));
         for (const role of uniqueRoles) {
-          await assignRole(createdUser.id, role);
+          const locId = role === 'location-admin' ? selectedLocationId : undefined;
+          await assignRole(createdUser.id, role, locId);
         }
       }
       navigate('/app/users', { replace: true });
@@ -123,10 +140,33 @@ export default function UserCreatePage() {
                     checked={selectedRoles.includes(role)}
                     onChange={() => toggleRole(role)}
                   />
-                  <span style={{ textTransform: 'none', color: 'var(--text)' }}>{role}</span>
+                  <span style={{ textTransform: 'none', color: 'var(--text)' }}>
+                    {role.replace(/-/g, ' ')}
+                  </span>
                 </label>
               ))}
             </div>
+
+            {selectedRoles.includes('location-admin') && (
+              <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Primary location for admin access *</label>
+                <select
+                  value={selectedLocationId}
+                  onChange={(e) => setSelectedLocationId(e.target.value)}
+                  style={{ width: '100%', maxWidth: '400px' }}
+                >
+                  <option value="">— Select a location —</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.85rem' }}>
+                  This user will be restricted to viewing and managing only this specific location.
+                </p>
+              </div>
+            )}
           </div>
         )}
         <button
@@ -137,7 +177,8 @@ export default function UserCreatePage() {
             !fullName.trim() ||
             !email.trim() ||
             password.length < 8 ||
-            (canAssign && selectedRoles.length === 0)
+            (canAssign && selectedRoles.length === 0) ||
+            (canAssign && selectedRoles.includes('location-admin') && !selectedLocationId)
           }
         >
           {busy ? 'Creating…' : 'Create user'}

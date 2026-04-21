@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   activateIamUser,
@@ -6,6 +6,8 @@ import {
   deleteIamUser,
   listIamUsers,
   updateIamUser,
+  listBusinessLocationNameIds,
+  type BusinessLocationNameId,
 } from '../../api/saasClient';
 import { useSession } from '../../context/SessionContext';
 import { userMayAssignRoles } from '../../rbac';
@@ -15,6 +17,7 @@ import { normalizePhoneForStorage } from '../../utils/phone';
 const ROLES = [
   'platform-owner',
   'business-admin',
+  'location-admin',
   'business-staff',
   'customer-end-user',
 ] as const;
@@ -37,6 +40,8 @@ export default function UserEditPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [assignRoleCode, setAssignRoleCode] = useState<string>('customer-end-user');
+  const [locations, setLocations] = useState<BusinessLocationNameId[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState('');
 
   const user = useMemo(() => rows.find((r) => r.id === userId) ?? null, [rows, userId]);
 
@@ -45,11 +50,15 @@ export default function UserEditPage() {
       try {
         const users = await listIamUsers();
         setRows(users);
+        if (canAssign) {
+          const locRes = await listBusinessLocationNameIds();
+          setLocations(locRes.locations || []);
+        }
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load user');
       }
     })();
-  }, [userId]);
+  }, [userId, canAssign]);
 
   useEffect(() => {
     if (!user) return;
@@ -127,7 +136,8 @@ export default function UserEditPage() {
     setAssigning(true);
     setErr(null);
     try {
-      await assignRole({ userId, role: assignRoleCode });
+      const locId = assignRoleCode === 'location-admin' ? selectedLocationId : undefined;
+      await assignRole(userId, assignRoleCode, locId);
       const users = await listIamUsers();
       setRows(users);
     } catch (e) {
@@ -254,7 +264,31 @@ export default function UserEditPage() {
                   ))}
                 </select>
               </div>
-              <button type="button" className="btn-ghost" disabled={assigning} onClick={() => void onAssignRole()}>
+
+              {assignRoleCode === 'location-admin' && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.35rem' }}>Location access *</label>
+                  <select
+                    value={selectedLocationId}
+                    onChange={(e) => setSelectedLocationId(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">— Select a location —</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={assigning || (assignRoleCode === 'location-admin' && !selectedLocationId)}
+                onClick={() => void onAssignRole()}
+              >
                 {assigning ? 'Assigning…' : 'Assign role'}
               </button>
             </div>
