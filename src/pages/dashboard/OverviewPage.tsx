@@ -975,6 +975,22 @@ export default function OverviewPage() {
                     );
                   })()}
                 </div>
+
+                {/* Average Value */}
+                <div className="overview-metric-card biz-kpi-card">
+                  <span className="overview-metric-label">Average Value</span>
+                  <strong className="overview-metric-value biz-kpi-value">
+                    {fmtCurrency(Math.round(locationFilteredBookings.length > 0 ? kpis.monthRevenue / Math.max(1, kpis.monthCount) : 0), kpis.currency)}
+                  </strong>
+                  <span className="biz-kpi-trend muted">Per booking this month</span>
+                </div>
+
+                {/* Peak Day */}
+                <div className="overview-metric-card biz-kpi-card">
+                  <span className="overview-metric-label">Peak Activity</span>
+                  <strong className="overview-metric-value biz-kpi-value">Today</strong>
+                  <span className="biz-kpi-trend ok">{kpis.todayCount} bookings</span>
+                </div>
               </div>
 
 
@@ -1160,22 +1176,6 @@ export default function OverviewPage() {
                   </div>
                 </article>
 
-                {/* Smaller context cards (Quick Stats) */}
-                <article className="overview-mosaic-card mosaic-card--small">
-                   <div className="mosaic-stat-box">
-                      <span className="muted small">Average Value</span>
-                      <strong>{fmtCurrency(Math.round(locationFilteredBookings.length > 0 ? kpis.monthRevenue / Math.max(1, kpis.monthCount) : 0), kpis.currency)}</strong>
-                      <span className="small ok">Per booking</span>
-                   </div>
-                </article>
-
-                <article className="overview-mosaic-card mosaic-card--small">
-                   <div className="mosaic-stat-box">
-                      <span className="muted small">Peak Day</span>
-                      <strong>Today</strong>
-                      <span className="small muted">{kpis.todayCount} bookings</span>
-                   </div>
-                </article>
               </div>
             </>
           )}
