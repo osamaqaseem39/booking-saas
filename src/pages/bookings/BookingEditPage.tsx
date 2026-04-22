@@ -28,11 +28,13 @@ function courtKindLabel(courtKind: string): string {
   return titleCaseWords(courtKind.replace(/_court$/i, ''));
 }
 
-function toMinutes(time: string): number {
+function toMinutes(time: string, isEnd = false): number {
   const [hRaw, mRaw] = time.split(':');
   const h = Number(hRaw || 0);
   const m = Number(mRaw || 0);
-  return h * 60 + m;
+  const total = h * 60 + m;
+  if (total === 0 && isEnd) return 24 * 60;
+  return total;
 }
 
 function minutesToTimeString(totalMins: number): string {
@@ -154,7 +156,7 @@ export default function BookingEditPage() {
           updated.bookingStatus === 'confirmed' ? 'blocked' : 'available';
         for (const item of updated.items) {
           const startMins = toMinutes(item.startTime);
-          const endMins = toMinutes(item.endTime);
+          const endMins = toMinutes(item.endTime, true);
           for (let m = startMins; m < endMins; m += 60) {
             await patchCourtFacilitySlot({
               courtKind: item.courtKind,

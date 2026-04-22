@@ -13,11 +13,13 @@ type DraftSlotLine = {
   endTime: string;
 };
 
-function toMinutes(time: string): number {
+function toMinutes(time: string, isEnd = false): number {
   const [hRaw, mRaw] = time.split(':');
   const h = Number(hRaw);
   const m = Number(mRaw);
-  return h * 60 + m;
+  const total = h * 60 + m;
+  if (total === 0 && isEnd) return 24 * 60;
+  return total;
 }
 
 function addMinutes(time: string, minutes: number): string {
@@ -105,7 +107,7 @@ export default function AddTimeSlotTemplatePage() {
     const invalidLine = newTplLines.find((line) => {
       if (!line.startTime || !line.endTime) return true;
       if (!isValidTimeLabel(line.startTime) || !isValidTimeLabel(line.endTime)) return true;
-      if (toMinutes(line.endTime) <= toMinutes(line.startTime)) return true;
+      if (toMinutes(line.endTime, true) <= toMinutes(line.startTime)) return true;
       return false;
     });
     if (invalidLine) {
@@ -167,7 +169,7 @@ export default function AddTimeSlotTemplatePage() {
     }
     const duration = Number(generatorDuration);
     const startMinutes = toMinutes(generatorStartTime);
-    const endMinutes = toMinutes(generatorEndTime);
+    const endMinutes = toMinutes(generatorEndTime, true);
     if (endMinutes <= startMinutes) {
       setTplErr('End time must be after start time.');
       return;

@@ -9,11 +9,13 @@ import { useSession } from '../../context/SessionContext';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
 import { formatTime12h, formatTimeRange12h } from '../../utils/timeDisplay';
 
-function toMinutes(time: string): number {
+function toMinutes(time: string, isEnd = false): number {
   const [hRaw, mRaw] = time.split(':');
   const h = Number(hRaw);
   const m = Number(mRaw);
-  return h * 60 + m;
+  const total = h * 60 + m;
+  if (total === 0 && isEnd) return 24 * 60;
+  return total;
 }
 
 export default function ManageTimeSlotsPage() {

@@ -59,11 +59,13 @@ function sportBadgeClass(sport: string | null | undefined): string {
   return 'badge badge-neutral';
 }
 
-function toMinutes(time: string): number {
+function toMinutes(time: string, isEnd = false): number {
   const [hRaw, mRaw] = time.split(':');
   const h = Number(hRaw || 0);
   const m = Number(mRaw || 0);
-  return h * 60 + m;
+  const total = h * 60 + m;
+  if (total === 0 && isEnd) return 24 * 60;
+  return total;
 }
 
 function minutesToTimeString(totalMins: number): string {
@@ -74,7 +76,7 @@ function minutesToTimeString(totalMins: number): string {
 
 function hourlyStartsInRange(startTime: string, endTime: string): string[] {
   const start = toMinutes(startTime);
-  const end = toMinutes(endTime);
+  const end = toMinutes(endTime, true);
   if (end <= start) return [];
   const out: string[] = [];
   for (let m = start; m < end; m += 60) {

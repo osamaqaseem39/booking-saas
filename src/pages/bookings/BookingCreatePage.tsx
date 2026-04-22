@@ -63,9 +63,11 @@ function currentHourTime(): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-function timeToMinutes(t: string): number {
+function timeToMinutes(t: string, isEnd = false): number {
   const [h, m] = t.split(':').map((x) => Number(x || 0));
-  return h * 60 + m;
+  const total = h * 60 + m;
+  if (total === 0 && isEnd) return 24 * 60;
+  return total;
 }
 
 function minutesToTime(v: number): string {
@@ -688,7 +690,7 @@ export default function BookingCreatePage() {
       const startTime = minutesToTime(ln.startMinutes);
       const endTime = minutesToTime(Math.min(ln.startMinutes + ln.durationMinutes, 24 * 60));
       const startMinutes = timeToMinutes(startTime);
-      const endMinutes = timeToMinutes(endTime);
+      const endMinutes = timeToMinutes(endTime, true);
       const duration = endMinutes - startMinutes;
       console.info(BOOKING_TIMING_LOG, 'line-time-check', {
         lineIndex: idx,
