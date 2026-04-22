@@ -154,7 +154,10 @@ export default function OverviewPage() {
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
-  const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
+  const isBusinessUser =
+    roles.includes('business-admin') ||
+    roles.includes('location-admin') ||
+    roles.includes('business-staff');
   /** Single-tenant KPI dashboard (not platform owners — they see platform-wide overview below). */
   const showTenantDashboard = isBusinessUser && !isPlatformOwner;
 

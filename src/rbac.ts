@@ -46,17 +46,17 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/users',
     label: 'Users',
-    anyOf: ['platform-owner', 'business-admin'],
+    anyOf: ['platform-owner', 'business-admin', 'location-admin'],
   },
   {
     to: '/app/locations',
     label: 'Locations',
-    anyOf: ['business-admin'],
+    anyOf: ['business-admin', 'location-admin'],
   },
   {
     to: '/app/Facilites',
     label: 'Facilities',
-    anyOf: ['business-admin'],
+    anyOf: ['business-admin', 'location-admin'],
   },
   {
     to: '/app/bookings',
@@ -64,6 +64,7 @@ export const NAV_ITEMS: NavItem[] = [
     anyOf: [
       'platform-owner',
       'business-admin',
+      'location-admin',
       'business-staff',
       'customer-end-user',
     ],
@@ -71,17 +72,17 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/time-slots',
     label: 'Manage booking slots',
-    anyOf: ['platform-owner', 'business-admin', 'business-staff'],
+    anyOf: ['platform-owner', 'business-admin', 'location-admin', 'business-staff'],
   },
   {
     to: '/app/facilities-live',
     label: 'Facilities live',
-    anyOf: ['business-admin'],
+    anyOf: ['business-admin', 'location-admin'],
   },
   {
     to: '/app/billing',
     label: 'Billing',
-    anyOf: ['platform-owner', 'business-admin', 'business-staff'],
+    anyOf: ['platform-owner', 'business-admin', 'location-admin', 'business-staff'],
   },
   {
     to: '/app/health',
@@ -116,10 +117,13 @@ export function navSectionsForRoles(userRoles: string[]): {
       return item.anyOf.some((need) => expanded.includes(need));
     }),
   );
-  const businessAdminOnly =
-    userRoles.includes('business-admin') &&
+  const isTenantUser =
+    (userRoles.includes('business-admin') ||
+      userRoles.includes('location-admin') ||
+      userRoles.includes('business-staff')) &&
     !userRoles.includes('platform-owner');
-  if (!businessAdminOnly) {
+
+  if (!isTenantUser) {
     return { main: filtered, footer: [] };
   }
   const main: NavItem[] = [];

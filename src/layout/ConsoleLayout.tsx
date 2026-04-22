@@ -29,7 +29,10 @@ export default function ConsoleLayout() {
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
-  const isBusinessUser = roles.includes('business-admin') || roles.includes('business-staff');
+  const isBusinessUser =
+    roles.includes('business-admin') ||
+    roles.includes('location-admin') ||
+    roles.includes('business-staff');
   /** Show business-scoped topbar controls only for business-side users. */
   const showBusinessContext = isBusinessUser;
   const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
