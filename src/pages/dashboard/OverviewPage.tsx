@@ -55,6 +55,24 @@ function trendMeta(current: number, previous: number): {
 
 
 
+function localDateYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function lastNDates(days: number): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    out.push(localDateYmd(d));
+  }
+  return out;
+}
 
 type BookingSource = 'walkin' | 'app' | 'call';
 
@@ -381,6 +399,7 @@ export default function OverviewPage() {
 
   const sportChartStats = useMemo(() => {
     const order = ['futsal', 'cricket', 'padel', 'other'] as const;
+    type SportRow = { sport: typeof order[number]; count: number; pct: number; widthPct: number };
     const counts = new Map<string, number>();
     for (const key of order) counts.set(key, 0);
     for (const b of filteredBookings) {
@@ -394,11 +413,29 @@ export default function OverviewPage() {
       ...row,
       pct: total > 0 ? Math.round((row.count / total) * 100) : 0,
       widthPct: max > 0 ? Math.max(8, Math.round((row.count / max) * 100)) : 0,
-    }));
+    } as SportRow));
   }, [filteredBookings]);
 
-
-
+  const revenueTrend = useMemo(() => {
+    const days = lastNDates(7);
+    const revenueByDay = new Map<string, number>();
+    for (const day of days) revenueByDay.set(day, 0);
+    for (const b of filteredBookings) {
+      const day = b.bookingDate?.slice(0, 10) ?? '';
+      if (!revenueByDay.has(day)) continue;
+      revenueByDay.set(day, (revenueByDay.get(day) ?? 0) + (b.pricing?.totalAmount ?? 0));
+    }
+    const series = days.map((day) => ({
+      day,
+      label: day.slice(5),
+      value: Math.round(revenueByDay.get(day) ?? 0),
+    }));
+    const max = series.reduce((m, x) => Math.max(m, x.value), 0);
+    return series.map((r) => ({
+      ...r,
+      heightPct: max > 0 ? Math.max(5, Math.round((r.value / max) * 100)) : 0,
+    }));
+  }, [filteredBookings]);
 
 
   const activeLocationName = useMemo(() => {
@@ -860,10 +897,10 @@ export default function OverviewPage() {
                         className="mosaic-donut" 
                         style={{
                           background: `conic-gradient(
-                            #10b981 0% ${sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0}%,
-                            #3b82f6 ${sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0}% ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) }%,
-                            #f59e0b ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) }% ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'padel')?.pct ?? 0) }%,
-                            #64748b ${ (sportChartStats.find(s => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find(s => s.sport === 'padel')?.pct ?? 0) }% 100%
+                            #10b981 0% ${sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0}%,
+                            #3b82f6 ${sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0}% ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) }%,
+                            #f59e0b ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) }% ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'padel')?.pct ?? 0) }%,
+                            #64748b ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'padel')?.pct ?? 0) }% 100%
                           )`
                         }}
                       >
@@ -874,7 +911,7 @@ export default function OverviewPage() {
                       </div>
                     </div>
                     <div className="mosaic-legend">
-                      {sportChartStats.map((row) => (
+                      {sportChartStats.map((row: any) => (
                         <div key={row.sport} className="mosaic-legend-item">
                           <span className={`mosaic-swatch mosaic-swatch--${row.sport}`} />
                           <span className="mosaic-legend-label">{titleCase(row.sport)}</span>
@@ -905,6 +942,28 @@ export default function OverviewPage() {
                                style={{ width: `${row.widthPct}%` }}
                              />
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+
+                {/* Revenue Trend Card */}
+                <article className="overview-mosaic-card mosaic-card--medium">
+                  <header className="mosaic-header">
+                    <h4>Revenue trend</h4>
+                    <span className="muted small">Daily totals (last 7 days)</span>
+                  </header>
+                  <div className="mosaic-content mosaic-content--center">
+                    <div className="mosaic-trend-chart">
+                      {revenueTrend.map((d) => (
+                        <div key={d.day} className="mosaic-trend-col">
+                          <div 
+                            className="mosaic-trend-bar" 
+                            style={{ height: `${d.heightPct}%` }}
+                            title={`${d.day}: ${fmtCurrency(d.value, kpis.currency)}`}
+                          />
+                          <span className="mosaic-trend-label">{d.label}</span>
                         </div>
                       ))}
                     </div>

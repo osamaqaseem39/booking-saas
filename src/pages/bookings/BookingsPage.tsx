@@ -120,6 +120,7 @@ export default function BookingsPage() {
   const [bookingStatusFilter] = useState<'all' | BookingStatus>('all');
   const [paymentStatusFilter] = useState<'all' | PaymentStatus>('all');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
@@ -382,6 +383,34 @@ export default function BookingsPage() {
       const updated = await updateBooking(bookingId, {
         bookingStatus: nextStatus,
       });
+      setBookings((prev) =>
+        prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+
+  async function patchPaymentStatus(bookingId: string, nextStatus: PaymentStatus) {
+    setError(null);
+    try {
+      const updated = await updateBooking(bookingId, {
+        payment: { paymentStatus: nextStatus },
+      } as any);
+      setBookings((prev) =>
+        prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+
+  async function patchPaymentMethod(bookingId: string, nextMethod: PaymentMethod) {
+    setError(null);
+    try {
+      const updated = await updateBooking(bookingId, {
+        payment: { paymentMethod: nextMethod },
+      } as any);
       setBookings((prev) =>
         prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
       );
@@ -796,7 +825,181 @@ export default function BookingsPage() {
         </div>
       ) : null}
 
-      <div className="main-area" style={{ padding: 0, marginTop: '0.5rem' }}>
+      {detailModalOpen && selected && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setDetailModalOpen(false)}
+        >
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Booking Detail"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '480px' }}
+          >
+            <h3 style={{ marginBottom: '1rem' }}>Booking Detail</h3>
+            <div className="detail-section">
+              <h4>Summary</h4>
+              <div className="detail-row">
+                <span>Booking</span>
+                <span style={{ wordBreak: 'break-word' }}>
+                  #{selected.bookingId?.slice(0, 8) ?? '??'}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span>User</span>
+                <span style={{ wordBreak: 'break-word' }}>
+                  {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId?.slice(0, 8) ?? '??'}`}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span>Phone</span>
+                <span style={{ wordBreak: 'break-word' }}>
+                  {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
+                </span>
+              </div>
+            </div>
+            <div className="detail-section">
+              <h4>Items</h4>
+              <ul className="items-list">
+                {selected.items.map((it) => (
+                  <li key={it.id}>
+                    <div>
+                      <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
+                    </div>
+                    <div className="muted">
+                      {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
+                      <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      style={{ marginTop: '0.35rem' }}
+                      onClick={() => {
+                        setAvailabilityDate(selected.bookingDate);
+                        void viewCourtSlots(it.courtKind, it.courtId, selected.bookingDate);
+                      }}
+                    >
+                      View court booked slots
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="detail-section">
+              <h4>Actions</h4>
+              <div className="form-grid">
+                <div>
+                  <label>Booking status</label>
+                  <select
+                    value={selected.bookingStatus}
+                    onChange={(e) =>
+                      void patchBookingStatus(
+                        selected.bookingId,
+                        e.target.value as BookingStatus,
+                      )
+                    }
+                  >
+                    {(
+                      [
+                        'pending',
+                        'confirmed',
+                        'cancelled',
+                        'completed',
+                        'no_show',
+                      ] as const
+                    ).map((s) => (
+                      <option key={s} value={s}>
+                        {titleCaseWords(s)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Payment status</label>
+                  <select
+                    value={selected.payment.paymentStatus}
+                    onChange={(e) =>
+                      void patchBooking({
+                        payment: {
+                          paymentStatus: e.target.value as PaymentStatus,
+                        },
+                      })
+                    }
+                  >
+                    {(
+                      ['pending', 'paid', 'failed', 'refunded'] as const
+                    ).map((s) => (
+                      <option key={s} value={s}>
+                        {titleCaseWords(s)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Payment method</label>
+                  <select
+                    value={selected.payment.paymentMethod}
+                    onChange={(e) =>
+                      void patchBooking({
+                        payment: {
+                          paymentMethod: e.target.value as PaymentMethod,
+                        },
+                      })
+                    }
+                  >
+                    {(['cash', 'card', 'jazzcash', 'easypaisa'] as const).map(
+                      (s) => (
+                        <option key={s} value={s}>
+                          {titleCaseWords(s)}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label>Cancellation reason</label>
+                  <input
+                    placeholder="Optional"
+                    defaultValue={selected.cancellationReason ?? ''}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (selected.cancellationReason ?? '')) {
+                        void patchBooking({ cancellationReason: v || undefined });
+                      }
+                    }}
+                  />
+                </div>
+                <div style={{ marginTop: '0.5rem', borderTop: '1px solid #2a3544', paddingTop: '1rem' }}>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    style={{ color: '#f87171' }}
+                    onClick={() => {
+                        void removeBooking();
+                        setDetailModalOpen(false);
+                    }}
+                  >
+                    Delete booking
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setDetailModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      <div className="main-area" style={{ padding: 0, marginTop: '0.5rem', display: 'block' }}>
         <div>
           <div className="table-wrap">
             {sortedBookings.length === 0 && !loading ? (
@@ -866,8 +1069,11 @@ export default function BookingsPage() {
                         className={`data-sort-btn ${sortConfig?.key === 'payment' ? 'data-sort-btn--active' : ''}`}
                         onClick={() => requestSort('payment')}
                       >
-                        Payment {getSortIndicator('payment')}
+                        Payment Status {getSortIndicator('payment')}
                       </button>
+                    </th>
+                    <th>
+                      <span className="data-th-static">Method</span>
                     </th>
                     <th className="data-th-sortable">
                       <button
@@ -891,9 +1097,17 @@ export default function BookingsPage() {
                     <tr
                       key={b.bookingId}
                       className={b.bookingId === selectedId ? 'active' : ''}
-                      onClick={() => setSelectedId(b.bookingId)}
+                      onClick={() => {
+                        setSelectedId(b.bookingId);
+                        setDetailModalOpen(true);
+                      }}
                     >
-                      <td>{b.bookingDate}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{b.bookingDate}</div>
+                        <div className="muted" style={{ fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                          {formatTimeRange12h(b.items[0]?.startTime, b.items[b.items.length - 1]?.endTime)}
+                        </div>
+                      </td>
                       <td>{userName}</td>
                       <td>{userPhone}</td>
                       <td>{b.arenaName ?? locationsMap[b.arenaId]?.name ?? b.arenaId?.slice(0, 8) ?? '-'}</td>
@@ -904,14 +1118,99 @@ export default function BookingsPage() {
                         </span>
                       </td>
                       <td>
-                        <span className={badgeClass(b.bookingStatus)}>
-                          {b.bookingStatus}
-                        </span>
+                        <select
+                          className={badgeClass(b.bookingStatus)}
+                          value={b.bookingStatus}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            void patchBookingStatus(b.bookingId, e.target.value as BookingStatus)
+                          }
+                          style={{
+                            border: 'none',
+                            padding: '0.15rem 1.25rem 0.15rem 0.45rem',
+                            cursor: 'pointer',
+                            width: 'auto',
+                            minWidth: '100px',
+                            backgroundPosition: 'right 0.35rem center',
+                            backgroundSize: '8px',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                          }}
+                        >
+                          {(
+                            [
+                              'pending',
+                              'confirmed',
+                              'cancelled',
+                              'completed',
+                              'no_show',
+                            ] as const
+                          ).map((s) => (
+                            <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
+                              {titleCaseWords(s)}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>
-                        <span className={badgeClass(b.payment.paymentStatus)}>
-                          {b.payment.paymentStatus}
-                        </span>
+                        <select
+                          className={badgeClass(b.payment.paymentStatus)}
+                          value={b.payment.paymentStatus}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            void patchPaymentStatus(b.bookingId, e.target.value as PaymentStatus)
+                          }
+                          style={{
+                            border: 'none',
+                            padding: '0.15rem 1.25rem 0.15rem 0.45rem',
+                            cursor: 'pointer',
+                            width: 'auto',
+                            minWidth: '94px',
+                            backgroundPosition: 'right 0.35rem center',
+                            backgroundSize: '8px',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                          }}
+                        >
+                          {(['pending', 'paid', 'failed', 'refunded'] as const).map((s) => (
+                            <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
+                              {titleCaseWords(s)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="badge badge-neutral"
+                          value={b.payment.paymentMethod}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            void patchPaymentMethod(b.bookingId, e.target.value as PaymentMethod)
+                          }
+                          style={{
+                            border: 'none',
+                            padding: '0.15rem 1.25rem 0.15rem 0.45rem',
+                            cursor: 'pointer',
+                            width: 'auto',
+                            minWidth: '90px',
+                            backgroundPosition: 'right 0.35rem center',
+                            backgroundSize: '8px',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                          }}
+                        >
+                          {(['cash', 'card', 'jazzcash', 'easypaisa'] as const).map((s) => (
+                            <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
+                              {titleCaseWords(s)}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>{b.pricing.totalAmount.toLocaleString()} PKR</td>
                       <td>
@@ -923,6 +1222,7 @@ export default function BookingsPage() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedId(b.bookingId);
+                              setDetailModalOpen(true);
                             }}
                           >
                             View
@@ -949,159 +1249,6 @@ export default function BookingsPage() {
           </div>
         </div>
 
-        <aside className="detail-card">
-          {!selected ? (
-            <div className="empty-state">Select a booking.</div>
-          ) : (
-            <>
-              <h3>Detail</h3>
-              <div className="detail-section">
-                <h4>Summary</h4>
-                <div className="detail-row">
-                  <span>Booking</span>
-                  <span style={{ wordBreak: 'break-word' }}>
-                    #{selected.bookingId?.slice(0, 8) ?? '??'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span>User</span>
-                  <span style={{ wordBreak: 'break-word' }}>
-                    {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId?.slice(0, 8) ?? '??'}`}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span>Phone</span>
-                  <span style={{ wordBreak: 'break-word' }}>
-                    {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
-                  </span>
-                </div>
-              </div>
-              <div className="detail-section">
-                <h4>Items</h4>
-                <ul className="items-list">
-                  {selected.items.map((it) => (
-                    <li key={it.id}>
-                      <div>
-                        <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
-                      </div>
-                      <div className="muted">
-                        {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
-                        <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        style={{ marginTop: '0.35rem' }}
-                        onClick={() => {
-                          setAvailabilityDate(selected.bookingDate);
-                          void viewCourtSlots(it.courtKind, it.courtId, selected.bookingDate);
-                        }}
-                      >
-                        View court booked slots
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="detail-section">
-                <h4>Actions</h4>
-                <div className="form-grid">
-                  <div>
-                    <label>Booking status</label>
-                    <select
-                      value={selected.bookingStatus}
-                      onChange={(e) =>
-                        void patchBookingStatus(
-                          selected.bookingId,
-                          e.target.value as BookingStatus,
-                        )
-                      }
-                    >
-                      {(
-                        [
-                          'pending',
-                          'confirmed',
-                          'cancelled',
-                          'completed',
-                          'no_show',
-                        ] as const
-                      ).map((s) => (
-                        <option key={s} value={s}>
-                          {titleCaseWords(s)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label>Payment status</label>
-                    <select
-                      value={selected.payment.paymentStatus}
-                      onChange={(e) =>
-                        void patchBooking({
-                          payment: {
-                            paymentStatus: e.target.value as PaymentStatus,
-                          },
-                        })
-                      }
-                    >
-                      {(
-                        ['pending', 'paid', 'failed', 'refunded'] as const
-                      ).map((s) => (
-                        <option key={s} value={s}>
-                          {titleCaseWords(s)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label>Payment method</label>
-                    <select
-                      value={selected.payment.paymentMethod}
-                      onChange={(e) =>
-                        void patchBooking({
-                          payment: {
-                            paymentMethod: e.target.value as PaymentMethod,
-                          },
-                        })
-                      }
-                    >
-                      {(['cash', 'card', 'jazzcash', 'easypaisa'] as const).map(
-                        (s) => (
-                          <option key={s} value={s}>
-                            {titleCaseWords(s)}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </div>
-                  <div>
-                    <label>Cancellation reason</label>
-                    <input
-                      placeholder="Optional"
-                      defaultValue={selected.cancellationReason ?? ''}
-                      onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        if (v !== (selected.cancellationReason ?? '')) {
-                          void patchBooking({ cancellationReason: v || undefined });
-                        }
-                      }}
-                    />
-                  </div>
-                  <div style={{ marginTop: '0.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      style={{ color: '#d32f2f' }}
-                      onClick={() => void removeBooking()}
-                    >
-                      Delete booking
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </aside>
       </div>
 
     </div>
