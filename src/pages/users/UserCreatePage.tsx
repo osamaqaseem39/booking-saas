@@ -23,7 +23,7 @@ export default function UserCreatePage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>(['business-staff']);
+  const [selectedRoles, setSelectedRoles] = useState<SystemRole[]>([]);
   const [locations, setLocations] = useState<BusinessLocationNameId[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [busy, setBusy] = useState(false);
