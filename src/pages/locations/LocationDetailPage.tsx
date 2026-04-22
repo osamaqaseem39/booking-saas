@@ -238,7 +238,20 @@ export default function LocationDetailPage() {
               <div className="location-courts-grid">
                 {courtsByType.map(({ facilityType, items }) => (
                   <article key={facilityType} className="location-courts-card">
-                    <h3>{formatFacilityTypeLabel(facilityType)}</h3>
+                    <h3>
+                      {facilityType === 'turf'
+                        ? (() => {
+                            const sports = new Set<string>();
+                            items.forEach((i) =>
+                              i.supportedSports?.forEach((s) => sports.add(s)),
+                            );
+                            if (sports.size === 0) return 'Turf';
+                            return Array.from(sports)
+                              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                              .join(' + ');
+                          })()
+                        : formatFacilityTypeLabel(facilityType)}
+                    </h3>
                     <ul className="items-list">
                       {items.map((c) => (
                         <li key={c.id}>{c.name}</li>

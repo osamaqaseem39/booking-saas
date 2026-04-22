@@ -507,6 +507,7 @@ export type VenueDetailsPublic = Omit<BusinessLocationRow, 'business'> & {
     name: string;
     facilityType: 'futsal' | 'cricket' | 'padel';
     locationId: string;
+    supportedSports?: string[];
   }>;
   tenantId: string | null;
 };
@@ -1232,6 +1233,7 @@ function normalizeTurfNamedCourtRows(raw: unknown): NamedCourt[] {
         typeof row.timeSlotTemplateId === 'string' ? row.timeSlotTemplateId : null,
       pricePerSlot: row.pricePerSlot as any,
       pricing: row.pricing,
+      supportedSports,
     });
   }
   return out;

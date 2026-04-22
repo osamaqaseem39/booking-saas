@@ -86,6 +86,7 @@ function FacilitiesTableBlock({
               <tr>
                 <th>Name</th>
                 <th>ID</th>
+                {facilityCode === 'turf-court' && <th>Supported Sports</th>}
                 <th>Actions</th>
               </tr>
             </thead>
@@ -96,6 +97,14 @@ function FacilitiesTableBlock({
                   <td>
                     <code style={{ fontSize: '0.7rem' }}>{r.id}</code>
                   </td>
+                  {facilityCode === 'turf-court' && (
+                    <td>
+                      {r.supportedSports
+                        ?.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                        .join(', ') ||
+                        (r.supportsCricket ? 'Futsal, Cricket' : 'Futsal')}
+                    </td>
+                  )}
                   <td>
                     <div
                       style={{
@@ -290,7 +299,18 @@ export default function LocationFacilitiesPage() {
           ) : (
             <>
               <FacilitiesTableBlock
-                title="Turf fields"
+                title={(() => {
+                  const sports = new Set<string>();
+                  turfCourts.forEach((c) =>
+                    c.supportedSports?.forEach((s) => sports.add(s)),
+                  );
+                  if (sports.size === 0) return 'Turf fields';
+                  return (
+                    Array.from(sports)
+                      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                      .join(' + ') + ' fields'
+                  );
+                })()}
                 rows={turfCourts}
                 facilityCode="turf-court"
                 locationId={locationId}

@@ -59,6 +59,7 @@ export interface BusinessLocationRow {
     facilityType: 'futsal' | 'cricket' | 'padel' | 'turf';
     id: string;
     name: string;
+    supportedSports?: string[];
   }>;
   name: string;
   addressLine?: string | null;
@@ -128,6 +129,7 @@ export interface NamedCourt {
   pricePerSlot?: string | number | null;
   /** Multi-sport or complex pricing for turf/gaming. */
   pricing?: any | null;
+  supportedSports?: string[];
 }
 
 export interface BusinessDashboardBusinessRow {
