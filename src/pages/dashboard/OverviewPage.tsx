@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   listAllBookings,
@@ -330,6 +339,22 @@ export default function OverviewPage() {
     invoiceStatus,
   ]);
 
+  const ownerRevenueTrend = useMemo(() => {
+    const days = lastNDates(7);
+    const revenueByDay = new Map<string, number>();
+    for (const day of days) revenueByDay.set(day, 0);
+    for (const b of ownerAllBookings) {
+      const day = b.bookingDate?.slice(0, 10) ?? '';
+      if (!revenueByDay.has(day)) continue;
+      revenueByDay.set(day, (revenueByDay.get(day) ?? 0) + (b.pricing?.totalAmount ?? 0));
+    }
+    return days.map((day) => ({
+      day,
+      label: day.slice(5),
+      value: Math.round(revenueByDay.get(day) ?? 0),
+    }));
+  }, [ownerAllBookings]);
+
   // ── Computed (tenant-scoped charts) ───────────────────────────────────────
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const yesterdayStr = useMemo(() => {
@@ -629,6 +654,60 @@ export default function OverviewPage() {
                 <div className="overview-metric-card">
                   <span className="overview-metric-label">Invoices in view</span>
                   <strong className="overview-metric-value">{ownerTotals.invoices}</strong>
+                </div>
+              </div>
+
+              <div className="connection-panel overview-panel" style={{ marginBottom: '1.5rem' }}>
+                <h3 className="overview-subtitle" style={{ marginBottom: '1rem' }}>Platform Revenue Trend (Last 7 Days)</h3>
+                <div style={{ height: '300px', width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={ownerRevenueTrend}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorOwnerRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis 
+                        dataKey="label" 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        dy={10}
+                      />
+                      <YAxis 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tickFormatter={(val) => `PKR ${val > 1000 ? (val / 1000).toFixed(1) + 'k' : val}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: 'none',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                          padding: '12px',
+                        }}
+                        itemStyle={{ color: '#fff' }}
+                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                        formatter={(value: any) => [fmtCurrency(Number(value || 0), 'PKR'), 'Revenue']}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorOwnerRevenue)"
+                        animationDuration={2000}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
@@ -954,19 +1033,53 @@ export default function OverviewPage() {
                     <h4>Revenue trend</h4>
                     <span className="muted small">Daily totals (last 7 days)</span>
                   </header>
-                  <div className="mosaic-content mosaic-content--center">
-                    <div className="mosaic-trend-chart">
-                      {revenueTrend.map((d) => (
-                        <div key={d.day} className="mosaic-trend-col">
-                          <div 
-                            className="mosaic-trend-bar" 
-                            style={{ height: `${d.heightPct}%` }}
-                            title={`${d.day}: ${fmtCurrency(d.value, kpis.currency)}`}
-                          />
-                          <span className="mosaic-trend-label">{d.label}</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mosaic-content" style={{ height: '220px', width: '100%', marginTop: 'auto' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={revenueTrend}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                        <XAxis 
+                          dataKey="label" 
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: '#94a3b8', fontSize: 11 }}
+                          dy={10}
+                        />
+                        <YAxis 
+                          hide={true} 
+                          domain={['auto', 'auto']}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                            padding: '8px 12px',
+                          }}
+                          itemStyle={{ color: '#fff', fontSize: '12px' }}
+                          labelStyle={{ color: '#94a3b8', fontSize: '10px', marginBottom: '4px' }}
+                          formatter={(value: any) => [fmtCurrency(Number(value || 0), kpis.currency), 'Revenue']}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#8b5cf6"
+                          strokeWidth={2}
+                          fillOpacity={1}
+                          fill="url(#colorRevenue)"
+                          animationDuration={1500}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
                 </article>
 
