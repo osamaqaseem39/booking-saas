@@ -36,10 +36,10 @@ import HealthPage from './pages/system/HealthPage';
 function HealthAccess() {
   const { session } = useSession();
   const roles = session?.roles ?? [];
-  if (roles.includes('business-admin') && !roles.includes('platform-owner')) {
-    return <Navigate to="/app" replace />;
+  if (roles.includes('platform-owner')) {
+    return <HealthPage />;
   }
-  return <HealthPage />;
+  return <Navigate to="/app" replace />;
 }
 
 export default function App() {
@@ -86,7 +86,7 @@ export default function App() {
             <Route
               path="locations"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin', 'customer-end-user']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'customer-end-user']}>
                   <LocationsPage />
                 </RequireRoles>
               }
@@ -94,7 +94,7 @@ export default function App() {
             <Route
               path="Facilites"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <AddFacilityPage />
                 </RequireRoles>
               }
@@ -112,7 +112,7 @@ export default function App() {
             <Route
               path="locations/:locationId/edit"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <LocationEditPage />
                 </RequireRoles>
               }
@@ -120,7 +120,7 @@ export default function App() {
             <Route
               path="locations/:locationId/facilities"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <LocationFacilitiesPage />
                 </RequireRoles>
               }
@@ -128,7 +128,7 @@ export default function App() {
             <Route
               path="locations/:locationId/facilities/setup/:facilityCode"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <LocationFacilitySetupPage />
                 </RequireRoles>
               }
@@ -136,7 +136,7 @@ export default function App() {
             <Route
               path="locations/:locationId/facilities/edit/:facilityCode/:courtId"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <FacilityEditPage />
                 </RequireRoles>
               }
@@ -153,7 +153,7 @@ export default function App() {
             <Route
               path="users"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <UsersPage />
                 </RequireRoles>
               }
@@ -161,7 +161,7 @@ export default function App() {
             <Route
               path="users/new"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <UserCreatePage />
                 </RequireRoles>
               }
@@ -170,7 +170,7 @@ export default function App() {
               path="users/:userId"
               element={
                 <RequireSelfOrRoles
-                  anyOf={['platform-owner', 'business-admin']}
+                  anyOf={['platform-owner', 'business-admin', 'location-admin']}
                   selfRole="customer-end-user"
                   paramName="userId"
                 >
@@ -181,7 +181,7 @@ export default function App() {
             <Route
               path="users/:userId/edit"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <UserEditPage />
                 </RequireRoles>
               }
@@ -193,6 +193,7 @@ export default function App() {
                   anyOf={[
                     'platform-owner',
                     'business-admin',
+                    'location-admin',
                     'business-staff',
                     'customer-end-user',
                   ]}
@@ -208,6 +209,7 @@ export default function App() {
                   anyOf={[
                     'platform-owner',
                     'business-admin',
+                    'location-admin',
                     'business-staff',
                     'customer-end-user',
                   ]}
@@ -223,6 +225,7 @@ export default function App() {
                   anyOf={[
                     'platform-owner',
                     'business-admin',
+                    'location-admin',
                     'business-staff',
                     'customer-end-user',
                   ]}
@@ -234,7 +237,7 @@ export default function App() {
             <Route
               path="time-slots"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
                   <ManageTimeSlotsPage />
                 </RequireRoles>
               }
@@ -242,7 +245,7 @@ export default function App() {
             <Route
               path="time-slots/new"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
                   <AddTimeSlotTemplatePage />
                 </RequireRoles>
               }
@@ -250,7 +253,7 @@ export default function App() {
             <Route
               path="time-slots/:templateId/edit"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
                   <AddTimeSlotTemplatePage />
                 </RequireRoles>
               }
@@ -266,7 +269,7 @@ export default function App() {
             <Route
               path="facilities-live"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <FacilitiesLiveViewPage />
                 </RequireRoles>
               }
@@ -274,7 +277,7 @@ export default function App() {
             <Route
               path="billing"
               element={
-                <RequireRoles anyOf={['platform-owner', 'business-admin', 'business-staff']}>
+                <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
                   <BillingPage />
                 </RequireRoles>
               }
