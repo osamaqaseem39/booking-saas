@@ -147,35 +147,29 @@ export default function FacilitiesLiveViewPage() {
       padelRows: NamedCourt[],
     ): FacilityCardRow[] => {
       const dualTurfIds = new Set(
-        futsalCourtRows.filter((r) => r.supportsCricket === true).map((r) => r.id),
+        futsalCourtRows
+          .filter((r) => r.supportedSports?.includes('futsal') && r.supportedSports?.includes('cricket'))
+          .map((r) => r.id),
       );
-      const futsalCards = futsalCourtRows.map((r) =>
-        r.supportsCricket === true
-          ? {
-              id: r.id,
-              name: `${r.name} (futsal + cricket)`,
-              type: 'sharedTurfCourt' as const,
-              locationId: r.businessLocationId,
-              timeSlotTemplateId: r.timeSlotTemplateId ?? null,
-              facilityStatus: r.courtStatus,
-              facilityIsActive: r.isActive,
-              pricePerSlot: r.pricePerSlot,
-              pricing: r.pricing,
-              linkedTwinCourtId: r.linkedTwinCourtId,
-            }
-          : {
-              id: r.id,
-              name: r.name,
-              type: 'futsalCourt' as const,
-              locationId: r.businessLocationId,
-              timeSlotTemplateId: r.timeSlotTemplateId ?? null,
-              facilityStatus: r.courtStatus,
-              facilityIsActive: r.isActive,
-              pricePerSlot: r.pricePerSlot,
-              pricing: r.pricing,
-              linkedTwinCourtId: r.linkedTwinCourtId,
-            },
-      );
+      const futsalCards = futsalCourtRows.map((r) => {
+        const isShared = r.supportedSports?.includes('futsal') && r.supportedSports?.includes('cricket');
+        const sportsLabel = r.supportedSports?.length 
+          ? ` (${r.supportedSports.join(' + ')})`
+          : '';
+
+        return {
+          id: r.id,
+          name: isShared ? `${r.name}${sportsLabel}` : r.name,
+          type: (isShared ? 'sharedTurfCourt' : 'futsalCourt') as FacilityLiveType,
+          locationId: r.businessLocationId,
+          timeSlotTemplateId: r.timeSlotTemplateId ?? null,
+          facilityStatus: r.courtStatus,
+          facilityIsActive: r.isActive,
+          pricePerSlot: r.pricePerSlot,
+          pricing: r.pricing,
+          linkedTwinCourtId: r.linkedTwinCourtId,
+        };
+      });
       const cricketCards = cricketCourtRows
         .filter((r) => !dualTurfIds.has(r.id))
         .map((r) => ({
