@@ -43,6 +43,8 @@ export default function UserEditPage() {
   const [locations, setLocations] = useState<BusinessLocationNameId[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState('');
 
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+
   const availableRoles = useMemo(() => {
     if (isPlatformOwner) return SYSTEM_ROLES;
     return SYSTEM_ROLES.filter((r) => r !== 'platform-owner');
@@ -70,10 +72,21 @@ export default function UserEditPage() {
     setFullName(user.fullName);
     setEmail(user.email);
     setPhone(user.phone ?? '');
+    setSelectedRoles(user.roles ?? []);
   }, [user]);
+
+  function onToggleRole(role: string) {
+    setSelectedRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+    );
+  }
 
   async function onSave() {
     if (!userId.trim()) return;
+    if (selectedRoles.includes('location-admin') && !selectedLocationId) {
+      setErr('Please select a location for the Location Admin role.');
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -83,6 +96,21 @@ export default function UserEditPage() {
         phone: normalizePhoneForStorage(phone) || undefined,
         password: password.trim() ? password : undefined,
       });
+
+      if (canAssign) {
+        const originalRoles = user?.roles ?? [];
+        const toAdd = selectedRoles.filter((r) => !originalRoles.includes(r));
+        const toRemove = originalRoles.filter((r) => !selectedRoles.includes(r));
+
+        for (const role of toRemove) {
+          await unassignRole(userId, role);
+        }
+        for (const role of toAdd) {
+          const locId = role === 'location-admin' ? selectedLocationId : undefined;
+          await assignRole(userId, role, locId);
+        }
+      }
+
       navigate('/app/users', { replace: true });
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Update failed');
@@ -133,31 +161,6 @@ export default function UserEditPage() {
       setErr(e instanceof Error ? e.message : 'Activate failed');
     } finally {
       setActivating(false);
-    }
-  }
-
-  async function onToggleRole(role: string) {
-    if (!userId.trim() || !user) return;
-    const currentRoles = user.roles ?? [];
-    const isActive = currentRoles.includes(role);
-    setAssigning(true);
-    setErr(null);
-    try {
-      if (isActive) {
-        await unassignRole(userId, role);
-      } else {
-        const locId = role === 'location-admin' ? selectedLocationId : undefined;
-        if (role === 'location-admin' && !locId) {
-          throw new Error('Please select a location first');
-        }
-        await assignRole(userId, role, locId);
-      }
-      const users = await listIamUsers();
-      setRows(users);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Role update failed');
-    } finally {
-      setAssigning(false);
     }
   }
 
@@ -231,6 +234,50 @@ export default function UserEditPage() {
                 />
               </div>
             </div>
+
+            {canAssign && (
+              <div className="connection-panel" style={{ margin: 0 }}>
+                <h2>User roles</h2>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Select roles for this user.
+                </p>
+                <div className="checkbox-grid">
+                  {availableRoles.map((r) => (
+                    <label key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <input
+                        type="checkbox"
+                        disabled={busy}
+                        checked={selectedRoles.includes(r)}
+                        onChange={() => onToggleRole(r)}
+                      />
+                      <span style={{ textTransform: 'none', color: 'var(--text)' }}>
+                        {r.replace(/-/g, ' ')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {selectedRoles.includes('location-admin') && (
+                  <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.35rem' }}>Location access (required for Location Admin) *</label>
+                    <select
+                      value={selectedLocationId}
+                      onChange={(e) => setSelectedLocationId(e.target.value)}
+                      disabled={busy}
+                      style={{ width: '100%', maxWidth: '400px' }}
+                    >
+                      <option value="">— Select a location —</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
                 type="submit"
@@ -264,49 +311,6 @@ export default function UserEditPage() {
               ) : null}
             </div>
           </form>
-
-          {canAssign && (
-            <div className="connection-panel" style={{ maxWidth: '760px', marginTop: '1.25rem' }}>
-              <h2>User roles</h2>
-              <p className="muted" style={{ marginTop: 0 }}>
-                Select roles for this user. Changes are applied immediately.
-              </p>
-              <div className="checkbox-grid">
-                {availableRoles.map((r) => (
-                  <label key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <input
-                      type="checkbox"
-                      disabled={assigning}
-                      checked={(user.roles ?? []).includes(r)}
-                      onChange={() => void onToggleRole(r)}
-                    />
-                    <span style={{ textTransform: 'none', color: 'var(--text)' }}>
-                      {r.replace(/-/g, ' ')}
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              {!(user.roles ?? []).includes('location-admin') && (
-                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.35rem' }}>Location access (required for Location Admin) *</label>
-                  <select
-                    value={selectedLocationId}
-                    onChange={(e) => setSelectedLocationId(e.target.value)}
-                    disabled={assigning}
-                    style={{ width: '100%', maxWidth: '400px' }}
-                  >
-                    <option value="">— Select a location —</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
     </div>
