@@ -447,14 +447,19 @@ export default function BookingCreatePage() {
           setLocations([]);
           return;
         }
-        setLocations(
-          rows.filter((r) => (r.business?.tenantId ?? '').trim() === bookingTenant),
+        const filtered = rows.filter(
+          (r) => (r.business?.tenantId ?? '').trim() === bookingTenant,
         );
+        setLocations(filtered);
+        // Auto-select if only one location exists and none selected
+        if (filtered.length === 1 && !facilityLocationId && !topbarLocationLocked) {
+          setFacilityLocationId(filtered[0].id);
+        }
       } catch {
         setLocations([]);
       }
     })();
-  }, [bookingTenant, isPlatformOwner]);
+  }, [bookingTenant, isPlatformOwner, topbarLocationLocked]);
 
   useEffect(() => {
     if (topbarLocationLocked) {

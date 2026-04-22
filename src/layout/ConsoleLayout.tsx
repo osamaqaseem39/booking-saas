@@ -36,7 +36,12 @@ export default function ConsoleLayout() {
   /** Show business-scoped topbar controls only for business-side users. */
   const showBusinessContext = isBusinessUser;
   const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
-  const canListBiz = roles.some((r) => r === 'platform-owner' || r === 'business-admin');
+  const canListBiz = roles.some(
+    (r) =>
+      r === 'platform-owner' ||
+      r === 'business-admin' ||
+      r === 'location-admin',
+  );
 
   useEffect(() => {
     if (!canListBiz || !userId.trim()) {
