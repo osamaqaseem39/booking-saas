@@ -7,6 +7,9 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
@@ -111,6 +114,19 @@ function bookingSourceFromRecord(booking: BookingRecord): BookingSource {
 
 
 
+const SPORT_COLORS: Record<string, string> = {
+  futsal: '#10b981',
+  cricket: '#3b82f6',
+  padel: '#f59e0b',
+  other: '#64748b',
+};
+
+const SOURCE_COLORS: Record<string, string> = {
+  walkin: '#6366f1',
+  app: '#8b5cf6',
+  call: '#ec4899',
+};
+
 type OwnerTenantSortColumn =
   | 'businessName'
   | 'tenantId'
@@ -166,6 +182,7 @@ export default function OverviewPage() {
 
   const [tenantLoading, setTenantLoading] = useState(false);
   const [tenantError, setTenantError] = useState<string | null>(null);
+  const [tenantDateRange, setTenantDateRange] = useState<'7' | '30' | '90'>('7');
 
 
 
@@ -442,7 +459,7 @@ export default function OverviewPage() {
   }, [filteredBookings]);
 
   const revenueTrend = useMemo(() => {
-    const days = lastNDates(7);
+    const days = lastNDates(Number(tenantDateRange));
     const revenueByDay = new Map<string, number>();
     for (const day of days) revenueByDay.set(day, 0);
     for (const b of filteredBookings) {
@@ -460,7 +477,7 @@ export default function OverviewPage() {
       ...r,
       heightPct: max > 0 ? Math.max(5, Math.round((r.value / max) * 100)) : 0,
     }));
-  }, [filteredBookings]);
+  }, [filteredBookings, tenantDateRange]);
 
 
   const activeLocationName = useMemo(() => {
@@ -964,74 +981,133 @@ export default function OverviewPage() {
 
 
               <div className="overview-mosaic-grid">
-                {/* Main Highlight: Bookings by Sport */}
-                <article className="overview-mosaic-card mosaic-card--large">
-                  <header className="mosaic-header">
-                    <h4>Bookings by sport</h4>
-                    <span className="muted small">Distribution of activities</span>
-                  </header>
-                  <div className="mosaic-content mosaic-content--flex">
-                    <div className="mosaic-donut-wrap">
-                      <div 
-                        className="mosaic-donut" 
-                        style={{
-                          background: `conic-gradient(
-                            #10b981 0% ${sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0}%,
-                            #3b82f6 ${sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0}% ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) }%,
-                            #f59e0b ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) }% ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'padel')?.pct ?? 0) }%,
-                            #64748b ${ (sportChartStats.find((s: any) => s.sport === 'futsal')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'cricket')?.pct ?? 0) + (sportChartStats.find((s: any) => s.sport === 'padel')?.pct ?? 0) }% 100%
-                          )`
-                        }}
-                      >
-                        <div className="mosaic-donut-hole">
-                          <strong>{locationFilteredBookings.length}</strong>
-                          <span>Total</span>
+                {/* Combined Distribution Card */}
+                <article className="overview-mosaic-card mosaic-card--full">
+                  <div className="mosaic-combined-layout">
+                    {/* Sport Distribution */}
+                    <div className="mosaic-combined-col">
+                      <header className="mosaic-header">
+                        <h4>Bookings by sport</h4>
+                        <span className="muted small">Activity distribution</span>
+                      </header>
+                      <div className="mosaic-content mosaic-content--chart">
+                        <div className="mosaic-recharts-wrap">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={sportChartStats}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="count"
+                                animationDuration={1000}
+                              >
+                                {sportChartStats.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={SPORT_COLORS[entry.sport] || SPORT_COLORS.other} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                itemStyle={{ color: '#fff' }}
+                                formatter={(value: any) => [value, 'Bookings']}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="mosaic-donut-center">
+                            <strong>{locationFilteredBookings.length}</strong>
+                            <span>Total</span>
+                          </div>
+                        </div>
+                        <div className="mosaic-legend-grid">
+                          {sportChartStats.map((row: any) => (
+                            <div key={row.sport} className="mosaic-legend-pill">
+                              <span className="mosaic-legend-swatch" style={{ backgroundColor: SPORT_COLORS[row.sport] || SPORT_COLORS.other }} />
+                              <span className="mosaic-legend-name">{titleCase(row.sport)}</span>
+                              <span className="mosaic-legend-val">{row.pct}%</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
-                    <div className="mosaic-legend">
-                      {sportChartStats.map((row: any) => (
-                        <div key={row.sport} className="mosaic-legend-item">
-                          <span className={`mosaic-swatch mosaic-swatch--${row.sport}`} />
-                          <span className="mosaic-legend-label">{titleCase(row.sport)}</span>
-                          <span className="mosaic-legend-value">{row.pct}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </article>
 
-                {/* Secondary Highlight: Booking From */}
-                <article className="overview-mosaic-card mosaic-card--medium">
-                  <header className="mosaic-header">
-                    <h4>Booking from</h4>
-                    <span className="muted small">Source analytics</span>
-                  </header>
-                  <div className="mosaic-content">
-                    <div className="mosaic-mini-bars">
-                      {sourceChartStats.map((row) => (
-                        <div key={row.source} className="mosaic-mini-bar-row">
-                          <div className="mosaic-mini-bar-info">
-                            <span>{bookingFromLabel(row.source)}</span>
-                            <span>{row.pct}%</span>
-                          </div>
-                          <div className="mosaic-mini-bar-track">
-                             <div 
-                               className={`mosaic-mini-bar-fill mosaic-mini-bar-fill--${row.source}`}
-                               style={{ width: `${row.widthPct}%` }}
-                             />
+                    <div className="mosaic-divider" />
+
+                    {/* Source Distribution */}
+                    <div className="mosaic-combined-col">
+                      <header className="mosaic-header">
+                        <h4>Booking from</h4>
+                        <span className="muted small">Source analytics</span>
+                      </header>
+                      <div className="mosaic-content mosaic-content--chart">
+                        <div className="mosaic-recharts-wrap">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={sourceChartStats}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="count"
+                                animationDuration={1200}
+                              >
+                                {sourceChartStats.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={SOURCE_COLORS[entry.source] || '#64748b'} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                itemStyle={{ color: '#fff' }}
+                                formatter={(value: any) => [value, 'Bookings']}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="mosaic-donut-center">
+                            <strong>{sourceChartStats.reduce((s, r) => s + r.count, 0)}</strong>
+                            <span>Sources</span>
                           </div>
                         </div>
-                      ))}
+                        <div className="mosaic-legend-grid">
+                          {sourceChartStats.map((row: any) => (
+                            <div key={row.source} className="mosaic-legend-pill">
+                              <span className="mosaic-legend-swatch" style={{ backgroundColor: SOURCE_COLORS[row.source] || '#64748b' }} />
+                              <span className="mosaic-legend-name">{bookingFromLabel(row.source)}</span>
+                              <span className="mosaic-legend-val">{row.pct}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </article>
 
                 {/* Revenue Trend Card */}
                 <article className="overview-mosaic-card mosaic-card--medium">
-                  <header className="mosaic-header">
-                    <h4>Revenue trend</h4>
-                    <span className="muted small">Daily totals (last 7 days)</span>
+                  <header className="mosaic-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h4>Revenue trend</h4>
+                      <span className="muted small">Daily totals</span>
+                    </div>
+                    <div className="filter-chip-row" style={{ gap: '0.25rem' }}>
+                      {[
+                        { value: '7', label: '7D' },
+                        { value: '30', label: '30D' },
+                        { value: '90', label: '90D' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={`filter-chip ${tenantDateRange === opt.value ? 'filter-chip--active' : ''}`}
+                          style={{ padding: '0.15rem 0.45rem', fontSize: '0.65rem' }}
+                          onClick={() => setTenantDateRange(opt.value as typeof tenantDateRange)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </header>
                   <div className="mosaic-content" style={{ height: '220px', width: '100%', marginTop: 'auto' }}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -1052,6 +1128,7 @@ export default function OverviewPage() {
                           tickLine={false}
                           tick={{ fill: '#94a3b8', fontSize: 11 }}
                           dy={10}
+                          interval={tenantDateRange === '7' ? 0 : tenantDateRange === '30' ? 6 : 14}
                         />
                         <YAxis 
                           hide={true} 

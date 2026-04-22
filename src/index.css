@@ -2229,6 +2229,140 @@ table.data.data--noninteractive tbody tr:hover {
   }
 }
 
+/* Combined Mosaic Card Styles */
+.mosaic-card--full {
+  grid-column: 1 / -1;
+  grid-row: span 1;
+  padding: 1.5rem;
+}
+
+.mosaic-combined-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.mosaic-combined-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.mosaic-divider {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 0.5rem 0;
+}
+
+.mosaic-content--chart {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.mosaic-recharts-wrap {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mosaic-donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.mosaic-donut-center strong {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.mosaic-donut-center span {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+
+.mosaic-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.mosaic-legend-pill {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: background 0.2s ease;
+}
+
+.mosaic-legend-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mosaic-legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.mosaic-legend-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex: 1;
+}
+
+.mosaic-legend-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+@media (max-width: 960px) {
+  .mosaic-combined-layout {
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .mosaic-divider {
+    height: 1px;
+    width: 100%;
+    margin: 0;
+  }
+  .mosaic-content--chart {
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mosaic-content--chart {
+    flex-direction: column;
+    align-items: center;
+  }
+  .mosaic-legend-grid {
+    width: 100%;
+  }
+}
+
 .overview-chart-card--proper .chart-content {
   padding: 1.1rem;
 }
