@@ -178,8 +178,12 @@ export default function UsersPage() {
   }
 
   const businessAdminCount = useMemo(
-    () =>
-      staffRows.filter((u) => (u.roles ?? []).includes('business-admin')).length,
+    () => staffRows.filter((u) => (u.roles ?? []).includes('business-admin')).length,
+    [staffRows],
+  );
+
+  const locationAdminCount = useMemo(
+    () => staffRows.filter((u) => (u.roles ?? []).includes('location-admin')).length,
     [staffRows],
   );
 
@@ -325,6 +329,10 @@ export default function UsersPage() {
             <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
               <h2>Business admins</h2>
               <strong style={{ fontSize: '1.25rem' }}>{businessAdminCount}</strong>
+            </div>
+            <div className="connection-panel" style={{ margin: 0, padding: '0.9rem 1rem' }}>
+              <h2>Location admins</h2>
+              <strong style={{ fontSize: '1.25rem' }}>{locationAdminCount}</strong>
             </div>
           </div>
 
