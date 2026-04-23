@@ -750,7 +750,7 @@ export default function BusinessTenantStatsPage() {
                         <Link to={`/app/locations/${loc.id}`} className="action-link">
                           View
                         </Link>
-                        <Link to="/app/Facilites" className="action-link">
+                        <Link to="/app/Facilities" className="action-link">
                           Facilities
                         </Link>
                         <Link

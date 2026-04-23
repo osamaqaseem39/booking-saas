@@ -103,7 +103,7 @@ export default function FacilityEditPage() {
     return (
       <div>
         <div className="page-toolbar-row">
-          <Link to="/app/Facilites" className="btn-ghost btn-compact">
+          <Link to="/app/Facilities" className="btn-ghost btn-compact">
             ← Facilities
           </Link>
         </div>
@@ -118,7 +118,7 @@ export default function FacilityEditPage() {
         <Link to="/app/locations" className="btn-ghost btn-compact">
           ← Locations
         </Link>
-        <Link to="/app/Facilites" className="btn-ghost btn-compact">
+        <Link to="/app/Facilities" className="btn-ghost btn-compact">
           ← Facilities
         </Link>
       </div>
@@ -144,7 +144,7 @@ export default function FacilityEditPage() {
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : null}
@@ -156,7 +156,7 @@ export default function FacilityEditPage() {
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : null}
@@ -168,7 +168,7 @@ export default function FacilityEditPage() {
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : null}
@@ -179,7 +179,7 @@ export default function FacilityEditPage() {
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : null}
@@ -191,7 +191,7 @@ export default function FacilityEditPage() {
             locationId={locationId}
             locations={locations}
             existingStationId={courtId}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : null}

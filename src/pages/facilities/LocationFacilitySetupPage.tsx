@@ -131,7 +131,7 @@ export default function LocationFacilitySetupPage() {
     return (
       <div>
         <div className="page-toolbar-row">
-          <Link to="/app/Facilites" className="btn-ghost btn-compact">
+          <Link to="/app/Facilities" className="btn-ghost btn-compact">
             ← Main facility page
           </Link>
         </div>
@@ -158,7 +158,7 @@ export default function LocationFacilitySetupPage() {
         <Link to="/app/locations" className="btn-ghost btn-compact">
           ← Locations
         </Link>
-        <Link to="/app/Facilites" className="btn-ghost btn-compact">
+        <Link to="/app/Facilities" className="btn-ghost btn-compact">
           ← Main facility page
         </Link>
       </div>
@@ -182,7 +182,7 @@ export default function LocationFacilitySetupPage() {
             facilityCode={facilityCode}
             locationId={locationId}
             locations={locations}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : isArenaTurfRoute ? (
@@ -191,7 +191,7 @@ export default function LocationFacilitySetupPage() {
             courtKind={selectedArenaKind}
             locationId={locationId}
             locations={locations}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
       ) : (
@@ -203,7 +203,7 @@ export default function LocationFacilitySetupPage() {
           <PadelCourtSetupForm
             locationId={locationId}
             locations={locations}
-            onSuccess={() => navigate('/app/Facilites')}
+            onSuccess={() => navigate('/app/Facilities')}
           />
         </>
       )}

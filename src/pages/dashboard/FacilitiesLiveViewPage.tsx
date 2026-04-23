@@ -615,7 +615,7 @@ export default function FacilitiesLiveViewPage() {
           >
             {refreshing ? 'Refreshing...' : 'Refresh now'}
           </button>
-          <Link to="/app/Facilites" className="btn-primary btn-compact">
+          <Link to="/app/Facilities" className="btn-primary btn-compact">
             Manage facilities
           </Link>
         </div>

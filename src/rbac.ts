@@ -24,7 +24,7 @@ export interface NavItem {
  */
 const BUSINESS_ADMIN_FOOTER_ORDER = [
   '/app/locations',
-  '/app/Facilites',
+  '/app/Facilities',
   '/app/time-slots',
   '/app/users',
 ] as const;
@@ -51,12 +51,12 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/locations',
     label: 'Locations',
-    anyOf: ['business-admin', 'location-admin'],
+    anyOf: ['platform-owner', 'business-admin', 'location-admin'],
   },
   {
-    to: '/app/Facilites',
+    to: '/app/Facilities',
     label: 'Facilities',
-    anyOf: ['business-admin', 'location-admin'],
+    anyOf: ['platform-owner', 'business-admin', 'location-admin'],
   },
   {
     to: '/app/bookings',
@@ -143,6 +143,8 @@ export function navVisibleForRoles(userRoles: string[]): NavItem[] {
 
 export function userMayAssignRoles(userRoles: string[]): boolean {
   return (
-    userRoles.includes('platform-owner') || userRoles.includes('business-admin')
+    userRoles.includes('platform-owner') ||
+    userRoles.includes('business-admin') ||
+    userRoles.includes('location-admin')
   );
 }

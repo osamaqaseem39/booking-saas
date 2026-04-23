@@ -92,14 +92,14 @@ export default function App() {
               }
             />
             <Route
-              path="Facilites"
+              path="Facilities"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
                   <AddFacilityPage />
                 </RequireRoles>
               }
             />
-            <Route path="add-court" element={<Navigate to="/app/Facilites" replace />} />
+            <Route path="add-court" element={<Navigate to="/app/Facilities" replace />} />
             <Route
               path="locations/new"
               element={
@@ -282,7 +282,7 @@ export default function App() {
                 </RequireRoles>
               }
             />
-            <Route path="arena" element={<Navigate to="/app/Facilites" replace />} />
+            <Route path="arena" element={<Navigate to="/app/Facilities" replace />} />
             <Route path="health" element={<HealthAccess />} />
           </Route>
           <Route path="/" element={<Navigate to="/app" replace />} />
