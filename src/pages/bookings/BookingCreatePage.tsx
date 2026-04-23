@@ -18,6 +18,8 @@ import type {
   BookingRecord,
   BookingItemStatus,
   BookingSportType,
+  PaymentStatus,
+  PaymentMethod,
   CourtKind,
 } from '../../types/booking';
 import type { BusinessLocationRow, BusinessRow, IamUserRow } from '../../types/domain';
@@ -330,6 +332,9 @@ export default function BookingCreatePage() {
   const [notes, setNotes] = useState('');
   const [discount, setDiscount] = useState('0');
   const [tax, setTax] = useState('0');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  const [paidAmount, setPaidAmount] = useState('0');
   const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
   /** Per line: server slot grid (free-only, hides booked) vs local fallback. */
@@ -795,8 +800,9 @@ export default function BookingCreatePage() {
           totalAmount: Math.max(0, total),
         },
         payment: {
-          paymentStatus: 'pending' as const,
-          paymentMethod: 'cash' as const,
+          paymentStatus,
+          paymentMethod,
+          paidAmount: Number(paidAmount || 0),
         },
         bookingStatus: 'confirmed' as const,
         notes:
@@ -1340,6 +1346,49 @@ export default function BookingCreatePage() {
               <label>Tax</label>
               <input value={tax} onChange={(e) => setTax(e.target.value)} />
             </div>
+          </div>
+
+          <h3 style={{ margin: '0.9rem 0 0.2rem' }}>Payment</h3>
+          <div className="form-row-2">
+            <div>
+              <label>Payment status</label>
+              <ButtonOptionGroup
+                value={paymentStatus}
+                onChange={(next) => setPaymentStatus(next as PaymentStatus)}
+                options={[
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'partially_paid', label: 'Advance' },
+                  { value: 'paid', label: 'Paid' },
+                ]}
+              />
+            </div>
+            <div>
+              <label>Payment method</label>
+              <ButtonOptionGroup
+                value={paymentMethod}
+                onChange={(next) => setPaymentMethod(next as PaymentMethod)}
+                options={[
+                  { value: 'cash', label: 'Cash' },
+                  { value: 'card', label: 'Card' },
+                  { value: 'jazzcash', label: 'JazzCash' },
+                  { value: 'easypaisa', label: 'EasyPaisa' },
+                ]}
+              />
+            </div>
+          </div>
+          <div>
+            <label>Amount Paid (PKR)</label>
+            <input
+              type="number"
+              value={paidAmount}
+              onChange={(e) => setPaidAmount(e.target.value)}
+              placeholder="0"
+            />
+            {paymentStatus === 'partially_paid' && Number(paidAmount) > 0 && (
+              <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>
+                Remaining: {(totalPreview - Number(paidAmount)).toLocaleString()} PKR
+              </p>
+            )}
           </div>
         </div>
           </div>

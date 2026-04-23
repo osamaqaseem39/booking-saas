@@ -37,6 +37,7 @@ function badgeClass(status: string): string {
   if (s === 'confirmed') return 'badge badge-confirmed';
   if (s === 'cancelled' || s === 'failed') return 'badge badge-cancelled';
   if (s === 'paid') return 'badge badge-paid';
+  if (s === 'partially_paid') return 'badge badge-partially-paid';
   if (s === 'completed') return 'badge badge-completed';
   if (s === 'no_show') return 'badge badge-neutral';
   return 'badge badge-neutral';
@@ -861,6 +862,20 @@ export default function BookingsPage() {
                   {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
                 </span>
               </div>
+              <div className="detail-row" style={{ marginTop: '0.4rem', borderTop: '1px solid #2a3544', paddingTop: '0.4rem' }}>
+                <span>Total Amount</span>
+                <strong>{selected.pricing.totalAmount.toLocaleString()} PKR</strong>
+              </div>
+              <div className="detail-row">
+                <span>Paid Amount</span>
+                <span className="text-success">{selected.payment.paidAmount.toLocaleString()} PKR</span>
+              </div>
+              <div className="detail-row">
+                <span>Remaining</span>
+                <span className={selected.payment.remainingAmount > 0 ? 'text-danger' : 'text-success'}>
+                  {selected.payment.remainingAmount.toLocaleString()} PKR
+                </span>
+              </div>
             </div>
             <div className="detail-section">
               <h4>Items</h4>
@@ -931,13 +946,28 @@ export default function BookingsPage() {
                     }
                   >
                     {(
-                      ['pending', 'paid', 'failed', 'refunded'] as const
+                      ['pending', 'partially_paid', 'paid', 'failed', 'refunded'] as const
                     ).map((s) => (
                       <option key={s} value={s}>
                         {titleCaseWords(s)}
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label>Amount Paid (PKR)</label>
+                  <input
+                    type="number"
+                    defaultValue={selected.payment.paidAmount}
+                    onBlur={(e) => {
+                      const v = Number(e.target.value);
+                      if (v !== selected.payment.paidAmount) {
+                        void patchBooking({
+                          payment: { paidAmount: v },
+                        });
+                      }
+                    }}
+                  />
                 </div>
                 <div>
                   <label>Payment method</label>
@@ -1178,7 +1208,7 @@ export default function BookingsPage() {
                             backgroundRepeat: 'no-repeat',
                           }}
                         >
-                          {(['pending', 'paid', 'failed', 'refunded'] as const).map((s) => (
+                          {(['pending', 'partially_paid', 'paid', 'failed', 'refunded'] as const).map((s) => (
                             <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
                               {titleCaseWords(s)}
                             </option>

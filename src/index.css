@@ -622,6 +622,10 @@ table.data.data--noninteractive tbody tr:hover {
   background: rgba(74, 222, 128, 0.15);
   color: var(--ok);
 }
+.badge-partially-paid {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--warn);
+}
 .badge-completed {
   background: rgba(45, 212, 191, 0.15);
   color: var(--accent);
@@ -3159,4 +3163,13 @@ table.data.data--noninteractive tbody tr:hover {
     gap: 0.45rem 0.7rem;
     font-size: 0.68rem;
   }
+}
+.text-success {
+  color: var(--ok);
+}
+.text-danger {
+  color: var(--danger);
+}
+.text-warning {
+  color: var(--warn);
 }

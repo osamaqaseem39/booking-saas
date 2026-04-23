@@ -6,7 +6,7 @@ export type BookingStatus =
   | 'cancelled'
   | 'completed'
   | 'no_show';
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type PaymentStatus = 'pending' | 'partially_paid' | 'paid' | 'failed' | 'refunded';
 export type PaymentMethod = 'cash' | 'card' | 'jazzcash' | 'easypaisa';
 export type CourtKind =
   | 'futsal_court'
@@ -50,6 +50,8 @@ export interface BookingRecord {
     paymentMethod: PaymentMethod;
     transactionId?: string;
     paidAt?: string;
+    paidAmount: number;
+    remainingAmount: number;
   };
   bookingStatus: BookingStatus;
   notes?: string;
@@ -84,6 +86,7 @@ export interface CreateBookingPayload {
     paymentMethod: PaymentMethod;
     transactionId?: string;
     paidAt?: string;
+    paidAmount?: number;
   };
   bookingStatus?: BookingStatus;
   notes?: string;
@@ -100,6 +103,7 @@ export interface UpdateBookingPayload {
     paymentMethod?: PaymentMethod;
     transactionId?: string;
     paidAt?: string;
+    paidAmount?: number;
   };
   itemStatuses?: Array<{ itemId: string; status: BookingItemStatus }>;
 }

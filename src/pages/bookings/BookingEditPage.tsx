@@ -53,6 +53,7 @@ export default function BookingEditPage() {
   const [bookingStatus, setBookingStatus] = useState<BookingStatus>('pending');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  const [paidAmount, setPaidAmount] = useState(0);
   const [cancellationReason, setCancellationReason] = useState('');
 
   const normalized = useMemo(() => {
@@ -99,6 +100,8 @@ export default function BookingEditPage() {
       bookingStatus: booking.bookingStatus,
       paymentStatus: booking.payment.paymentStatus,
       paymentMethod: booking.payment.paymentMethod,
+      paidAmount: booking.payment.paidAmount,
+      remainingAmount: booking.payment.remainingAmount,
       itemCount: items.length,
       currency,
       subTotal: Number(booking.pricing.subTotal || 0),
@@ -128,6 +131,7 @@ export default function BookingEditPage() {
         setBookingStatus(row.bookingStatus);
         setPaymentStatus(row.payment.paymentStatus);
         setPaymentMethod(row.payment.paymentMethod);
+        setPaidAmount(row.payment.paidAmount);
         setCancellationReason(row.cancellationReason ?? '');
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load booking');
@@ -145,7 +149,7 @@ export default function BookingEditPage() {
       const previousStatus = booking?.bookingStatus;
       const updated = await updateBooking(bookingId, {
         bookingStatus,
-        payment: { paymentStatus, paymentMethod },
+        payment: { paymentStatus, paymentMethod, paidAmount },
         cancellationReason: cancellationReason.trim() || undefined,
       });
       if (
@@ -303,6 +307,18 @@ export default function BookingEditPage() {
                       {normalized.totalAmount.toLocaleString()} {normalized.currency}
                     </span>
                   </div>
+                  <div className="detail-row">
+                    <span>Paid Amount</span>
+                    <span className="text-success">
+                      {normalized.paidAmount.toLocaleString()} {normalized.currency}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span>Remaining</span>
+                    <span className={normalized.remainingAmount > 0 ? 'text-danger' : 'text-success'}>
+                      {normalized.remainingAmount.toLocaleString()} {normalized.currency}
+                    </span>
+                  </div>
                 </div>
               </>
             )}
@@ -372,12 +388,20 @@ export default function BookingEditPage() {
                   value={paymentStatus}
                   onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
                 >
-                  {(['pending', 'paid', 'failed', 'refunded'] as const).map((s) => (
+                  {(['pending', 'partially_paid', 'paid', 'failed', 'refunded'] as const).map((s) => (
                     <option key={s} value={s}>
                       {titleCaseWords(s)}
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label>Amount Paid (PKR)</label>
+                <input
+                  type="number"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(Number(e.target.value))}
+                />
               </div>
               <div>
                 <label>Payment method</label>
