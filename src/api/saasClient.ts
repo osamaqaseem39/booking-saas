@@ -902,9 +902,16 @@ export async function getBooking(bookingId: string): Promise<BookingRecord> {
 export async function createBooking(
   body: CreateBookingPayload,
 ): Promise<BookingRecord> {
+  const normalizedBody: CreateBookingPayload = {
+    ...body,
+    payment: {
+      ...body.payment,
+      paidAmount: Number(body.payment?.paidAmount ?? 0),
+    },
+  };
   return request<BookingRecord>('/bookings', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify(normalizedBody),
   });
 }
 
@@ -912,9 +919,16 @@ export async function createBookingForTenant(
   tenantId: string,
   body: CreateBookingPayload,
 ): Promise<BookingRecord> {
+  const normalizedBody: CreateBookingPayload = {
+    ...body,
+    payment: {
+      ...body.payment,
+      paidAmount: Number(body.payment?.paidAmount ?? 0),
+    },
+  };
   return requestForTenant<BookingRecord>(tenantId, '/bookings', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify(normalizedBody),
   });
 }
 
@@ -922,9 +936,20 @@ export async function updateBooking(
   bookingId: string,
   body: UpdateBookingPayload,
 ): Promise<BookingRecord> {
+  const normalizedBody: UpdateBookingPayload = {
+    ...body,
+    payment: body.payment
+      ? {
+          ...body.payment,
+          ...(body.payment.paidAmount !== undefined
+            ? { paidAmount: Number(body.payment.paidAmount) }
+            : {}),
+        }
+      : undefined,
+  };
   return request<BookingRecord>(`/bookings/${bookingId}`, {
     method: 'PATCH',
-    body: JSON.stringify(body),
+    body: JSON.stringify(normalizedBody),
   });
 }
 
