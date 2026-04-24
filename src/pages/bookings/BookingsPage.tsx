@@ -75,6 +75,26 @@ function minutesToTimeString(totalMins: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+function normalizeToHour(value: string, mode: 'start' | 'end'): string {
+  if (!value) return '';
+  const [hRaw] = value.split(':');
+  const h = Number(hRaw || 0);
+  if (!Number.isFinite(h) || h < 0) return '';
+  const bounded = Math.min(23, Math.max(0, h));
+  if (mode === 'end' && bounded === 0) return '24:00';
+  return `${String(bounded).padStart(2, '0')}:00`;
+}
+
+function toHourlyRange(start: string, end: string): { start: string; end: string } {
+  const startM = toMinutes(normalizeToHour(start, 'start'));
+  const rawEnd = normalizeToHour(end, 'end');
+  const endM = Math.max(startM + 60, toMinutes(rawEnd || '00:00', true));
+  return {
+    start: minutesToTimeString(startM),
+    end: minutesToTimeString(Math.min(endM, 24 * 60)),
+  };
+}
+
 function hourlyStartsInRange(startTime: string, endTime: string): string[] {
   const start = toMinutes(startTime);
   const end = toMinutes(endTime, true);
@@ -448,7 +468,8 @@ export default function BookingsPage() {
       setError('Select sport, date, start time, and end time to check availability.');
       return;
     }
-    const requestedStarts = hourlyStartsInRange(availabilityStartTime, availabilityEndTime);
+    const hourly = toHourlyRange(availabilityStartTime, availabilityEndTime);
+    const requestedStarts = hourlyStartsInRange(hourly.start, hourly.end);
     if (requestedStarts.length === 0) {
       setError('End time must be after start time.');
       return;
@@ -459,8 +480,8 @@ export default function BookingsPage() {
     try {
       const result = await getBookingAvailability({
         date: availabilityDate,
-        startTime: availabilityStartTime,
-        endTime: availabilityEndTime,
+        startTime: hourly.start,
+        endTime: hourly.end,
         sportType: availabilitySport,
       });
       const slotChecks = await Promise.all(
@@ -472,8 +493,8 @@ export default function BookingsPage() {
               date: availabilityDate,
               availableOnly: false, // get all states so we can detect booked/blocked
               useWorkingHours: false,
-              startTime: availabilityStartTime,
-              endTime: availabilityEndTime,
+              startTime: hourly.start,
+              endTime: hourly.end,
             });
             // Only reject if the slot is explicitly booked or blocked.
             // If the grid is empty (e.g. no facility slots generated), trust the availability API.
@@ -717,8 +738,9 @@ export default function BookingsPage() {
                 </label>
                 <input
                   type="time"
+                  step={3600}
                   value={availabilityStartTime}
-                  onChange={(e) => setAvailabilityStartTime(e.target.value)}
+                  onChange={(e) => setAvailabilityStartTime(normalizeToHour(e.target.value, 'start'))}
                 />
               </div>
               <div>
@@ -730,13 +752,14 @@ export default function BookingsPage() {
                 </label>
                 <input
                   type="time"
+                  step={3600}
                   value={availabilityEndTime}
-                  onChange={(e) => setAvailabilityEndTime(e.target.value)}
+                  onChange={(e) => setAvailabilityEndTime(normalizeToHour(e.target.value, 'end'))}
                 />
               </div>
             </div>
             <p className="muted" style={{ margin: 0, fontSize: '0.82rem' }}>
-              Pickers use 24-hour values for the API; labels show 12-hour time.
+              Hourly slots only. Pickers use 24-hour values for API and labels show 12-hour time.
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button
@@ -768,10 +791,10 @@ export default function BookingsPage() {
                         <div className="muted">{court.kind}</div>
                         {court.pricePerSlot != null ? (
                           <div className="muted">
-                            {court.pricePerSlot.toFixed(2)} per slot
-                            {court.slotDurationMinutes != null
-                              ? ` · ${court.slotDurationMinutes} min slot`
-                              : ''}
+                            {(court.slotDurationMinutes && court.slotDurationMinutes > 0
+                              ? (court.pricePerSlot * (60 / court.slotDurationMinutes))
+                              : court.pricePerSlot
+                            ).toFixed(2)} per hour
                           </div>
                         ) : null}
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.35rem' }}>
@@ -823,7 +846,10 @@ export default function BookingsPage() {
                       <li key={slot.itemId}>
                         <div>
                           <strong>
-                            {formatTimeRange12h(slot.startTime, slot.endTime)}
+                            {formatTimeRange12h(
+                              normalizeToHour(slot.startTime, 'start'),
+                              normalizeToHour(slot.endTime, 'end'),
+                            )}
                           </strong>
                         </div>
                         <div className="muted">
