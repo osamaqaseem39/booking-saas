@@ -64,6 +64,23 @@ function addDaysYmd(baseDate: string, days: number): string {
   return localDateYmd(d);
 }
 
+function nextDateChoices(days: number): Array<{ value: string; day: string; dateNum: string }> {
+  const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const out: Array<{ value: string; day: string; dateNum: string }> = [];
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    out.push({
+      value: localDateYmd(d),
+      day: labels[d.getDay()] ?? '',
+      dateNum: String(d.getDate()),
+    });
+  }
+  return out;
+}
+
 function nextHourTime(now = new Date()): string {
   const d = new Date(now);
   d.setSeconds(0, 0);
@@ -184,6 +201,10 @@ export default function FacilitiesLiveViewPage() {
   const [quickSlotsLoading, setQuickSlotsLoading] = useState(false);
   /** Recompute on-screen “now” without waiting for the next API poll */
   const [clock, setClock] = useState(0);
+  const quickBookingDateChoices = useMemo(
+    () => nextDateChoices(QUICK_BOOKING_MAX_DAYS),
+    [],
+  );
   useEffect(() => {
     const id = window.setInterval(() => setClock((c) => c + 1), 15000);
     return () => window.clearInterval(id);
@@ -938,18 +959,47 @@ export default function FacilitiesLiveViewPage() {
               </div>
               <div>
                 <label>Date</label>
-                <input
-                  type="date"
-                  value={quickBooking.date}
-                  min={localDateYmd()}
-                  max={addDaysYmd(localDateYmd(), QUICK_BOOKING_MAX_DAYS - 1)}
-                  onChange={(e) =>
-                    setQuickBooking((cur) =>
-                      cur ? { ...cur, date: e.target.value } : cur,
-                    )
-                  }
-                  disabled={quickBookingSubmitting}
-                />
+                <div
+                  style={{
+                    marginTop: '0.35rem',
+                    display: 'flex',
+                    gap: '0.5rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.25rem',
+                  }}
+                >
+                  {quickBookingDateChoices.map((d) => {
+                    const active = d.value === quickBooking.date;
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        className={active ? 'btn-primary' : 'btn-ghost'}
+                        style={{
+                          minWidth: '62px',
+                          padding: '0.5rem 0.65rem',
+                          borderRadius: '999px',
+                          fontSize: '0.82rem',
+                          lineHeight: 1.1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.12rem',
+                          flex: '0 0 auto',
+                        }}
+                        onClick={() =>
+                          setQuickBooking((cur) =>
+                            cur ? { ...cur, date: d.value } : cur,
+                          )
+                        }
+                        disabled={quickBookingSubmitting}
+                      >
+                        <span>{d.day}</span>
+                        <strong>{d.dateNum}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <label>Slots</label>
