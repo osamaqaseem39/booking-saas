@@ -14,7 +14,7 @@ import {
   listFutsalCourts,
   listPadelCourts,
 } from '../../api/saasClient';
-import type { BookingRecord } from '../../types/booking';
+import type { BookingRecord, PaymentStatus } from '../../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../../types/domain';
 import { formatTime12h } from '../../utils/timeDisplay';
 import {
@@ -154,6 +154,7 @@ export default function FacilitiesLiveViewPage() {
   const [quickBooking, setQuickBooking] = useState<QuickBookingState | null>(null);
   const [quickPrice, setQuickPrice] = useState<number | null>(null);
   const [quickPriceLoading, setQuickPriceLoading] = useState(false);
+  const [quickPaidAmount, setQuickPaidAmount] = useState<number>(0);
   const [quickBookingSubmitting, setQuickBookingSubmitting] = useState(false);
   const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
   const [quickSlots, setQuickSlots] = useState<Array<{ startTime: string; endTime: string }>>(
@@ -340,6 +341,9 @@ export default function FacilitiesLiveViewPage() {
           : 'padel';
     const startTime = state.startTime;
     const endTime = state.endTime || endTimeFrom(startTime);
+    const range = getSelectedRangeMinutes(startTime, endTime);
+    const selectedMinutes = Math.max(0, range.end - range.start);
+    const selectedHours = selectedMinutes > 0 ? selectedMinutes / 60 : 1;
     setQuickPriceLoading(true);
     try {
       // 1. Try fetching from availability API (most accurate for seasonal/peak pricing if implemented)
@@ -361,7 +365,8 @@ export default function FacilitiesLiveViewPage() {
 
       if (row && row.pricePerSlot != null) {
         const slotDuration = row.slotDurationMinutes && row.slotDurationMinutes > 0 ? row.slotDurationMinutes : 60;
-        const computed = row.pricePerSlot * (60 / slotDuration);
+        const perHour = row.pricePerSlot * (60 / slotDuration);
+        const computed = perHour * selectedHours;
         setQuickPrice(Number.isFinite(computed) ? Math.max(0, Math.round(computed)) : null);
         return;
       }
@@ -376,13 +381,18 @@ export default function FacilitiesLiveViewPage() {
         if (p != null) basePrice = Number(p);
       }
 
-      setQuickPrice(basePrice);
+      const computed = (basePrice ?? 0) * selectedHours;
+      setQuickPrice(Number.isFinite(computed) ? Math.max(0, Math.round(computed)) : null);
     } catch {
       setQuickPrice(null);
     } finally {
       setQuickPriceLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setQuickPaidAmount(quickPrice ?? 0);
+  }, [quickPrice]);
 
   useEffect(() => {
     if (!quickBooking) return;
@@ -529,6 +539,15 @@ export default function FacilitiesLiveViewPage() {
       setQuickBookingError('Price is unavailable for this slot. Try another time.');
       return;
     }
+    const safePaidAmount = Number.isFinite(quickPaidAmount)
+      ? Math.max(0, quickPaidAmount)
+      : 0;
+    const resolvedPaymentStatus: PaymentStatus =
+      safePaidAmount <= 0
+        ? 'pending'
+        : safePaidAmount >= quickPrice
+          ? 'paid'
+          : 'partially_paid';
     const sportType =
       quickBooking.facility.type === 'futsalCourt' ||
       quickBooking.facility.type === 'sharedTurfCourt'
@@ -623,8 +642,9 @@ export default function FacilitiesLiveViewPage() {
           totalAmount: quickPrice,
         },
         payment: {
-          paymentStatus: 'pending',
+          paymentStatus: resolvedPaymentStatus,
           paymentMethod: 'cash',
+          paidAmount: safePaidAmount,
         },
         bookingStatus: 'confirmed',
         notes: 'source:walkin',
@@ -998,6 +1018,25 @@ export default function FacilitiesLiveViewPage() {
                           quickPrice,
                         )}`}
                 </span>
+              </div>
+              <div>
+                <label>Paid amount</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={quickPaidAmount}
+                  onChange={(e) =>
+                    setQuickPaidAmount(Math.max(0, Number(e.target.value || 0)))
+                  }
+                  disabled={quickBookingSubmitting || quickPriceLoading || quickPrice == null}
+                />
+                {quickPrice != null && (
+                  <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>
+                    Remaining:{' '}
+                    {Math.max(0, quickPrice - (Number.isFinite(quickPaidAmount) ? quickPaidAmount : 0)).toLocaleString()}{' '}
+                    {quickBooking.location?.currency ?? 'PKR'}
+                  </p>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
