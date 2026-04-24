@@ -81,63 +81,102 @@ function FacilitiesTableBlock({
         {rows.length === 0 ? (
           <div className="empty-state">None yet</div>
         ) : (
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>ID</th>
-                {facilityCode === 'turf-court' && <th>Supported Sports</th>}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="facility-mobile-list">
               {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.name}</td>
-                  <td>
-                    <code style={{ fontSize: '0.7rem' }}>{r.id}</code>
-                  </td>
-                  {facilityCode === 'turf-court' && (
-                    <td>
+                <article key={r.id} className="facility-mobile-card">
+                  <div className="facility-mobile-card__head">
+                    <strong>{r.name}</strong>
+                    <code>{r.id}</code>
+                  </div>
+                  {facilityCode === 'turf-court' ? (
+                    <p className="muted" style={{ margin: 0 }}>
                       {r.supportedSports
                         ?.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-                        .join(', ') ||
-                        (r.supportsCricket ? 'Futsal, Cricket' : 'Futsal')}
-                    </td>
-                  )}
-                  <td>
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '0.35rem',
-                        alignItems: 'center',
-                      }}
+                        .join(', ') || (r.supportsCricket ? 'Futsal, Cricket' : 'Futsal')}
+                    </p>
+                  ) : null}
+                  <div className="location-actions location-actions--mobile">
+                    <Link
+                      to={editFacilityPath(
+                        locationId,
+                        resolveFacilityCode?.(r) ?? facilityCode,
+                        r.id,
+                      )}
+                      className="btn-ghost btn-compact"
                     >
-                      <Link
-                        to={editFacilityPath(
-                          locationId,
-                          resolveFacilityCode?.(r) ?? facilityCode,
-                          r.id,
-                        )}
-                        className="btn-ghost btn-compact"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        className="btn-danger btn-compact"
-                        disabled={deletingId === r.id}
-                        onClick={() => void removeRow(r)}
-                      >
-                        {deletingId === r.id ? 'Deleting…' : 'Delete'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                      Edit
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-danger btn-compact"
+                      disabled={deletingId === r.id}
+                      onClick={() => void removeRow(r)}
+                    >
+                      {deletingId === r.id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
+                </article>
               ))}
-            </tbody>
-          </table>
+            </div>
+            <table className="data facility-desktop-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>ID</th>
+                  {facilityCode === 'turf-court' && <th>Supported Sports</th>}
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.name}</td>
+                    <td>
+                      <code style={{ fontSize: '0.7rem' }}>{r.id}</code>
+                    </td>
+                    {facilityCode === 'turf-court' && (
+                      <td>
+                        {r.supportedSports
+                          ?.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                          .join(', ') ||
+                          (r.supportsCricket ? 'Futsal, Cricket' : 'Futsal')}
+                      </td>
+                    )}
+                    <td>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '0.35rem',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Link
+                          to={editFacilityPath(
+                            locationId,
+                            resolveFacilityCode?.(r) ?? facilityCode,
+                            r.id,
+                          )}
+                          className="btn-ghost btn-compact"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn-danger btn-compact"
+                          disabled={deletingId === r.id}
+                          onClick={() => void removeRow(r)}
+                        >
+                          {deletingId === r.id ? 'Deleting…' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </div>

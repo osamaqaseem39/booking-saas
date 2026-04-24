@@ -291,8 +291,8 @@ export default function ConsoleLayout() {
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-            <span className="muted" style={{ fontSize: '0.8rem' }}>
+          <div className="console-topbar-right">
+            <span className="muted console-topbar-user">
               {session.fullName}
             </span>
             <button type="button" className="btn-ghost" onClick={() => signOut()}>

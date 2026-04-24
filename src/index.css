@@ -1242,6 +1242,21 @@ table.data.data--noninteractive tbody tr:hover {
   min-width: 0;
 }
 
+.console-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.console-topbar-user {
+  font-size: 0.8rem;
+  max-width: 14rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 /* Location filter pill row in the topbar */
 .topbar-loc-bar {
@@ -1406,6 +1421,58 @@ table.data.data--noninteractive tbody tr:hover {
   gap: 0.4rem;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.location-actions--mobile .action-link,
+.location-actions--mobile .btn-danger,
+.location-actions--mobile .btn-ghost,
+.location-actions--mobile .btn-primary {
+  flex: 1 1 calc(50% - 0.25rem);
+  justify-content: center;
+  text-align: center;
+  min-height: 2rem;
+}
+
+.location-mobile-list,
+.facility-mobile-list {
+  display: none;
+}
+
+.location-mobile-card,
+.facility-mobile-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.location-mobile-card__head,
+.facility-mobile-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.location-mobile-card__head strong,
+.facility-mobile-card__head strong {
+  font-size: 0.95rem;
+}
+
+.facility-mobile-card__head code {
+  font-size: 0.66rem;
+  word-break: break-all;
+}
+
+.location-mobile-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .action-link {
@@ -1962,7 +2029,17 @@ table.data.data--noninteractive tbody tr:hover {
   }
 
   .console-topbar-left {
+    order: 3;
     flex: 1 1 100%;
+  }
+
+  .console-topbar-right {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .console-topbar-right .btn-ghost {
+    padding: 0.4rem 0.7rem;
   }
 
   .topbar-loc-bar {
@@ -1987,6 +2064,18 @@ table.data.data--noninteractive tbody tr:hover {
   .owner-live-business-grid,
   .facilities-live-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .console-topbar-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .console-topbar-user {
+    max-width: 58vw;
   }
 }
 
@@ -3226,6 +3315,14 @@ table.data.data--noninteractive tbody tr:hover {
   .overview-page table.data {
     min-width: 620px;
   }
+
+  .location-list-toolbar .form-row-2 {
+    max-width: none !important;
+  }
+
+  .location-list-toolbar .location-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 480px) {
@@ -3263,6 +3360,35 @@ table.data.data--noninteractive tbody tr:hover {
   .overview-sport-legend {
     gap: 0.45rem 0.7rem;
     font-size: 0.68rem;
+  }
+
+  .page-toolbar-row {
+    gap: 0.45rem;
+  }
+
+  .page-toolbar-row .btn-ghost,
+  .page-toolbar-row .btn-primary {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .locations-desktop-table,
+  .facility-desktop-table {
+    display: none;
+  }
+
+  .location-mobile-list,
+  .facility-mobile-list {
+    display: grid;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .location-actions--mobile .action-link,
+  .location-actions--mobile .btn-danger,
+  .location-actions--mobile .btn-ghost,
+  .location-actions--mobile .btn-primary {
+    flex-basis: 100%;
   }
 }
 .text-success {

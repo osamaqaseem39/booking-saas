@@ -159,6 +159,65 @@ export default function LocationsPage() {
       </div>
 
       <h3 style={{ fontSize: '1rem', marginTop: '1.75rem' }}>All locations</h3>
+      {!loading && filteredRows.length > 0 ? (
+        <div className="location-mobile-list">
+          {filteredRows.map((r) => (
+            <article key={r.id} className="location-mobile-card">
+              <div className="location-mobile-card__head">
+                <strong>{r.name}</strong>
+                <span
+                  className={`badge ${(r.status ?? '').toLowerCase() === 'active' ? 'badge-confirmed' : 'badge-neutral'}`}
+                >
+                  {(r.status ?? 'unknown').toUpperCase()}
+                </span>
+              </div>
+              <p className="muted" style={{ margin: 0 }}>
+                {r.business?.businessName ?? r.businessId}
+              </p>
+              <div className="location-mobile-card__meta">
+                <span className="location-type-chip">{r.locationType ?? '—'}</span>
+                <span>{r.city ?? 'No city'}</span>
+                <span>{r.phone ?? 'No phone'}</span>
+              </div>
+              {r.facilityTypes?.length ? (
+                <div className="facility-chip-list">
+                  {r.facilityTypes.map((code) => (
+                    <span key={code} className="facility-chip">
+                      {formatFacilityTypeLabel(code)}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <div className="location-actions location-actions--mobile">
+                <Link
+                  className="action-link"
+                  to={`/app/bookings/new?locationId=${encodeURIComponent(r.id)}`}
+                >
+                  Add booking
+                </Link>
+                <Link className="action-link" to={`/app/locations/${r.id}/facilities`}>
+                  Facilities
+                </Link>
+                <Link className="action-link" to={`/app/locations/${r.id}`}>
+                  View
+                </Link>
+                <Link className="action-link" to={`/app/locations/${r.id}/edit`}>
+                  Edit
+                </Link>
+                <button
+                  type="button"
+                  className="btn-danger"
+                  style={{ padding: '0.35rem 0.55rem', fontSize: '0.78rem' }}
+                  disabled={deletingId === r.id}
+                  onClick={() => void onDelete(r.id)}
+                >
+                  {deletingId === r.id ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
       <div className="table-wrap">
         {loading ? (
           <div className="empty-state">Loading…</div>
@@ -167,7 +226,7 @@ export default function LocationsPage() {
             No locations match the current filters.
           </div>
         ) : (
-          <table className="data">
+          <table className="data locations-desktop-table">
             <thead>
               <tr>
                 <th>Business</th>
