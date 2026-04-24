@@ -497,6 +497,14 @@ table.data td {
   padding: 0.78rem 1rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table-wrap table.data .facility-chip-list,
+.table-wrap table.data .location-actions,
+.table-wrap table.data .owner-live-business-kpis,
+.table-wrap table.data .owner-live-booking-strip {
+  flex-wrap: nowrap;
 }
 
 table.data th {
