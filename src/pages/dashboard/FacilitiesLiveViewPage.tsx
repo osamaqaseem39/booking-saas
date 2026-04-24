@@ -885,39 +885,43 @@ export default function FacilitiesLiveViewPage() {
             </h2>
             <div className="form-grid">
               {quickBookingError && <div className="err-banner">{quickBookingError}</div>}
-              <div className="detail-row">
-                <span>Location</span>
-                <span>{quickBooking.location?.name ?? '—'}</span>
+              <div className="form-row-2">
+                <div className="detail-row">
+                  <span>Location</span>
+                  <span>{quickBooking.location?.name ?? '—'}</span>
+                </div>
+                <div className="detail-row">
+                  <span>Facility</span>
+                  <span>{quickBooking.facility.name}</span>
+                </div>
               </div>
-              <div className="detail-row">
-                <span>Facility</span>
-                <span>{quickBooking.facility.name}</span>
-              </div>
-              <div>
-                <label>Number</label>
-                <input
-                  value={quickBooking.phone}
-                  onChange={(e) =>
-                    setQuickBooking((cur) =>
-                      cur ? { ...cur, phone: normalizePhone(e.target.value) } : cur,
-                    )
-                  }
-                  placeholder="+92..."
-                  disabled={quickBookingSubmitting}
-                />
-              </div>
-              <div>
-                <label>Customer name</label>
-                <input
-                  value={quickBooking.name}
-                  onChange={(e) =>
-                    setQuickBooking((cur) =>
-                      cur ? { ...cur, name: e.target.value } : cur,
-                    )
-                  }
-                  placeholder="Full name"
-                  disabled={quickBookingSubmitting}
-                />
+              <div className="form-row-2">
+                <div>
+                  <label>Number</label>
+                  <input
+                    value={quickBooking.phone}
+                    onChange={(e) =>
+                      setQuickBooking((cur) =>
+                        cur ? { ...cur, phone: normalizePhone(e.target.value) } : cur,
+                      )
+                    }
+                    placeholder="+92..."
+                    disabled={quickBookingSubmitting}
+                  />
+                </div>
+                <div>
+                  <label>Customer name</label>
+                  <input
+                    value={quickBooking.name}
+                    onChange={(e) =>
+                      setQuickBooking((cur) =>
+                        cur ? { ...cur, name: e.target.value } : cur,
+                      )
+                    }
+                    placeholder="Full name"
+                    disabled={quickBookingSubmitting}
+                  />
+                </div>
               </div>
               <div>
                 <label>Date</label>
@@ -939,7 +943,7 @@ export default function FacilitiesLiveViewPage() {
                   style={{
                     marginTop: '0.35rem',
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
                     gap: '0.4rem',
                     width: '100%',
                   }}
