@@ -339,7 +339,14 @@ export default function BookingCreatePage() {
   const [savedCustomersByPhone, setSavedCustomersByPhone] = useState<Record<string, SavedCustomer>>({});
   /** Per line: server slot grid (free-only, hides booked) vs local fallback. */
   const [lineSlotSource, setLineSlotSource] = useState<
-    Record<number, { starts: string[]; source: 'api' | 'local' }>
+    Record<
+      number,
+      {
+        starts: string[];
+        blockedStarts: string[];
+        source: 'api' | 'local';
+      }
+    >
   >({});
   const bookingDateDayKey = localDateYmd();
   const bookingDateChoices = useMemo(() => nextSevenDays(), [bookingDateDayKey]);
@@ -359,7 +366,10 @@ export default function BookingCreatePage() {
     }
     let cancelled = false;
     void (async () => {
-      const next: Record<number, { starts: string[]; source: 'api' | 'local' }> = {};
+      const next: Record<
+        number,
+        { starts: string[]; blockedStarts: string[]; source: 'api' | 'local' }
+      > = {};
       for (let idx = 0; idx < lines.length; idx += 1) {
         const ln = lines[idx];
         if (!ln.courtId.trim()) {
@@ -371,12 +381,15 @@ export default function BookingCreatePage() {
             courtId: ln.courtId.trim(),
             date: bookingDate,
             useWorkingHours: false,
-            availableOnly: true,
+            availableOnly: false,
             tenantId: isPlatformOwner ? bookingTenant : undefined,
           });
           if (cancelled) return;
           const starts = grid.segments
             .filter((s) => s.state === 'free')
+            .map((s) => s.startTime);
+          const blockedStarts = grid.segments
+            .filter((s) => s.state === 'blocked')
             .map((s) => s.startTime);
           console.info(BOOKING_TIMING_LOG, 'slot-grid-loaded', {
             lineIndex: idx,
@@ -384,8 +397,9 @@ export default function BookingCreatePage() {
             courtId: ln.courtId.trim(),
             bookingDate,
             freeSlots: starts.length,
+            blockedSlots: blockedStarts.length,
           });
-          next[idx] = { starts, source: 'api' };
+          next[idx] = { starts, blockedStarts, source: 'api' };
         } catch {
           console.warn(BOOKING_TIMING_LOG, 'slot-grid-fallback-local', {
             lineIndex: idx,
@@ -393,7 +407,7 @@ export default function BookingCreatePage() {
             courtId: ln.courtId.trim(),
             bookingDate,
           });
-          next[idx] = { starts: [], source: 'local' };
+          next[idx] = { starts: [], blockedStarts: [], source: 'local' };
         }
       }
       if (!cancelled) setLineSlotSource(next);
@@ -742,6 +756,14 @@ export default function BookingCreatePage() {
         return;
       }
       const slotSource = lineSlotSource[idx];
+      if (slotSource?.source === 'api' && slotSource.blockedStarts.includes(startTime)) {
+        console.warn(BOOKING_TIMING_LOG, 'line-start-is-blocked', {
+          lineIndex: idx,
+          startTime,
+        });
+        setError('Selected start time is blocked for this facility. Please pick another slot.');
+        return;
+      }
       if (slotSource?.source === 'api' && !slotSource.starts.includes(startTime)) {
         console.warn(BOOKING_TIMING_LOG, 'line-start-not-in-free-slots', {
           lineIndex: idx,
@@ -1099,6 +1121,12 @@ export default function BookingCreatePage() {
                       (a, b) => timeToMinutes(a) - timeToMinutes(b),
                     )
                   : [];
+              const blockedStarts =
+                src?.source === 'api'
+                  ? [...src.blockedStarts].sort(
+                      (a, b) => timeToMinutes(a) - timeToMinutes(b),
+                    )
+                  : [];
               /**
                * API slot-grid already applies facility template filtering.
                * Keep front-end filtering disabled so newly assigned templates
@@ -1154,6 +1182,11 @@ export default function BookingCreatePage() {
                           {dayWindow.closed
                             ? 'Closed'
                             : `${formatTime12h(dayWindow.open)} - ${formatTime12h(dayWindow.close)}`}
+                        </div>
+                      )}
+                      {blockedStarts.length > 0 && (
+                        <div className="muted" style={{ marginTop: '0.3rem', fontSize: '0.8rem' }}>
+                          {blockedStarts.length} blocked slot(s) hidden from quick-pick.
                         </div>
                       )}
                     </div>
