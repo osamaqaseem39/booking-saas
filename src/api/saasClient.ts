@@ -11,6 +11,7 @@ import type {
 } from '../types/booking';
 import type {
   BusinessDashboardView,
+  BusinessLocationDashboardView,
   BusinessLocationRow,
   BusinessRow,
   IamUserRow,
@@ -598,6 +599,21 @@ export async function getBusinessDashboardView(): Promise<BusinessDashboardView>
   return request<BusinessDashboardView>('/businesses/dashboard', {
     method: 'GET',
   });
+}
+
+export async function getBusinessDashboardViewForLocation(
+  locationId: string,
+  options?: { period?: string },
+): Promise<BusinessLocationDashboardView> {
+  const q = new URLSearchParams();
+  if (options?.period) {
+    q.set('period', options.period);
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : '';
+  return request<BusinessLocationDashboardView>(
+    `/businesses/locations/${encodeURIComponent(locationId)}/dashboard${suffix}`,
+    { method: 'GET' },
+  );
 }
 
 export async function createBusinessLocation(body: {

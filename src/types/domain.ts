@@ -143,25 +143,110 @@ export interface BusinessDashboardBusinessRow {
   confirmedBookingCount: number;
   pendingBookingCount: number;
   cancelledBookingCount: number;
+  completedBookingCount?: number;
   revenueTotal: number;
   revenuePaid: number;
+  previousPeriod?: {
+    bookingCount: number;
+    revenueTotal: number;
+    completedBookingCount: number;
+  } | null;
 }
 
 export interface BusinessDashboardView {
   generatedAt: string;
+  /** `today` | `last7days` | `thisMonth` | `all` — scopes `totals` / analytics. */
+  period?: {
+    key: string;
+    window: { start: string | null; end: string | null };
+    refToday: string;
+    previousWindow: { start: string | null; end: string | null };
+  };
   scope: {
     businessCount: number;
     locationCount: number;
   };
+  greeting?: string;
+  performanceSummary?: string;
+  bookingStats?: Array<{ label: string; value: number; change: string }>;
+  revenueOverview?: {
+    total: number;
+    currency: string;
+    currencyCode?: string;
+    revenueBySport: Array<{
+      sport: string;
+      amount: number;
+      icon: string;
+      percentageOfRevenue: number;
+    }>;
+    bookingsBySport: Array<{
+      sport: string;
+      count: number;
+      icon: string;
+      percentageOfTotal: number;
+    }>;
+  };
+  /**
+   * “Booking from” (Walk-in, App, Call) for the selected period; `totalBookings` for donut center.
+   * Parsed from `notes` (`source:walkin|app|call`), same as the web overview chart.
+   */
+  bookingFrom?: {
+    totalBookings: number;
+    sources: Array<{
+      key: 'walkin' | 'app' | 'call';
+      source: string;
+      count: number;
+      percentage: number;
+      color: string;
+    }>;
+  };
+  /** In-scope all-time; same shape as `bookingFrom` when you need lifetime vs period. */
+  bookingFromOverall?: {
+    totalBookings: number;
+    sources: Array<{
+      key: 'walkin' | 'app' | 'call';
+      source: string;
+      count: number;
+      percentage: number;
+      color: string;
+    }>;
+  };
+  /** Same as `bookingFrom.sources` (kept for older mobile builds). */
+  customersBySource?: Array<{
+    key: 'walkin' | 'app' | 'call';
+    source: string;
+    count: number;
+    percentage: number;
+    color: string;
+  }>;
+  /** Same as `bookingFromOverall.sources`. */
+  customersBySourceOverall?: Array<{
+    key: 'walkin' | 'app' | 'call';
+    source: string;
+    count: number;
+    percentage: number;
+    color: string;
+  }>;
   totals: {
     courtCount: number;
     bookingCount: number;
     confirmedBookingCount: number;
     pendingBookingCount: number;
     cancelledBookingCount: number;
+    /** Present in API response; optional for older clients. */
+    completedBookingCount?: number;
     revenueTotal: number;
     revenuePaid: number;
   };
   businesses: BusinessDashboardBusinessRow[];
+}
+
+/** `GET /businesses/locations/:locationId/dashboard` — same fields as org dashboard, plus `location`. */
+export interface BusinessLocationDashboardView extends Omit<
+  BusinessDashboardView,
+  'scope'
+> {
+  location: { id: string; name: string };
+  scope: BusinessDashboardView['scope'] & { locationId: string };
 }
 
