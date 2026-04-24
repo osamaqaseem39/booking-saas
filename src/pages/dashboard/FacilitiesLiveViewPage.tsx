@@ -132,7 +132,7 @@ function getSelectedRangeMinutes(startTime: string, endTime: string): {
 }
 
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
-const QUICK_BOOKING_MAX_DAYS = 30;
+const QUICK_BOOKING_MAX_DAYS = 14;
 
 function digitsOnly(v: string): string {
   return v.replace(/\D/g, '');
@@ -963,8 +963,10 @@ export default function FacilitiesLiveViewPage() {
                   style={{
                     marginTop: '0.35rem',
                     display: 'flex',
-                    gap: '0.5rem',
+                    gap: '0.4rem',
+                    flexWrap: 'nowrap',
                     overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
                     paddingBottom: '0.25rem',
                   }}
                 >
@@ -976,16 +978,18 @@ export default function FacilitiesLiveViewPage() {
                         type="button"
                         className={active ? 'btn-primary' : 'btn-ghost'}
                         style={{
-                          minWidth: '62px',
-                          padding: '0.5rem 0.65rem',
-                          borderRadius: '999px',
-                          fontSize: '0.82rem',
-                          lineHeight: 1.1,
+                          padding: '0.55rem 0.8rem',
+                          borderRadius: '0.6rem',
+                          fontSize: '0.9rem',
+                          minWidth: '3.5rem',
+                          flex: '0 0 auto',
+                          textAlign: 'center',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
-                          gap: '0.12rem',
-                          flex: '0 0 auto',
+                          justifyContent: 'center',
+                          gap: '0.15rem',
+                          lineHeight: 1.15,
                         }}
                         onClick={() =>
                           setQuickBooking((cur) =>
@@ -994,8 +998,26 @@ export default function FacilitiesLiveViewPage() {
                         }
                         disabled={quickBookingSubmitting}
                       >
-                        <span>{d.day}</span>
-                        <strong>{d.dateNum}</strong>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.95 }}>
+                          {d.day}
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '1.75rem',
+                            minHeight: '1.75rem',
+                            borderRadius: '50%',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            background: active
+                              ? 'rgba(0, 0, 0, 0.12)'
+                              : 'rgba(148, 163, 184, 0.22)',
+                          }}
+                        >
+                          {d.dateNum}
+                        </span>
                       </button>
                     );
                   })}

@@ -226,25 +226,31 @@ function getWorkingDayWindow(
   return { closed, open, close };
 }
 
-function nextSevenDays(): Array<{ value: string; day: string; dateNum: string }> {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const out: Array<{ value: string; day: string; dateNum: string }> = [];
+const BOOKING_DATE_WINDOW_DAYS = 14;
+
+function nextBookingDateChoices(
+  count: number,
+): Array<{ value: string; day: string; dateNum: string }> {
+  const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const start = new Date();
-  if (start.getHours() >= 22) {
-    start.setDate(start.getDate() + 1);
-  }
   start.setHours(0, 0, 0, 0);
-  for (let i = 0; i < 7; i += 1) {
+  const out: Array<{ value: string; day: string; dateNum: string }> = [];
+  for (let i = 0; i < count; i += 1) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    const value = localDateYmd(d);
     out.push({
-      value,
-      day: days[d.getDay()] ?? '',
+      value: localDateYmd(d),
+      day: labels[d.getDay()] ?? '',
       dateNum: String(d.getDate()),
     });
   }
   return out;
+}
+
+function addDaysYmd(base: string, days: number): string {
+  const d = new Date(`${base}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return localDateYmd(d);
 }
 
 function ButtonOptionGroup({
@@ -363,7 +369,10 @@ export default function BookingCreatePage() {
     >
   >({});
   const bookingDateDayKey = localDateYmd();
-  const bookingDateChoices = useMemo(() => nextSevenDays(), [bookingDateDayKey]);
+  const bookingDateChoices = useMemo(
+    () => nextBookingDateChoices(BOOKING_DATE_WINDOW_DAYS),
+    [bookingDateDayKey],
+  );
 
   const slotGridFetchKey = useMemo(
     () =>
@@ -728,6 +737,13 @@ export default function BookingCreatePage() {
       setError('Booking date cannot be in the past.');
       return;
     }
+    const lastAllowedBooking = addDaysYmd(todayYmd, BOOKING_DATE_WINDOW_DAYS - 1);
+    if (bookingDate > lastAllowedBooking) {
+      setError(
+        `Bookings are only available for the next ${BOOKING_DATE_WINDOW_DAYS} days.`,
+      );
+      return;
+    }
     for (const [idx, ln] of lines.entries()) {
       if (!ln.courtId.trim()) {
         setError('Each line requires a facility.');
@@ -1087,9 +1103,12 @@ export default function BookingCreatePage() {
               <div
                 style={{
                   display: 'flex',
-                  gap: '0.45rem',
-                  flexWrap: 'wrap',
+                  gap: '0.4rem',
+                  flexWrap: 'nowrap',
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
                   marginTop: '0.35rem',
+                  paddingBottom: '0.25rem',
                 }}
               >
                 {bookingDateChoices.map((d) => {
@@ -1100,20 +1119,41 @@ export default function BookingCreatePage() {
                       type="button"
                       className={active ? 'btn-primary' : 'btn-ghost'}
                       style={{
-                        minWidth: '58px',
-                        padding: '0.45rem 0.6rem',
-                        borderRadius: '12px',
-                        fontSize: '0.84rem',
-                        lineHeight: 1.1,
+                        padding: '0.55rem 0.8rem',
+                        borderRadius: '0.6rem',
+                        fontSize: '0.9rem',
+                        minWidth: '3.5rem',
+                        flex: '0 0 auto',
+                        textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '0.1rem',
+                        justifyContent: 'center',
+                        gap: '0.15rem',
+                        lineHeight: 1.15,
                       }}
                       onClick={() => setBookingDate(d.value)}
                     >
-                      <span>{d.day}</span>
-                      <strong>{d.dateNum}</strong>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.95 }}>
+                        {d.day}
+                      </span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '1.75rem',
+                          minHeight: '1.75rem',
+                          borderRadius: '50%',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          background: active
+                            ? 'rgba(0, 0, 0, 0.12)'
+                            : 'rgba(148, 163, 184, 0.22)',
+                        }}
+                      >
+                        {d.dateNum}
+                      </span>
                     </button>
                   );
                 })}
