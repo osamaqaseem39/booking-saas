@@ -58,6 +58,12 @@ function localDateYmd(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+function addDaysYmd(baseDate: string, days: number): string {
+  const d = new Date(`${baseDate}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return localDateYmd(d);
+}
+
 function nextHourTime(now = new Date()): string {
   const d = new Date(now);
   d.setSeconds(0, 0);
@@ -109,6 +115,7 @@ function getSelectedRangeMinutes(startTime: string, endTime: string): {
 }
 
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
+const QUICK_BOOKING_MAX_DAYS = 30;
 
 function digitsOnly(v: string): string {
   return v.replace(/\D/g, '');
@@ -502,6 +509,12 @@ export default function FacilitiesLiveViewPage() {
     }
     if (quickBooking.date < localDateYmd()) {
       setQuickBookingError('Booking date cannot be in the past.');
+      return;
+    }
+    const today = localDateYmd();
+    const lastAllowed = addDaysYmd(today, QUICK_BOOKING_MAX_DAYS - 1);
+    if (quickBooking.date > lastAllowed) {
+      setQuickBookingError(`Booking date must be within next ${QUICK_BOOKING_MAX_DAYS} days.`);
       return;
     }
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(quickBooking.startTime)) {
@@ -929,6 +942,7 @@ export default function FacilitiesLiveViewPage() {
                   type="date"
                   value={quickBooking.date}
                   min={localDateYmd()}
+                  max={addDaysYmd(localDateYmd(), QUICK_BOOKING_MAX_DAYS - 1)}
                   onChange={(e) =>
                     setQuickBooking((cur) =>
                       cur ? { ...cur, date: e.target.value } : cur,
