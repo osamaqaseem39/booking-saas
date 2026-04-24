@@ -434,8 +434,8 @@ export default function FacilitiesLiveViewPage() {
   useEffect(() => {
     if (!quickBooking) return;
     if (quickSlots.length === 0) return;
-    const current = quickSlots.find((slot) => slot.startTime === quickBooking.startTime);
-    if (current && current.endTime === quickBooking.endTime) return;
+    const hasStart = quickSlots.some((slot) => slot.startTime === quickBooking.startTime);
+    if (hasStart) return;
     const first = quickSlots[0];
     setQuickBooking((cur) =>
       cur ? { ...cur, startTime: first.startTime, endTime: first.endTime } : cur,
