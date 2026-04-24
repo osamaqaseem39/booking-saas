@@ -463,6 +463,20 @@ export default function BookingsPage() {
     }
   }
 
+  async function patchPaidAmount(bookingId: string, nextPaidAmount: number) {
+    setError(null);
+    try {
+      const updated = await updateBooking(bookingId, {
+        payment: { paidAmount: nextPaidAmount },
+      } as any);
+      setBookings((prev) =>
+        prev.map((b) => (b.bookingId === updated.bookingId ? updated : b)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+
   async function checkAvailability() {
     if (!availabilitySport || !availabilityDate || !availabilityStartTime || !availabilityEndTime) {
       setError('Select sport, date, start time, and end time to check availability.');
@@ -1190,6 +1204,9 @@ export default function BookingsPage() {
                       </button>
                     </th>
                     <th>
+                      <span className="data-th-static">Amount Paid</span>
+                    </th>
+                    <th>
                       <span className="data-th-static">Actions</span>
                     </th>
                   </tr>
@@ -1318,6 +1335,22 @@ export default function BookingsPage() {
                         </select>
                       </td>
                       <td>{b.pricing.totalAmount.toLocaleString()} PKR</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="number"
+                          min={0}
+                          defaultValue={String(b.payment.paidAmount ?? 0)}
+                          style={{ width: '110px' }}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            const next = Number.isFinite(v) ? Math.max(0, v) : b.payment.paidAmount;
+                            e.currentTarget.value = String(next);
+                            if (next !== b.payment.paidAmount) {
+                              void patchPaidAmount(b.bookingId, next);
+                            }
+                          }}
+                        />
+                      </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button

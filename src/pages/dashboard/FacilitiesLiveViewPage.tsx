@@ -81,6 +81,21 @@ function endTimeFrom(startTime: string): string {
   return minutesToTime(end);
 }
 
+function getSlotStepMinutes(
+  slots: Array<{ startTime: string; endTime: string }>,
+): number {
+  if (!slots.length) return 60;
+  const mins = slots
+    .map((s) => timeToMinutes(s.startTime))
+    .sort((a, b) => a - b);
+  const diffs: number[] = [];
+  for (let i = 1; i < mins.length; i += 1) {
+    const diff = mins[i] - mins[i - 1];
+    if (diff > 0) diffs.push(diff);
+  }
+  return diffs.length ? Math.min(...diffs) : 60;
+}
+
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
 
 function digitsOnly(v: string): string {
@@ -474,6 +489,23 @@ export default function FacilitiesLiveViewPage() {
         'Selected slot is invalid. Please choose another slot.',
       );
       return;
+    }
+    const quickSlotStep = getSlotStepMinutes(quickSlots);
+    if (duration % quickSlotStep !== 0) {
+      setQuickBookingError(
+        'Selected duration does not match slot interval. Please reselect consecutive slots.',
+      );
+      return;
+    }
+    const freeStartSet = new Set(quickSlots.map((s) => s.startTime));
+    for (let cursor = startM; cursor < endM; cursor += quickSlotStep) {
+      const t = minutesToTime(cursor);
+      if (!freeStartSet.has(t)) {
+        setQuickBookingError(
+          'Selected slots must be consecutive with no gap. Please choose continuous times.',
+        );
+        return;
+      }
     }
     const startAt = new Date(`${quickBooking.date}T${startTime}:00`);
     if (startAt.getTime() < Date.now()) {
@@ -877,9 +909,10 @@ export default function FacilitiesLiveViewPage() {
                     </span>
                   ) : (
                     quickSlots.map((slot) => {
-                      const active =
-                        slot.startTime === quickBooking.startTime &&
-                        slot.endTime === quickBooking.endTime;
+                      const startMin = timeToMinutes(quickBooking.startTime);
+                      const endMin = timeToMinutes(quickBooking.endTime);
+                      const slotMin = timeToMinutes(slot.startTime);
+                      const active = slotMin >= startMin && slotMin < endMin;
                       return (
                         <button
                           key={`${slot.startTime}-${slot.endTime}`}
@@ -894,13 +927,32 @@ export default function FacilitiesLiveViewPage() {
                           }}
                           onClick={() =>
                             setQuickBooking((cur) =>
-                              cur
-                                ? {
+                              (() => {
+                                if (!cur) return cur;
+                                const clicked = timeToMinutes(slot.startTime);
+                                const currentStart = timeToMinutes(cur.startTime);
+                                const currentEnd = timeToMinutes(cur.endTime);
+                                const step = getSlotStepMinutes(quickSlots);
+                                if (clicked === currentEnd) {
+                                  return {
+                                    ...cur,
+                                    startTime: cur.startTime,
+                                    endTime: minutesToTime(currentEnd + step),
+                                  };
+                                }
+                                if (clicked === currentStart - step) {
+                                  return {
                                     ...cur,
                                     startTime: slot.startTime,
-                                    endTime: slot.endTime,
-                                  }
-                                : cur,
+                                    endTime: cur.endTime,
+                                  };
+                                }
+                                return {
+                                  ...cur,
+                                  startTime: slot.startTime,
+                                  endTime: slot.endTime,
+                                };
+                              })(),
                             )
                           }
                           disabled={quickBookingSubmitting}
