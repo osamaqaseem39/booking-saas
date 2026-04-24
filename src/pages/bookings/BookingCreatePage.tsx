@@ -78,6 +78,20 @@ function minutesToTime(v: number): string {
   return `${pad2(hh)}:${pad2(mm)}`;
 }
 
+function getSlotStepMinutes(starts: string[]): number {
+  if (!starts.length) return 60;
+  const mins = starts
+    .map((s) => timeToMinutes(s))
+    .sort((a, b) => a - b);
+  const diffs: number[] = [];
+  for (let i = 1; i < mins.length; i += 1) {
+    const diff = mins[i] - mins[i - 1];
+    if (diff > 0) diffs.push(diff);
+  }
+  if (!diffs.length) return 60;
+  return Math.min(...diffs);
+}
+
 function toLocalDateTime(date: string, time: string): Date {
   return new Date(`${date}T${time}:00`);
 }
@@ -756,6 +770,8 @@ export default function BookingCreatePage() {
         return;
       }
       const slotSource = lineSlotSource[idx];
+      const availableStarts = slotSource?.source === 'api' ? slotSource.starts : [];
+      const slotStep = getSlotStepMinutes(availableStarts);
       if (slotSource?.source === 'api' && slotSource.blockedStarts.includes(startTime)) {
         console.warn(BOOKING_TIMING_LOG, 'line-start-is-blocked', {
           lineIndex: idx,
@@ -772,6 +788,23 @@ export default function BookingCreatePage() {
         });
         setError('Selected start time is no longer available. Please pick another slot.');
         return;
+      }
+      if (slotSource?.source === 'api') {
+        if (duration % slotStep !== 0) {
+          setError(
+            'Selected duration does not match slot interval. Please reselect consecutive slots.',
+          );
+          return;
+        }
+        for (let cursor = startMinutes; cursor < endMinutes; cursor += slotStep) {
+          const t = minutesToTime(cursor);
+          if (!availableStarts.includes(t)) {
+            setError(
+              'Selected slots must be consecutive with no gap. Please choose continuous times.',
+            );
+            return;
+          }
+        }
       }
     }
     let resolvedCustomerId = customerId.trim();
@@ -1133,6 +1166,7 @@ export default function BookingCreatePage() {
                * immediately surface slot buttons.
                */
               const startSlots = serverStarts;
+              const slotStep = getSlotStepMinutes(startSlots);
               const totalSlides = Math.max(
                 1,
                 Math.ceil(startSlots.length / INTERVALS_PER_SLIDE),
@@ -1273,10 +1307,10 @@ export default function BookingCreatePage() {
 
                                   if (clickedMins === currentEnd) {
                                     newStart = currentStart;
-                                    newDuration = (ln.durationMinutes || 60) + 60;
-                                  } else if (clickedMins === currentStart - 60) {
+                                    newDuration = (ln.durationMinutes || 60) + slotStep;
+                                  } else if (clickedMins === currentStart - slotStep) {
                                     newStart = clickedMins;
-                                    newDuration = (ln.durationMinutes || 60) + 60;
+                                    newDuration = (ln.durationMinutes || 60) + slotStep;
                                   }
 
                                   const selCourt = courtOpts.find((o) => courtOptionValue(o) === ln.facilityKey);
