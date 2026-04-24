@@ -65,9 +65,11 @@ function nextHourTime(now = new Date()): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-function timeToMinutes(t: string): number {
+function timeToMinutes(t: string, isEnd = false): number {
   const [h, m] = t.split(':').map((x) => Number(x || 0));
-  return h * 60 + m;
+  const total = h * 60 + m;
+  if (total === 0 && isEnd) return 24 * 60;
+  return total;
 }
 
 function minutesToTime(v: number): string {
@@ -474,8 +476,8 @@ export default function FacilitiesLiveViewPage() {
     }
     const startTime = quickBooking.startTime;
     const endTime = quickBooking.endTime || endTimeFrom(startTime);
-    const startM = timeToMinutes(startTime);
-    const endM = timeToMinutes(endTime);
+    const startM = timeToMinutes(startTime, false);
+    const endM = timeToMinutes(endTime, true);
     const duration = endM - startM;
     console.info(BOOKING_TIMING_LOG, 'time-check', {
       date: quickBooking.date,
@@ -909,8 +911,8 @@ export default function FacilitiesLiveViewPage() {
                     </span>
                   ) : (
                     quickSlots.map((slot) => {
-                      const startMin = timeToMinutes(quickBooking.startTime);
-                      const endMin = timeToMinutes(quickBooking.endTime);
+                      const startMin = timeToMinutes(quickBooking.startTime, false);
+                      const endMin = timeToMinutes(quickBooking.endTime, true);
                       const slotMin = timeToMinutes(slot.startTime);
                       const active = slotMin >= startMin && slotMin < endMin;
                       return (
@@ -930,8 +932,8 @@ export default function FacilitiesLiveViewPage() {
                               (() => {
                                 if (!cur) return cur;
                                 const clicked = timeToMinutes(slot.startTime);
-                                const currentStart = timeToMinutes(cur.startTime);
-                                const currentEnd = timeToMinutes(cur.endTime);
+                                const currentStart = timeToMinutes(cur.startTime, false);
+                                const currentEnd = timeToMinutes(cur.endTime, true);
                                 const step = getSlotStepMinutes(quickSlots);
                                 if (clicked === currentEnd) {
                                   return {
