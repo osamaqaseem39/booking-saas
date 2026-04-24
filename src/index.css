@@ -995,6 +995,18 @@ table.data.data--noninteractive tbody tr:hover {
   }
 }
 
+/* Horizontal (or vertical) scroll areas: keep scroll, hide track */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

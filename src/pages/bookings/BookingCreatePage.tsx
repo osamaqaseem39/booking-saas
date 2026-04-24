@@ -1101,6 +1101,7 @@ export default function BookingCreatePage() {
             <div>
               <label>Date</label>
               <div
+                className="scrollbar-hide"
                 style={{
                   display: 'flex',
                   gap: '0.4rem',

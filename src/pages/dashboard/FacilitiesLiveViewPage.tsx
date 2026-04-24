@@ -994,6 +994,7 @@ export default function FacilitiesLiveViewPage() {
               <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label>Date</label>
                 <div
+                  className="scrollbar-hide"
                   style={{
                     marginTop: '0.35rem',
                     width: '100%',
