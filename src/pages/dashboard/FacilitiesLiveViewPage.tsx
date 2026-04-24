@@ -909,7 +909,16 @@ export default function FacilitiesLiveViewPage() {
         >
           <div
             className="connection-panel"
-            style={{ maxWidth: '760px', width: '100%' }}
+            style={{
+              maxWidth: 'min(32rem, calc(100vw - 1.5rem))',
+              width: '100%',
+              minWidth: 0,
+              margin: 0,
+              maxHeight: 'min(90vh, 48rem)',
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              boxSizing: 'border-box',
+            }}
             role="dialog"
             aria-labelledby="quick-booking-title"
             onClick={(e) => e.stopPropagation()}
@@ -917,20 +926,43 @@ export default function FacilitiesLiveViewPage() {
             <h2 id="quick-booking-title" style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
               Quick booking
             </h2>
-            <div className="form-grid">
+            <div className="form-grid" style={{ minWidth: 0, maxWidth: '100%' }}>
               {quickBookingError && <div className="err-banner">{quickBookingError}</div>}
-              <div className="form-row-2">
-                <div className="detail-row">
-                  <span>Location</span>
-                  <span>{quickBooking.location?.name ?? '—'}</span>
+              <div className="quick-booking-meta-row">
+                <div style={{ minWidth: 0 }}>
+                  <div className="muted" style={{ fontSize: '0.72rem', marginBottom: '0.2rem' }}>
+                    Location
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.9rem',
+                      lineHeight: 1.3,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {quickBooking.location?.name ?? '—'}
+                  </div>
                 </div>
-                <div className="detail-row">
-                  <span>Facility</span>
-                  <span>{quickBooking.facility.name}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="muted" style={{ fontSize: '0.72rem', marginBottom: '0.2rem' }}>
+                    Facility
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.9rem',
+                      lineHeight: 1.3,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {quickBooking.facility.name}
+                  </div>
                 </div>
               </div>
-              <div className="form-row-2">
-                <div>
+              <div
+                className="form-row-2"
+                style={{ minWidth: 0 }}
+              >
+                <div style={{ minWidth: 0, maxWidth: '100%' }}>
                   <label>Number</label>
                   <input
                     value={quickBooking.phone}
@@ -941,9 +973,10 @@ export default function FacilitiesLiveViewPage() {
                     }
                     placeholder="+92..."
                     disabled={quickBookingSubmitting}
+                    style={{ width: '100%', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div>
+                <div style={{ minWidth: 0, maxWidth: '100%' }}>
                   <label>Customer name</label>
                   <input
                     value={quickBooking.name}
@@ -954,20 +987,25 @@ export default function FacilitiesLiveViewPage() {
                     }
                     placeholder="Full name"
                     disabled={quickBookingSubmitting}
+                    style={{ width: '100%', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
-              <div>
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label>Date</label>
                 <div
                   style={{
                     marginTop: '0.35rem',
+                    width: '100%',
+                    minWidth: 0,
+                    maxWidth: '100%',
                     display: 'flex',
                     gap: '0.4rem',
                     flexWrap: 'nowrap',
                     overflowX: 'auto',
                     WebkitOverflowScrolling: 'touch',
-                    paddingBottom: '0.25rem',
+                    paddingBottom: '0.35rem',
+                    boxSizing: 'border-box',
                   }}
                 >
                   {quickBookingDateChoices.map((d) => {
@@ -1023,15 +1061,18 @@ export default function FacilitiesLiveViewPage() {
                   })}
                 </div>
               </div>
-              <div>
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label>Slots</label>
                 <div
                   style={{
                     marginTop: '0.35rem',
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
                     gap: '0.4rem',
                     width: '100%',
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
                   {quickSlotsLoading ? (
@@ -1060,11 +1101,17 @@ export default function FacilitiesLiveViewPage() {
                           type="button"
                           className={active ? 'btn-primary' : 'btn-ghost'}
                           style={{
-                            padding: '0.55rem 0.8rem',
+                            padding: '0.5rem 0.35rem',
                             borderRadius: '0.6rem',
-                            fontSize: '0.9rem',
+                            fontSize: 'clamp(0.72rem, 2.1vw, 0.86rem)',
                             width: '100%',
+                            minWidth: 0,
+                            maxWidth: '100%',
                             textAlign: 'center',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            boxSizing: 'border-box',
                           }}
                           onClick={() =>
                             setQuickBooking((cur) =>
@@ -1111,9 +1158,9 @@ export default function FacilitiesLiveViewPage() {
                   )}
                 </div>
               </div>
-              <div className="detail-row">
+              <div className="detail-row" style={{ minWidth: 0, maxWidth: '100%' }}>
                 <span>Price (backend)</span>
-                <span>
+                <span style={{ minWidth: 0, textAlign: 'right' }}>
                   {quickPriceLoading
                     ? 'Loading...'
                     : quickPrice == null
@@ -1123,7 +1170,7 @@ export default function FacilitiesLiveViewPage() {
                         )}`}
                 </span>
               </div>
-              <div>
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label>Paid amount</label>
                 <input
                   type="number"
@@ -1133,6 +1180,7 @@ export default function FacilitiesLiveViewPage() {
                     setQuickPaidAmount(Math.max(0, Number(e.target.value || 0)))
                   }
                   disabled={quickBookingSubmitting || quickPriceLoading || quickPrice == null}
+                  style={{ width: '100%', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}
                 />
                 {quickPrice != null && (
                   <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>

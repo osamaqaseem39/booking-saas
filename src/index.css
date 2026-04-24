@@ -981,6 +981,20 @@ table.data.data--noninteractive tbody tr:hover {
   }
 }
 
+/* Quick booking modal: keep location + facility in view; stack on narrow screens */
+.quick-booking-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .quick-booking-meta-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
