@@ -98,6 +98,16 @@ function getSlotStepMinutes(
   return diffs.length ? Math.min(...diffs) : 60;
 }
 
+function getSelectedRangeMinutes(startTime: string, endTime: string): {
+  start: number;
+  end: number;
+} {
+  const start = timeToMinutes(startTime, false);
+  let end = timeToMinutes(endTime, false);
+  if (end <= start) end += 24 * 60;
+  return { start, end };
+}
+
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
 
 function digitsOnly(v: string): string {
@@ -476,8 +486,9 @@ export default function FacilitiesLiveViewPage() {
     }
     const startTime = quickBooking.startTime;
     const endTime = quickBooking.endTime || endTimeFrom(startTime);
-    const startM = timeToMinutes(startTime, false);
-    const endM = timeToMinutes(endTime, true);
+    const range = getSelectedRangeMinutes(startTime, endTime);
+    const startM = range.start;
+    const endM = range.end;
     const duration = endM - startM;
     console.info(BOOKING_TIMING_LOG, 'time-check', {
       date: quickBooking.date,
@@ -911,10 +922,14 @@ export default function FacilitiesLiveViewPage() {
                     </span>
                   ) : (
                     quickSlots.map((slot) => {
-                      const startMin = timeToMinutes(quickBooking.startTime, false);
-                      const endMin = timeToMinutes(quickBooking.endTime, true);
-                      const slotMin = timeToMinutes(slot.startTime);
-                      const active = slotMin >= startMin && slotMin < endMin;
+                      const range = getSelectedRangeMinutes(
+                        quickBooking.startTime,
+                        quickBooking.endTime,
+                      );
+                      const slotBaseMin = timeToMinutes(slot.startTime, false);
+                      const slotMin =
+                        slotBaseMin < range.start ? slotBaseMin + 24 * 60 : slotBaseMin;
+                      const active = slotMin >= range.start && slotMin < range.end;
                       return (
                         <button
                           key={`${slot.startTime}-${slot.endTime}`}
@@ -932,14 +947,20 @@ export default function FacilitiesLiveViewPage() {
                               (() => {
                                 if (!cur) return cur;
                                 const clicked = timeToMinutes(slot.startTime);
-                                const currentStart = timeToMinutes(cur.startTime, false);
-                                const currentEnd = timeToMinutes(cur.endTime, true);
+                                const currentRange = getSelectedRangeMinutes(
+                                  cur.startTime,
+                                  cur.endTime,
+                                );
+                                const currentStart = currentRange.start;
+                                const currentEnd = currentRange.end;
                                 const step = getSlotStepMinutes(quickSlots);
+                                const nextEnd = currentEnd + step;
                                 if (clicked === currentEnd) {
+                                  if (nextEnd > 24 * 60) return cur;
                                   return {
                                     ...cur,
                                     startTime: cur.startTime,
-                                    endTime: minutesToTime(currentEnd + step),
+                                    endTime: minutesToTime(nextEnd),
                                   };
                                 }
                                 if (clicked === currentStart - step) {
