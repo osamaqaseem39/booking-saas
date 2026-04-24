@@ -11,6 +11,7 @@ type DraftSlotLine = {
   id: string;
   startTime: string;
   endTime: string;
+  status: 'available' | 'blocked';
 };
 
 function toMinutes(time: string, isEnd = false): number {
@@ -33,16 +34,20 @@ function isValidTimeLabel(value: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
-function deriveSlotStartsFromLines(lines: DraftSlotLine[]): string[] {
-  const unique = new Set(lines.map((line) => line.startTime));
-  return [...unique].sort((a, b) => toMinutes(a) - toMinutes(b));
+function normalizeTimeInputValue(value: string): string {
+  // HTML time inputs do not accept 24:00; represent that boundary as 00:00.
+  if (value === '24:00') return '00:00';
+  return value;
 }
 
-function makeSlotLine(seed?: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime'>>): DraftSlotLine {
+function makeSlotLine(
+  seed?: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime' | 'status'>>,
+): DraftSlotLine {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     startTime: seed?.startTime ?? '',
     endTime: seed?.endTime ?? '',
+    status: seed?.status ?? 'available',
   };
 }
 
@@ -83,11 +88,13 @@ export default function AddTimeSlotTemplatePage() {
           row.slotLines && row.slotLines.length > 0
             ? row.slotLines.map((line) => ({
                 startTime: line.startTime,
-                endTime: line.endTime,
+                endTime: normalizeTimeInputValue(line.endTime),
+                status: line.status,
               }))
             : row.slotStarts.map((startTime) => ({
                 startTime,
                 endTime: addMinutes(startTime, 60),
+                status: 'available' as const,
               }));
         setNewTplLines(linesSource.map((line) => makeSlotLine(line)));
       } catch (e) {
@@ -114,23 +121,27 @@ export default function AddTimeSlotTemplatePage() {
       setTplErr('Each child line must include valid start/end times, with end after start.');
       return;
     }
-    const slotStarts = deriveSlotStartsFromLines(newTplLines);
     if (!name) {
       setTplErr('Template name is required.');
       return;
     }
-    if (!slotStarts.length) {
+    if (!newTplLines.length) {
       setTplErr('Add at least one slot line first.');
       return;
     }
+    const slotLines = newTplLines.map((line) => ({
+      startTime: line.startTime,
+      endTime: line.endTime,
+      status: line.status,
+    }));
     setTplSaving(true);
     setTplErr(null);
     try {
       if (isEdit && templateId) {
-        const payload = { name, slotStarts };
+        const payload = { name, slotLines };
         await updateTimeSlotTemplate(templateId, payload, tenantId);
       } else {
-        const payload = { name, slotStarts };
+        const payload = { name, slotLines };
         await createTimeSlotTemplate(payload, tenantId);
       }
       navigate('/app/time-slots');
@@ -151,7 +162,10 @@ export default function AddTimeSlotTemplatePage() {
     setNewTplLines((cur) => cur.filter((line) => line.id !== id));
   }
 
-  function onChangeSlotLine(id: string, patch: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime'>>) {
+  function onChangeSlotLine(
+    id: string,
+    patch: Partial<Pick<DraftSlotLine, 'startTime' | 'endTime' | 'status'>>,
+  ) {
     setTplErr(null);
     setNewTplLines((cur) =>
       cur.map((line) => {
@@ -327,6 +341,23 @@ export default function AddTimeSlotTemplatePage() {
                             onChangeSlotLine(line.id, { endTime: e.target.value })
                           }
                         />
+                      </label>
+                      <label>
+                        <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
+                          Child #{idx + 1} status
+                        </span>
+                        <select
+                          value={line.status}
+                          onChange={(e) =>
+                            onChangeSlotLine(line.id, {
+                              status:
+                                e.target.value === 'blocked' ? 'blocked' : 'available',
+                            })
+                          }
+                        >
+                          <option value="available">Available</option>
+                          <option value="blocked">Blocked</option>
+                        </select>
                       </label>
                     </div>
                     <div className="page-actions-row" style={{ marginTop: '0.35rem' }}>
