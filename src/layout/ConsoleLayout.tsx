@@ -26,6 +26,7 @@ export default function ConsoleLayout() {
   const [dashboardLocations, setDashboardLocations] = useState<BusinessLocationRow[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -105,6 +106,14 @@ export default function ConsoleLayout() {
     setSelectedLocationId('all');
   }, [tenantId]);
 
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 900) setIsMobileNavOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   if (loading && !session) {
     return (
       <div className="login-page">
@@ -166,7 +175,11 @@ export default function ConsoleLayout() {
   };
 
   return (
-    <div className={`console-root ${isNavCollapsed ? 'console-root--collapsed' : ''}`}>
+    <div
+      className={`console-root ${isNavCollapsed ? 'console-root--collapsed' : ''} ${
+        isMobileNavOpen ? 'console-root--mobile-nav-open' : ''
+      }`}
+    >
       <nav className={`console-nav ${isNavCollapsed ? 'console-nav--collapsed' : ''}`}>
         <div className="console-nav-brand">
           <div className="console-nav-brand-text">
@@ -198,6 +211,7 @@ export default function ConsoleLayout() {
                     isActive ? 'active' : ''
                   }
                   title={isNavCollapsed ? item.label : undefined}
+                  onClick={() => setIsMobileNavOpen(false)}
                 >
                   <span className="console-nav-link-icon" aria-hidden="true">
                     {navIconForPath(item.to)}
@@ -219,6 +233,7 @@ export default function ConsoleLayout() {
                   end={item.to === '/app'}
                   className={({ isActive }) => (isActive ? 'active' : '')}
                   title={isNavCollapsed ? item.label : undefined}
+                  onClick={() => setIsMobileNavOpen(false)}
                 >
                   <span className="console-nav-link-icon" aria-hidden="true">
                     {navIconForPath(item.to)}
@@ -233,6 +248,15 @@ export default function ConsoleLayout() {
 
       <div className="console-main">
         <header className="console-topbar">
+          <button
+            type="button"
+            className="console-mobile-menu-btn"
+            aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileNavOpen}
+            onClick={() => setIsMobileNavOpen((prev) => !prev)}
+          >
+            {isMobileNavOpen ? '✕' : '☰'}
+          </button>
           <div className="console-topbar-left">
 
             {/* Location filter — same tenant as active business */}
@@ -286,6 +310,12 @@ export default function ConsoleLayout() {
           <Outlet context={outletContext} />
         </main>
       </div>
+      <button
+        type="button"
+        className={`console-mobile-backdrop ${isMobileNavOpen ? 'console-mobile-backdrop--visible' : ''}`}
+        aria-label="Close navigation"
+        onClick={() => setIsMobileNavOpen(false)}
+      />
     </div>
   );
 }

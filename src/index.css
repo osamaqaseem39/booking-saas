@@ -1215,6 +1215,25 @@ table.data.data--noninteractive tbody tr:hover {
   background: var(--surface);
 }
 
+.console-mobile-menu-btn {
+  display: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.console-mobile-backdrop {
+  display: none;
+}
+
 .console-topbar-left {
   display: flex;
   align-items: center;
@@ -1886,6 +1905,88 @@ table.data.data--noninteractive tbody tr:hover {
 @media (max-width: 768px) {
   .biz-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .console-root {
+    --console-nav-width: 0px;
+  }
+
+  .console-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .console-mobile-menu-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .console-nav {
+    width: min(84vw, 300px);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 40;
+  }
+
+  .console-root--mobile-nav-open .console-nav {
+    transform: translateX(0);
+  }
+
+  .console-nav--collapsed {
+    width: min(84vw, 300px);
+  }
+
+  .console-nav--collapsed a {
+    justify-content: flex-start;
+    padding: 0.58rem 1rem;
+  }
+
+  .console-root--mobile-nav-open .console-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    background: rgba(8, 12, 18, 0.62);
+    z-index: 30;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .console-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .console-topbar-left {
+    flex: 1 1 100%;
+  }
+
+  .topbar-loc-bar {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.2rem;
+    scrollbar-width: thin;
+  }
+
+  .owner-live-actions,
+  .page-head-row {
+    width: 100%;
+  }
+
+  .owner-live-actions .btn-primary,
+  .owner-live-actions .btn-ghost {
+    flex: 1 1 calc(50% - 0.3rem);
+    justify-content: center;
+  }
+
+  .owner-live-business-grid,
+  .facilities-live-grid {
+    grid-template-columns: 1fr;
   }
 }
 
