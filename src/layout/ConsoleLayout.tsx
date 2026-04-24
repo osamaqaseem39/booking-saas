@@ -27,6 +27,7 @@ export default function ConsoleLayout() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -108,11 +109,19 @@ export default function ConsoleLayout() {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth > 900) setIsMobileNavOpen(false);
+      if (window.innerWidth > 900) {
+        setIsMobileNavOpen(false);
+      }
+      setIsProfileMenuOpen(false);
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) return;
+    setIsProfileMenuOpen(false);
+  }, [isMobileNavOpen]);
 
   if (loading && !session) {
     return (
@@ -195,9 +204,15 @@ export default function ConsoleLayout() {
             className="console-nav-collapse-btn"
             title={isNavCollapsed ? 'Expand menu' : 'Collapse menu'}
             aria-label={isNavCollapsed ? 'Expand side menu' : 'Collapse side menu'}
-            onClick={() => setIsNavCollapsed((prev) => !prev)}
+            onClick={() => {
+              if (window.innerWidth <= 900) {
+                setIsMobileNavOpen(false);
+                return;
+              }
+              setIsNavCollapsed((prev) => !prev);
+            }}
           >
-            {isNavCollapsed ? '→' : '←'}
+            {isMobileNavOpen ? '✕' : isNavCollapsed ? '→' : '←'}
           </button>
         </div>
         <div className="console-nav-main">
@@ -258,46 +273,58 @@ export default function ConsoleLayout() {
             {isMobileNavOpen ? '✕' : '☰'}
           </button>
           <div className="console-topbar-left">
-
-            {/* Location filter — same tenant as active business */}
-            {showBusinessContext && dashboardLocations.length > 0 && (
-              <div className="topbar-loc-bar">
-                <button
-                  type="button"
-                  className={selectedLocationId === 'all' ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
-                  onClick={() => setSelectedLocationId('all')}
-                >
-                  All
-                </button>
+            {/* Location filter in compact dropdown */}
+            {showBusinessContext && dashboardLocations.length > 0 ? (
+              <select
+                className="topbar-location-select"
+                value={selectedLocationId}
+                onChange={(e) => {
+                  const nextLocationId = e.target.value;
+                  setSelectedLocationId(nextLocationId);
+                  if (isPlatformOwner && nextLocationId !== 'all') {
+                    const selectedLocation = dashboardLocations.find((loc) => loc.id === nextLocationId);
+                    const tid = (selectedLocation?.business?.tenantId ?? '').trim();
+                    if (tid && tid !== tenantId) setTenantId(tid);
+                  }
+                }}
+              >
+                <option value="all">All locations</option>
                 {dashboardLocations.map((loc) => (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    className={selectedLocationId === loc.id ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
-                    onClick={() => {
-                      setSelectedLocationId(loc.id);
-                      if (isPlatformOwner) {
-                        const tid = (loc.business?.tenantId ?? '').trim();
-                        if (tid && tid !== tenantId) {
-                          setTenantId(tid);
-                        }
-                      }
-                    }}
-                  >
+                  <option key={loc.id} value={loc.id}>
                     {loc.name}
-                  </button>
+                  </option>
                 ))}
-              </div>
+              </select>
+            ) : (
+              <span className="muted console-topbar-location-empty">No locations</span>
             )}
           </div>
 
           <div className="console-topbar-right">
-            <span className="muted console-topbar-user">
-              {session.fullName}
-            </span>
-            <button type="button" className="btn-ghost" onClick={() => signOut()}>
-              Sign out
+            <button
+              type="button"
+              className="btn-ghost console-profile-toggle"
+              aria-expanded={isProfileMenuOpen}
+              aria-label="Toggle profile menu"
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+            >
+              Profile
             </button>
+            {isProfileMenuOpen ? (
+              <div className="console-profile-menu">
+                <div className="console-profile-menu__name">{session.fullName}</div>
+                <div className="console-profile-menu__roles muted">
+                  {(session.roles ?? []).join(', ') || 'No roles'}
+                </div>
+                <button
+                  type="button"
+                  className="btn-ghost console-profile-menu__signout"
+                  onClick={() => signOut()}
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : null}
           </div>
         </header>
 
