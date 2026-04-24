@@ -181,7 +181,6 @@ export default function ConsoleLayout() {
     if (to === '/app/time-slots') return '🕒';
     if (to === '/app/facilities-live') return '📡';
     if (to === '/app/billing') return '💳';
-    if (to === '/app/health') return '🛡️';
     return '•';
   };
 

@@ -84,13 +84,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Billing',
     anyOf: ['platform-owner', 'business-admin', 'location-admin', 'business-staff'],
   },
-  {
-    to: '/app/health',
-    label: 'API health',
-    anyOf: ['authenticated'],
-    hideWhen: (roles) =>
-      roles.includes('business-admin') && !roles.includes('platform-owner'),
-  },
 ];
 
 export function rolesForNav(userRoles: string[]): NavRole[] {
