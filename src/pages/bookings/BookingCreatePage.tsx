@@ -1284,7 +1284,11 @@ export default function BookingCreatePage() {
                           }}
                         >
                           {visibleSlots.map((slot) => {
-                            const active = slot === startTime;
+                            const slotStart = timeToMinutes(slot);
+                            const selectedStart = ln.startMinutes;
+                            const selectedEnd = ln.startMinutes + (ln.durationMinutes || 60);
+                            const active =
+                              slotStart >= selectedStart && slotStart < selectedEnd;
                             return (
                               <button
                                 key={slot}
