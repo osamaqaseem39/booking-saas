@@ -28,6 +28,7 @@ export default function ConsoleLayout() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 900);
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -109,6 +110,7 @@ export default function ConsoleLayout() {
 
   useEffect(() => {
     const onResize = () => {
+      setIsMobileViewport(window.innerWidth <= 900);
       if (window.innerWidth > 900) {
         setIsMobileNavOpen(false);
       }
@@ -273,58 +275,106 @@ export default function ConsoleLayout() {
             {isMobileNavOpen ? '✕' : '☰'}
           </button>
           <div className="console-topbar-left">
-            {/* Location filter in compact dropdown */}
-            {showBusinessContext && dashboardLocations.length > 0 ? (
-              <select
-                className="topbar-location-select"
-                value={selectedLocationId}
-                onChange={(e) => {
-                  const nextLocationId = e.target.value;
-                  setSelectedLocationId(nextLocationId);
-                  if (isPlatformOwner && nextLocationId !== 'all') {
-                    const selectedLocation = dashboardLocations.find((loc) => loc.id === nextLocationId);
-                    const tid = (selectedLocation?.business?.tenantId ?? '').trim();
-                    if (tid && tid !== tenantId) setTenantId(tid);
-                  }
-                }}
-              >
-                <option value="all">All locations</option>
-                {dashboardLocations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
+            {isMobileViewport ? (
+              <>
+                {/* Mobile: compact dropdown */}
+                {showBusinessContext && dashboardLocations.length > 0 ? (
+                  <select
+                    className="topbar-location-select"
+                    value={selectedLocationId}
+                    onChange={(e) => {
+                      const nextLocationId = e.target.value;
+                      setSelectedLocationId(nextLocationId);
+                      if (isPlatformOwner && nextLocationId !== 'all') {
+                        const selectedLocation = dashboardLocations.find((loc) => loc.id === nextLocationId);
+                        const tid = (selectedLocation?.business?.tenantId ?? '').trim();
+                        if (tid && tid !== tenantId) setTenantId(tid);
+                      }
+                    }}
+                  >
+                    <option value="all">All locations</option>
+                    {dashboardLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="muted console-topbar-location-empty">No locations</span>
+                )}
+              </>
             ) : (
-              <span className="muted console-topbar-location-empty">No locations</span>
+              <>
+                {/* Desktop: pill row */}
+                {showBusinessContext && dashboardLocations.length > 0 && (
+                  <div className="topbar-loc-bar">
+                    <button
+                      type="button"
+                      className={selectedLocationId === 'all' ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
+                      onClick={() => setSelectedLocationId('all')}
+                    >
+                      All
+                    </button>
+                    {dashboardLocations.map((loc) => (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        className={selectedLocationId === loc.id ? 'topbar-loc-btn topbar-loc-btn--active' : 'topbar-loc-btn'}
+                        onClick={() => {
+                          setSelectedLocationId(loc.id);
+                          if (isPlatformOwner) {
+                            const tid = (loc.business?.tenantId ?? '').trim();
+                            if (tid && tid !== tenantId) {
+                              setTenantId(tid);
+                            }
+                          }
+                        }}
+                      >
+                        {loc.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           <div className="console-topbar-right">
-            <button
-              type="button"
-              className="btn-ghost console-profile-toggle"
-              aria-expanded={isProfileMenuOpen}
-              aria-label="Toggle profile menu"
-              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-            >
-              Profile
-            </button>
-            {isProfileMenuOpen ? (
-              <div className="console-profile-menu">
-                <div className="console-profile-menu__name">{session.fullName}</div>
-                <div className="console-profile-menu__roles muted">
-                  {(session.roles ?? []).join(', ') || 'No roles'}
-                </div>
+            {isMobileViewport ? (
+              <>
                 <button
                   type="button"
-                  className="btn-ghost console-profile-menu__signout"
-                  onClick={() => signOut()}
+                  className="btn-ghost console-profile-toggle"
+                  aria-expanded={isProfileMenuOpen}
+                  aria-label="Toggle profile menu"
+                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
                 >
+                  Profile
+                </button>
+                {isProfileMenuOpen ? (
+                  <div className="console-profile-menu">
+                    <div className="console-profile-menu__name">{session.fullName}</div>
+                    <div className="console-profile-menu__roles muted">
+                      {(session.roles ?? []).join(', ') || 'No roles'}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-ghost console-profile-menu__signout"
+                      onClick={() => signOut()}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <span className="muted console-topbar-user">{session.fullName}</span>
+                <button type="button" className="btn-ghost" onClick={() => signOut()}>
                   Sign out
                 </button>
-              </div>
-            ) : null}
+              </>
+            )}
           </div>
         </header>
 
