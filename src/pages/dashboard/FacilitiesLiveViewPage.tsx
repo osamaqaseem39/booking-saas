@@ -141,6 +141,20 @@ function sportClassFromFacilityType(type: FacilityCardRow['type']): string {
   return 'facilities-live-box--sport-padel';
 }
 
+function compactSlotLabel(startTime: string, endTime: string): string {
+  const toHour12 = (time: string) => {
+    const [hRaw] = time.split(':');
+    const h24 = Number(hRaw || 0);
+    const h12 = ((h24 + 11) % 12) + 1;
+    const meridiem = h24 >= 12 ? 'PM' : 'AM';
+    return { hour: h12, meridiem };
+  };
+  const s = toHour12(startTime);
+  const e = toHour12(endTime);
+  if (s.meridiem === e.meridiem) return `${s.hour}-${e.hour} ${s.meridiem}`;
+  return `${s.hour} ${s.meridiem}-${e.hour} ${e.meridiem}`;
+}
+
 export default function FacilitiesLiveViewPage() {
   const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
@@ -861,7 +875,7 @@ export default function FacilitiesLiveViewPage() {
         >
           <div
             className="connection-panel"
-            style={{ maxWidth: '560px', width: '100%' }}
+            style={{ maxWidth: '760px', width: '100%' }}
             role="dialog"
             aria-labelledby="quick-booking-title"
             onClick={(e) => e.stopPropagation()}
@@ -1000,7 +1014,7 @@ export default function FacilitiesLiveViewPage() {
                           }
                           disabled={quickBookingSubmitting}
                         >
-                          {formatTime12h(slot.startTime)} - {formatTime12h(slot.endTime)}
+                          {compactSlotLabel(slot.startTime, slot.endTime)}
                         </button>
                       );
                     })
