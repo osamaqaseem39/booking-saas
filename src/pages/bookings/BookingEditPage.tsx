@@ -120,6 +120,19 @@ export default function BookingEditPage() {
     };
   }, [booking]);
 
+  const livePayment = useMemo(() => {
+    if (!normalized) return null;
+    const total = normalized.totalAmount;
+    const paid = Math.max(0, Number.isFinite(paidAmount) ? paidAmount : 0);
+    const remaining = Math.max(0, total - paid);
+    return {
+      total,
+      paid,
+      remaining,
+      pct: total > 0 ? Math.round((paid / total) * 100) : 0,
+    };
+  }, [normalized, paidAmount]);
+
   useEffect(() => {
     if (!bookingId.trim()) return;
     void (async () => {
@@ -307,18 +320,32 @@ export default function BookingEditPage() {
                       {normalized.totalAmount.toLocaleString()} {normalized.currency}
                     </span>
                   </div>
-                  <div className="detail-row">
-                    <span>Paid Amount</span>
-                    <span className="text-success">
-                      {normalized.paidAmount.toLocaleString()} {normalized.currency}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Remaining</span>
-                    <span className={normalized.remainingAmount > 0 ? 'text-danger' : 'text-success'}>
-                      {normalized.remainingAmount.toLocaleString()} {normalized.currency}
-                    </span>
-                  </div>
+                  {livePayment && (
+                    <>
+                      <div className="detail-row">
+                        <span>Paid Amount</span>
+                        <span className="text-success">
+                          {livePayment.paid.toLocaleString()} {normalized.currency}
+                        </span>
+                      </div>
+                      <div className="detail-row">
+                        <span>Remaining</span>
+                        <span
+                          className={
+                            livePayment.remaining > 0 ? 'text-danger' : 'text-success'
+                          }
+                        >
+                          {livePayment.remaining.toLocaleString()} {normalized.currency}
+                        </span>
+                      </div>
+                      {livePayment.total > 0 && (
+                        <div className="detail-row">
+                          <span>Collected</span>
+                          <span className="muted">{livePayment.pct}% of total</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -399,9 +426,24 @@ export default function BookingEditPage() {
                 <label>Amount Paid (PKR)</label>
                 <input
                   type="number"
+                  min={0}
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(Number(e.target.value))}
                 />
+                {livePayment && normalized && (
+                  <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>
+                    Total {livePayment.total.toLocaleString()} {normalized.currency} · Remaining{' '}
+                    {livePayment.remaining.toLocaleString()} {normalized.currency}
+                    {livePayment.paid > livePayment.total && (
+                      <span>
+                        {' '}
+                        · Over by{' '}
+                        {(livePayment.paid - livePayment.total).toLocaleString()}{' '}
+                        {normalized.currency}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
               <div>
                 <label>Payment method</label>

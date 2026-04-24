@@ -621,6 +621,18 @@ export default function BookingCreatePage() {
     [subTotal, discount, tax],
   );
 
+  const paymentPreview = useMemo(() => {
+    const total = Math.max(0, totalPreview);
+    const paid = Math.max(0, Number(paidAmount) || 0);
+    const remaining = Math.max(0, total - paid);
+    return {
+      total,
+      paid,
+      remaining,
+      pct: total > 0 ? Math.round((paid / total) * 100) : 0,
+    };
+  }, [totalPreview, paidAmount]);
+
   function applyFacility(lineIndex: number, key: string) {
     const line = lines[lineIndex];
     if (!line) return;
@@ -1380,15 +1392,43 @@ export default function BookingCreatePage() {
             <label>Amount Paid (PKR)</label>
             <input
               type="number"
+              min={0}
               value={paidAmount}
               onChange={(e) => setPaidAmount(e.target.value)}
               placeholder="0"
             />
-            {paymentStatus === 'partially_paid' && Number(paidAmount) > 0 && (
-              <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>
-                Remaining: {(totalPreview - Number(paidAmount)).toLocaleString()} PKR
-              </p>
-            )}
+            <div
+              className="item-editor"
+              style={{ marginTop: '0.5rem', padding: '0.65rem 0.75rem' }}
+            >
+              <div className="detail-row" style={{ margin: 0 }}>
+                <span>Order total</span>
+                <span>{paymentPreview.total.toLocaleString()} PKR</span>
+              </div>
+              <div className="detail-row" style={{ margin: 0 }}>
+                <span>Amount paid</span>
+                <span className="text-success">{paymentPreview.paid.toLocaleString()} PKR</span>
+              </div>
+              <div className="detail-row" style={{ margin: 0 }}>
+                <span>Remaining</span>
+                <span
+                  className={paymentPreview.remaining > 0 ? 'text-danger' : 'text-success'}
+                >
+                  {paymentPreview.remaining.toLocaleString()} PKR
+                </span>
+              </div>
+              {paymentPreview.total > 0 && (
+                <div className="detail-row" style={{ margin: 0 }}>
+                  <span>Collected</span>
+                  <span className="muted">{paymentPreview.pct}% of total</span>
+                </div>
+              )}
+              {paymentPreview.paid > paymentPreview.total && paymentPreview.total > 0 && (
+                <p className="muted" style={{ margin: '0.45rem 0 0', fontSize: '0.82rem' }}>
+                  Overpayment: {(paymentPreview.paid - paymentPreview.total).toLocaleString()} PKR
+                </p>
+              )}
+            </div>
           </div>
         </div>
           </div>

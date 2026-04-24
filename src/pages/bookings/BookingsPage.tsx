@@ -124,11 +124,32 @@ export default function BookingsPage() {
   const [paymentStatusFilter] = useState<'all' | PaymentStatus>('all');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [amountPaidInput, setAmountPaidInput] = useState('');
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
     [bookings, selectedId],
   );
+
+  useEffect(() => {
+    if (!selected) {
+      setAmountPaidInput('');
+      return;
+    }
+    setAmountPaidInput(String(selected.payment.paidAmount));
+  }, [selectedId, selected?.payment.paidAmount]);
+
+  const detailPayment = useMemo(() => {
+    if (!selected) return null;
+    const total = selected.pricing.totalAmount;
+    const raw = amountPaidInput.trim();
+    const parsed = raw === '' ? Number.NaN : Number(raw);
+    const paid = Number.isFinite(parsed)
+      ? Math.max(0, parsed)
+      : selected.payment.paidAmount;
+    const remaining = Math.max(0, total - paid);
+    return { total, paid, remaining };
+  }, [selected, amountPaidInput]);
 
   const filteredBookings = useMemo(() => {
     const todayDate = new Date();
@@ -864,18 +885,30 @@ export default function BookingsPage() {
               </div>
               <div className="detail-row" style={{ marginTop: '0.4rem', borderTop: '1px solid #2a3544', paddingTop: '0.4rem' }}>
                 <span>Total Amount</span>
-                <strong>{selected.pricing.totalAmount.toLocaleString()} PKR</strong>
+                <strong>{detailPayment ? detailPayment.total.toLocaleString() : selected.pricing.totalAmount.toLocaleString()} PKR</strong>
               </div>
-              <div className="detail-row">
-                <span>Paid Amount</span>
-                <span className="text-success">{selected.payment.paidAmount.toLocaleString()} PKR</span>
-              </div>
-              <div className="detail-row">
-                <span>Remaining</span>
-                <span className={selected.payment.remainingAmount > 0 ? 'text-danger' : 'text-success'}>
-                  {selected.payment.remainingAmount.toLocaleString()} PKR
-                </span>
-              </div>
+              {detailPayment && (
+                <>
+                  <div className="detail-row">
+                    <span>Paid Amount</span>
+                    <span className="text-success">{detailPayment.paid.toLocaleString()} PKR</span>
+                  </div>
+                  <div className="detail-row">
+                    <span>Remaining</span>
+                    <span className={detailPayment.remaining > 0 ? 'text-danger' : 'text-success'}>
+                      {detailPayment.remaining.toLocaleString()} PKR
+                    </span>
+                  </div>
+                  {detailPayment.total > 0 && (
+                    <div className="detail-row">
+                      <span>Collected</span>
+                      <span className="muted">
+                        {Math.round((detailPayment.paid / detailPayment.total) * 100)}% of total
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             <div className="detail-section">
               <h4>Items</h4>
@@ -958,16 +991,30 @@ export default function BookingsPage() {
                   <label>Amount Paid (PKR)</label>
                   <input
                     type="number"
-                    defaultValue={selected.payment.paidAmount}
-                    onBlur={(e) => {
-                      const v = Number(e.target.value);
-                      if (v !== selected.payment.paidAmount) {
+                    min={0}
+                    value={amountPaidInput}
+                    onChange={(e) => setAmountPaidInput(e.target.value)}
+                    onBlur={() => {
+                      if (!selected) return;
+                      const v = Number(amountPaidInput);
+                      const next = Number.isFinite(v) ? Math.max(0, v) : selected.payment.paidAmount;
+                      setAmountPaidInput(String(next));
+                      if (next !== selected.payment.paidAmount) {
                         void patchBooking({
-                          payment: { paidAmount: v },
+                          payment: { paidAmount: next },
                         });
                       }
                     }}
                   />
+                  {detailPayment && selected.pricing.totalAmount > 0 && (
+                    <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>
+                      Total {detailPayment.total.toLocaleString()} PKR · Remaining{' '}
+                      {detailPayment.remaining.toLocaleString()} PKR
+                      {detailPayment.paid > detailPayment.total && (
+                        <span> · Over by {(detailPayment.paid - detailPayment.total).toLocaleString()} PKR</span>
+                      )}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label>Payment method</label>
