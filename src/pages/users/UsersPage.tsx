@@ -11,6 +11,7 @@ import {
 import { useSession } from '../../context/SessionContext';
 import type { IamUserRow } from '../../types/domain';
 import type { BookingRecord } from '../../types/booking';
+import TablePagination from '../../components/TablePagination';
 
 type PeopleKind = 'staff' | 'customers';
 
@@ -71,6 +72,10 @@ export default function UsersPage() {
   const [query, setQuery] = useState('');
   const [custSortBy, setCustSortBy] = useState<'name' | 'email' | 'phone' | 'bookings' | 'spending'>('name');
   const [custSortDir, setCustSortDir] = useState<'asc' | 'desc'>('asc');
+  const [staffPage, setStaffPage] = useState(1);
+  const [staffPageSize, setStaffPageSize] = useState(25);
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerPageSize, setCustomerPageSize] = useState(25);
 
   const handleStaffSort = (col: typeof sortBy) => {
     if (sortBy === col) {
@@ -232,6 +237,15 @@ export default function UsersPage() {
     });
   }, [query, customerRows, custSortBy, custSortDir]);
 
+  const pagedStaffRows = useMemo(() => {
+    const start = (staffPage - 1) * staffPageSize;
+    return staffRows.slice(start, start + staffPageSize);
+  }, [staffPage, staffPageSize, staffRows]);
+
+  const pagedCustomers = useMemo(() => {
+    const start = (customerPage - 1) * customerPageSize;
+    return visibleCustomers.slice(start, start + customerPageSize);
+  }, [customerPage, customerPageSize, visibleCustomers]);
 
   const customerSpendById = useMemo(() => {
     const out: Record<string, { amount: number; bookings: number }> = {};
@@ -289,6 +303,16 @@ export default function UsersPage() {
       topSpender,
     };
   }, [customerSpendById, visibleCustomers]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(staffRows.length / staffPageSize));
+    if (staffPage > totalPages) setStaffPage(totalPages);
+  }, [staffPage, staffPageSize, staffRows.length]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(visibleCustomers.length / customerPageSize));
+    if (customerPage > totalPages) setCustomerPage(totalPages);
+  }, [customerPage, customerPageSize, visibleCustomers.length]);
 
   return (
     <div>
@@ -380,9 +404,10 @@ export default function UsersPage() {
             ) : staffRows.length === 0 ? (
               <div className="empty-state">No staff accounts found.</div>
             ) : (
-              <table className="data data--sortable">
-                <thead>
-                  <tr>
+              <>
+                <table className="data data--sortable">
+                  <thead>
+                    <tr>
                     <th onClick={() => handleStaffSort('fullName')}>
                       Name {renderSortArrow(sortBy === 'fullName', sortOrder)}
                     </th>
@@ -393,10 +418,10 @@ export default function UsersPage() {
                     <th>Roles</th>
                     <th>Status</th>
                     <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staffRows.map((u) => (
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedStaffRows.map((u) => (
                     <tr key={u.id}>
                       <td>{u.fullName}</td>
                       <td>{u.email}</td>
@@ -449,9 +474,20 @@ export default function UsersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+                <TablePagination
+                  totalItems={staffRows.length}
+                  page={staffPage}
+                  pageSize={staffPageSize}
+                  onPageChange={setStaffPage}
+                  onPageSizeChange={(nextSize) => {
+                    setStaffPageSize(nextSize);
+                    setStaffPage(1);
+                  }}
+                />
+              </>
             )}
           </div>
         </section>
@@ -573,9 +609,10 @@ export default function UsersPage() {
             ) : visibleCustomers.length === 0 ? (
               <div className="empty-state">No customers found.</div>
             ) : (
-              <table className="data data--sortable">
-                <thead>
-                  <tr>
+              <>
+                <table className="data data--sortable">
+                  <thead>
+                    <tr>
                     <th onClick={() => handleCustomerSort('name')}>
                       Name {renderSortArrow(custSortBy === 'name', custSortDir)}
                     </th>
@@ -594,10 +631,10 @@ export default function UsersPage() {
                       Spending {renderSortArrow(custSortBy === 'spending', custSortDir)}
                     </th>
                     <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleCustomers.map((u) => (
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedCustomers.map((u) => (
                     <tr key={u.id}>
                       <td>{u.fullName}</td>
                       <td>{u.email}</td>
@@ -648,9 +685,20 @@ export default function UsersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+                <TablePagination
+                  totalItems={visibleCustomers.length}
+                  page={customerPage}
+                  pageSize={customerPageSize}
+                  onPageChange={setCustomerPage}
+                  onPageSizeChange={(nextSize) => {
+                    setCustomerPageSize(nextSize);
+                    setCustomerPage(1);
+                  }}
+                />
+              </>
             )}
           </div>
         </section>

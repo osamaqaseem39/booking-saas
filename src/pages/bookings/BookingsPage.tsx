@@ -25,6 +25,7 @@ import type {
 } from '../../types/booking';
 import type { IamUserRow } from '../../types/domain';
 import { formatTime12h, formatTimeRange12h } from '../../utils/timeDisplay';
+import TablePagination from '../../components/TablePagination';
 
 type UserSummary = {
   name: string;
@@ -145,6 +146,8 @@ export default function BookingsPage() {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [amountPaidInput, setAmountPaidInput] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const selected = useMemo(
     () => bookings.find((b) => b.bookingId === selectedId) ?? null,
@@ -263,6 +266,16 @@ export default function BookingsPage() {
     }
     return sortableItems;
   }, [filteredBookings, sortConfig, usersMap, locationsMap]);
+
+  const pagedBookings = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedBookings.slice(start, start + pageSize);
+  }, [page, pageSize, sortedBookings]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(sortedBookings.length / pageSize));
+    if (page > totalPages) setPage(totalPages);
+  }, [page, pageSize, sortedBookings.length]);
 
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -1124,9 +1137,10 @@ export default function BookingsPage() {
             {sortedBookings.length === 0 && !loading ? (
               <div className="empty-state">No bookings.</div>
             ) : (
-              <table className="data">
-                <thead>
-                  <tr>
+              <>
+                <table className="data">
+                  <thead>
+                    <tr>
                     <th className="data-th-sortable">
                       <button
                         type="button"
@@ -1209,10 +1223,10 @@ export default function BookingsPage() {
                     <th>
                       <span className="data-th-static">Actions</span>
                     </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedBookings.map((b) => {
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedBookings.map((b) => {
                       const userName = b.user?.fullName || usersMap[b.userId]?.name || `User ${b.userId?.slice(0, 8) ?? '??'}`;
                       const userPhone = b.user?.phone || usersMap[b.userId]?.phone || '-';
                       return (
@@ -1380,9 +1394,20 @@ export default function BookingsPage() {
                       </td>
                     </tr>
                       );
-                  })}
-                </tbody>
-              </table>
+                    })}
+                  </tbody>
+                </table>
+                <TablePagination
+                  totalItems={sortedBookings.length}
+                  page={page}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextSize) => {
+                    setPageSize(nextSize);
+                    setPage(1);
+                  }}
+                />
+              </>
             )}
           </div>
         </div>
