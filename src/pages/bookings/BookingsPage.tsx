@@ -923,7 +923,7 @@ export default function BookingsPage() {
                   {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
                 </span>
               </div>
-              <div className="detail-row" style={{ marginTop: '0.4rem', borderTop: '1px solid #2a3544', paddingTop: '0.4rem' }}>
+              <div className="detail-row" style={{ marginTop: '0.4rem', borderTop: '1px solid var(--border)', paddingTop: '0.4rem' }}>
                 <span>Total Amount</span>
                 <strong>{detailPayment ? detailPayment.total.toLocaleString() : selected.pricing.totalAmount.toLocaleString()} PKR</strong>
               </div>
@@ -1090,11 +1090,11 @@ export default function BookingsPage() {
                     }}
                   />
                 </div>
-                <div style={{ marginTop: '0.5rem', borderTop: '1px solid #2a3544', paddingTop: '1rem' }}>
+                <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
                   <button
                     type="button"
                     className="btn-ghost"
-                    style={{ color: '#f87171' }}
+                    style={{ color: 'var(--danger-soft)' }}
                     onClick={() => {
                         void removeBooking();
                         setDetailModalOpen(false);
@@ -1270,7 +1270,7 @@ export default function BookingsPage() {
                               'no_show',
                             ] as const
                           ).map((s) => (
-                            <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
+                            <option key={s} value={s} style={{ background: 'var(--surface2)', color: 'var(--text)' }}>
                               {titleCaseWords(s)}
                             </option>
                           ))}
@@ -1299,7 +1299,7 @@ export default function BookingsPage() {
                           }}
                         >
                           {(['pending', 'partially_paid', 'paid', 'failed', 'refunded'] as const).map((s) => (
-                            <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
+                            <option key={s} value={s} style={{ background: 'var(--surface2)', color: 'var(--text)' }}>
                               {titleCaseWords(s)}
                             </option>
                           ))}
@@ -1328,7 +1328,7 @@ export default function BookingsPage() {
                           }}
                         >
                           {(['cash', 'card', 'jazzcash', 'easypaisa'] as const).map((s) => (
-                            <option key={s} value={s} style={{ background: '#1c242e', color: '#fff' }}>
+                            <option key={s} value={s} style={{ background: 'var(--surface2)', color: 'var(--text)' }}>
                               {titleCaseWords(s)}
                             </option>
                           ))}

@@ -2,6 +2,7 @@
   --bg: #0c0f12;
   --surface: #141a21;
   --surface2: #1c242e;
+  --surface-hover: #243040;
   --border: #2a3544;
   --text: #e8edf4;
   --muted: #8b9cb3;
@@ -10,6 +11,14 @@
   --warn: #fbbf24;
   --danger: #f87171;
   --ok: #4ade80;
+  --overlay: rgba(0, 0, 0, 0.65);
+  --elev-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  --strong-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --table-head-bg: rgba(28, 36, 46, 0.7);
+  --table-row-alt: rgba(28, 36, 46, 0.28);
+  --text-strong: #f2fbfa;
+  --chip-strong: #cae7e3;
+  --danger-soft: #f87171;
   --radius: 10px;
   --font: 'DM Sans', system-ui, sans-serif;
 }
@@ -26,6 +35,15 @@
   --warn: #b45309;
   --danger: #dc2626;
   --ok: #15803d;
+  --surface-hover: #e1eaf7;
+  --overlay: rgba(15, 23, 42, 0.25);
+  --elev-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --strong-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+  --table-head-bg: rgba(224, 232, 243, 0.95);
+  --table-row-alt: rgba(241, 245, 252, 0.9);
+  --text-strong: #0f172a;
+  --chip-strong: #0f3a5f;
+  --danger-soft: #dc2626;
 }
 
 *,
@@ -112,7 +130,7 @@ a.btn-ghost {
 }
 
 a.btn-ghost:hover {
-  background: #243040;
+  background: var(--surface-hover);
 }
 
 .btn-primary.btn-compact,
@@ -232,7 +250,7 @@ a.btn-ghost.btn-compact {
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: #243040;
+  background: var(--surface-hover);
 }
 
 .btn-danger {
@@ -496,7 +514,7 @@ label {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: auto;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--elev-shadow);
 }
 
 table.data {
@@ -528,7 +546,7 @@ table.data th {
   font-size: 0.74rem;
   text-transform: none;
   letter-spacing: 0.01em;
-  background: rgba(28, 36, 46, 0.7);
+  background: var(--table-head-bg);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -594,7 +612,7 @@ table.data tbody tr {
 }
 
 table.data tbody tr:nth-child(even) {
-  background: rgba(28, 36, 46, 0.28);
+  background: var(--table-row-alt);
 }
 
 table.data tbody tr:hover {
@@ -963,7 +981,7 @@ table.data.data--noninteractive tbody tr:hover {
 }
 
 .turf-setup-btn-select__btn:hover:not(:disabled) {
-  background: #243040;
+  background: var(--surface-hover);
   border-color: #3d4d62;
 }
 
@@ -1025,7 +1043,7 @@ table.data.data--noninteractive tbody tr:hover {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1334,7 +1352,7 @@ table.data.data--noninteractive tbody tr:hover {
 }
 
 .topbar-loc-btn:hover:not(:disabled) {
-  background: #243040;
+  background: var(--surface-hover);
   color: var(--text);
 }
 
@@ -1377,7 +1395,7 @@ table.data.data--noninteractive tbody tr:hover {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--strong-shadow);
   padding: 0.65rem;
   z-index: 25;
   display: grid;
@@ -1958,7 +1976,7 @@ table.data.data--noninteractive tbody tr:hover {
 }
 
 .overview-sort-dir-btn:hover {
-  background: #243040;
+  background: var(--surface-hover);
   border-color: rgba(45, 212, 191, 0.45);
 }
 
@@ -2008,7 +2026,7 @@ table.data.data--noninteractive tbody tr:hover {
 }
 
 .filter-chip:hover:not(:disabled) {
-  background: #243040;
+  background: var(--surface-hover);
   color: var(--text);
 }
 
@@ -2222,7 +2240,7 @@ table.data.data--noninteractive tbody tr:hover {
   font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: #f2fbfa;
+  color: var(--text-strong);
 }
 
 .overview-metric-hint {
@@ -2278,7 +2296,7 @@ table.data.data--noninteractive tbody tr:hover {
 
 .overview-tenant-stats span {
   font-size: 0.73rem;
-  color: #cae7e3;
+  color: var(--chip-strong);
   border: 1px solid rgba(45, 212, 191, 0.25);
   background: rgba(45, 212, 191, 0.1);
   border-radius: 999px;
@@ -3136,7 +3154,7 @@ table.data.data--noninteractive tbody tr:hover {
   border: 1px solid rgba(45, 212, 191, 0.28);
   background: rgba(45, 212, 191, 0.08);
   padding: 0.16rem 0.46rem;
-  color: #cae7e3;
+  color: var(--chip-strong);
 }
 
 .owner-live-booking-strip {
