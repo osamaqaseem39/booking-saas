@@ -193,6 +193,8 @@ export default function ConsoleLayout() {
     return '•';
   };
 
+  const profileInitial = (session.fullName || '?').trim().charAt(0).toUpperCase() || '?';
+
   return (
     <div
       className={`console-root ${isNavCollapsed ? 'console-root--collapsed' : ''} ${
@@ -348,61 +350,48 @@ export default function ConsoleLayout() {
           </div>
 
           <div className="console-topbar-right">
-            {isMobileViewport ? (
-              <>
-                <label className="ui-switch console-theme-switch">
-                  <input
-                    type="checkbox"
-                    checked={theme === 'dark'}
-                    onChange={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-                    aria-label="Toggle dark mode"
-                  />
-                  <span className="ui-switch-track" />
-                  <span className="ui-switch-text">Theme</span>
-                </label>
+            <label className="ui-switch console-theme-switch">
+              <input
+                type="checkbox"
+                checked={theme === 'dark'}
+                onChange={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                aria-label="Toggle dark mode"
+              />
+              <span className="ui-switch-track" />
+              <span className="ui-switch-text">Theme</span>
+            </label>
+            <button
+              type="button"
+              className="btn-ghost console-profile-toggle"
+              aria-expanded={isProfileMenuOpen}
+              aria-label="Toggle profile menu"
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+            >
+              <span className="console-profile-toggle__avatar" aria-hidden="true">
+                {profileInitial}
+              </span>
+              {!isMobileViewport ? (
+                <span className="console-profile-toggle__name">{session.fullName}</span>
+              ) : null}
+              <span className="console-profile-toggle__chevron" aria-hidden="true">
+                {isProfileMenuOpen ? '▴' : '▾'}
+              </span>
+            </button>
+            {isProfileMenuOpen ? (
+              <div className="console-profile-menu">
+                <div className="console-profile-menu__name">{session.fullName}</div>
+                <div className="console-profile-menu__roles muted">
+                  {(session.roles ?? []).join(', ') || 'No roles'}
+                </div>
                 <button
                   type="button"
-                  className="btn-ghost console-profile-toggle"
-                  aria-expanded={isProfileMenuOpen}
-                  aria-label="Toggle profile menu"
-                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                  className="btn-ghost console-profile-menu__signout"
+                  onClick={() => signOut()}
                 >
-                  Profile
+                  <span aria-hidden="true">↪</span> Logout
                 </button>
-                {isProfileMenuOpen ? (
-                  <div className="console-profile-menu">
-                    <div className="console-profile-menu__name">{session.fullName}</div>
-                    <div className="console-profile-menu__roles muted">
-                      {(session.roles ?? []).join(', ') || 'No roles'}
-                    </div>
-                    <button
-                      type="button"
-                      className="btn-ghost console-profile-menu__signout"
-                      onClick={() => signOut()}
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <label className="ui-switch console-theme-switch">
-                  <input
-                    type="checkbox"
-                    checked={theme === 'dark'}
-                    onChange={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-                    aria-label="Toggle dark mode"
-                  />
-                  <span className="ui-switch-track" />
-                  <span className="ui-switch-text">Theme</span>
-                </label>
-                <span className="muted console-topbar-user">{session.fullName}</span>
-                <button type="button" className="btn-ghost" onClick={() => signOut()}>
-                  Sign out
-                </button>
-              </>
-            )}
+              </div>
+            ) : null}
           </div>
         </header>
 

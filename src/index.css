@@ -1379,6 +1379,36 @@ table.data.data--noninteractive tbody tr:hover {
 
 .console-profile-toggle {
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.55rem;
+}
+
+.console-profile-toggle__avatar {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.18);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.console-profile-toggle__name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.console-profile-toggle__chevron {
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .console-theme-switch {
@@ -1416,6 +1446,7 @@ table.data.data--noninteractive tbody tr:hover {
 .console-profile-menu__signout {
   width: 100%;
   justify-content: center;
+  gap: 0.4rem;
 }
 
 .console-body {
