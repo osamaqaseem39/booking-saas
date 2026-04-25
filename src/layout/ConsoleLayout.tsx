@@ -351,6 +351,9 @@ export default function ConsoleLayout() {
 
           <div className="console-topbar-right">
             <label className="ui-switch console-theme-switch">
+              <span className="console-theme-switch__bulb" aria-hidden="true">
+                {theme === 'dark' ? '💡' : '🔆'}
+              </span>
               <input
                 type="checkbox"
                 checked={theme === 'dark'}
