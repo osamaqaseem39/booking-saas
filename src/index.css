@@ -1381,8 +1381,8 @@ table.data.data--noninteractive tbody tr:hover {
   white-space: nowrap;
 }
 
-.console-theme-toggle {
-  min-width: 5.4rem;
+.console-theme-switch {
+  margin-top: 0;
   white-space: nowrap;
 }
 

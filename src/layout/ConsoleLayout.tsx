@@ -350,14 +350,16 @@ export default function ConsoleLayout() {
           <div className="console-topbar-right">
             {isMobileViewport ? (
               <>
-                <button
-                  type="button"
-                  className="btn-ghost console-theme-toggle"
-                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                  onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-                >
-                  {theme === 'dark' ? 'Light' : 'Dark'}
-                </button>
+                <label className="ui-switch console-theme-switch">
+                  <input
+                    type="checkbox"
+                    checked={theme === 'dark'}
+                    onChange={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                    aria-label="Toggle dark mode"
+                  />
+                  <span className="ui-switch-track" />
+                  <span className="ui-switch-text">Theme</span>
+                </label>
                 <button
                   type="button"
                   className="btn-ghost console-profile-toggle"
@@ -385,14 +387,16 @@ export default function ConsoleLayout() {
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  className="btn-ghost console-theme-toggle"
-                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                  onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-                >
-                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                </button>
+                <label className="ui-switch console-theme-switch">
+                  <input
+                    type="checkbox"
+                    checked={theme === 'dark'}
+                    onChange={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                    aria-label="Toggle dark mode"
+                  />
+                  <span className="ui-switch-track" />
+                  <span className="ui-switch-text">Theme</span>
+                </label>
                 <span className="muted console-topbar-user">{session.fullName}</span>
                 <button type="button" className="btn-ghost" onClick={() => signOut()}>
                   Sign out
