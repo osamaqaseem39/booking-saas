@@ -29,6 +29,10 @@ export default function ConsoleLayout() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 900);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('dashboard-theme');
+    return saved === 'light' ? 'light' : 'dark';
+  });
 
   const roles = session?.roles ?? [];
   const isPlatformOwner = roles.includes('platform-owner');
@@ -124,6 +128,11 @@ export default function ConsoleLayout() {
     if (!isMobileNavOpen) return;
     setIsProfileMenuOpen(false);
   }, [isMobileNavOpen]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('dashboard-theme', theme);
+  }, [theme]);
 
   if (loading && !session) {
     return (
@@ -343,6 +352,14 @@ export default function ConsoleLayout() {
               <>
                 <button
                   type="button"
+                  className="btn-ghost console-theme-toggle"
+                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                  onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                >
+                  {theme === 'dark' ? 'Light' : 'Dark'}
+                </button>
+                <button
+                  type="button"
                   className="btn-ghost console-profile-toggle"
                   aria-expanded={isProfileMenuOpen}
                   aria-label="Toggle profile menu"
@@ -368,6 +385,14 @@ export default function ConsoleLayout() {
               </>
             ) : (
               <>
+                <button
+                  type="button"
+                  className="btn-ghost console-theme-toggle"
+                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                  onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                >
+                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </button>
                 <span className="muted console-topbar-user">{session.fullName}</span>
                 <button type="button" className="btn-ghost" onClick={() => signOut()}>
                   Sign out
