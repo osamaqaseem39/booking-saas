@@ -85,7 +85,7 @@ export default function ManageTimeSlotsPage() {
       )}
       {tplErr && <div className="err-banner">{tplErr}</div>}
 
-      <section className="detail-card" style={{ width: '100%', maxWidth: '1100px' }}>
+      <section className="detail-card" style={{ width: '100%' }}>
         <h3 style={{ marginTop: 0, fontSize: '1.05rem' }}>Time slot templates</h3>
         <div className="page-actions-row" style={{ marginBottom: '0.8rem' }}>
           <Link to="/app/time-slots/new" className="btn-primary">
@@ -94,8 +94,8 @@ export default function ManageTimeSlotsPage() {
         </div>
         {tplLoading && <p className="muted">Loading templates…</p>}
         {!tplLoading && templates.length > 0 && (
-          <div className="table-wrap">
-            <table className="data">
+          <div className="table-wrap table-wrap--fluid">
+            <table className="data data--wrap-cells">
               <thead>
                 <tr>
                   <th>Template name</th>

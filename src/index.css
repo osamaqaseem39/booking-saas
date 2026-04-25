@@ -517,6 +517,26 @@ label {
   box-shadow: var(--elev-shadow);
 }
 
+/* Full-width tables: avoid horizontal scroll; let cell text wrap instead */
+.table-wrap.table-wrap--fluid {
+  overflow-x: visible;
+}
+
+table.data.data--wrap-cells {
+  min-width: 0;
+}
+
+table.data.data--wrap-cells th,
+table.data.data--wrap-cells td {
+  white-space: normal;
+  word-break: break-word;
+}
+
+table.data.data--wrap-cells th:last-child,
+table.data.data--wrap-cells td:last-child {
+  white-space: nowrap;
+}
+
 .table-pagination {
   display: flex;
   align-items: center;
@@ -737,6 +757,25 @@ table.data.data--noninteractive tbody tr:hover {
   color: #a78bfa;
   border: 1px solid rgba(167, 139, 250, 0.45);
   background: rgba(67, 56, 202, 0.24);
+}
+
+/* Bookings table (and elsewhere): sport pills need strong text on light rows */
+[data-theme='light'] .sport-badge--futsal {
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(209, 250, 229, 0.98);
+}
+
+[data-theme='light'] .sport-badge--cricket {
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(254, 243, 199, 0.98);
+}
+
+[data-theme='light'] .sport-badge--padel {
+  color: #5b21b6;
+  border-color: rgba(139, 92, 246, 0.55);
+  background: rgba(237, 233, 254, 0.98);
 }
 
 .sport-stat-card--futsal {
