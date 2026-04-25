@@ -361,7 +361,6 @@ export default function ConsoleLayout() {
                 aria-label="Toggle dark mode"
               />
               <span className="ui-switch-track" />
-              <span className="ui-switch-text">Theme</span>
             </label>
             <button
               type="button"
