@@ -2379,6 +2379,30 @@ table.data.data--noninteractive tbody tr:hover {
   line-height: 1.35;
 }
 
+/* Bookings page: keep stats in one compact row */
+.bookings-stats-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.bookings-stats-row .overview-metric-card {
+  flex: 0 0 150px;
+  min-width: 150px;
+  padding: 0.62rem 0.7rem;
+}
+
+.bookings-stats-row .overview-metric-label {
+  font-size: 0.68rem;
+}
+
+.bookings-stats-row .overview-metric-value {
+  margin-top: 0.2rem;
+  font-size: 1.28rem;
+}
+
 /* Business overview KPI cards + charts — light theme (base cards were dark gradients) */
 [data-theme='light'] .overview-metric-card {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, var(--surface2) 100%);

@@ -673,7 +673,7 @@ export default function BookingsPage() {
       {!isPlatformOwner ? (
       <section className="detail-card" style={{ marginBottom: '0.75rem' }}>
         <h3 style={{ marginBottom: '0.6rem' }}>Booking stats</h3>
-        <div className="overview-totals-grid">
+        <div className="overview-totals-grid bookings-stats-row">
           <article className="overview-metric-card">
             <span className="overview-metric-label">Total bookings</span>
             <strong className="overview-metric-value">{bookingStats.total}</strong>
@@ -700,8 +700,6 @@ export default function BookingsPage() {
               {bookingStats.revenue.toLocaleString()} PKR
             </strong>
           </article>
-        </div>
-        <div className="overview-totals-grid" style={{ marginTop: '0.55rem' }}>
           <article className="overview-metric-card sport-stat-card sport-stat-card--futsal">
             <span className="overview-metric-label">Futsal bookings</span>
             <strong className="overview-metric-value">{sportStats.futsal}</strong>
