@@ -131,6 +131,23 @@ function getSelectedRangeMinutes(startTime: string, endTime: string): {
   return { start, end };
 }
 
+function maxContiguousEndForStart(
+  startTime: string,
+  slots: Array<{ startTime: string; endTime: string }>,
+): string {
+  if (!slots.length) return endTimeFrom(startTime);
+  const step = getSlotStepMinutes(slots);
+  const start = timeToMinutes(startTime);
+  const starts = new Set(slots.map((s) => timeToMinutes(s.startTime)));
+  // If selected start itself is not free, keep one-step fallback.
+  if (!starts.has(start)) return endTimeFrom(startTime);
+  let cursor = start;
+  while (starts.has(cursor)) {
+    cursor += step;
+  }
+  return minutesToTime(Math.min(cursor, 24 * 60));
+}
+
 const BOOKING_TIMING_LOG = '[BookingTiming][Quick]';
 const QUICK_BOOKING_MAX_DAYS = 14;
 
@@ -195,6 +212,7 @@ export default function FacilitiesLiveViewPage() {
   const [quickPaidAmount, setQuickPaidAmount] = useState<number>(0);
   const [quickBookingSubmitting, setQuickBookingSubmitting] = useState(false);
   const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
+  const [quickEntryMode, setQuickEntryMode] = useState<'slots' | 'manual'>('slots');
   const [quickSlots, setQuickSlots] = useState<Array<{ startTime: string; endTime: string }>>(
     [],
   );
@@ -786,6 +804,7 @@ export default function FacilitiesLiveViewPage() {
                     const nowStart = nextHourTime();
                     const maxStart = 23 * 60;
                     const safeStart = timeToMinutes(nowStart) <= maxStart ? nowStart : minutesToTime(maxStart);
+                    setQuickEntryMode('slots');
                     setQuickBooking({
                       facility,
                       location: location ?? null,
@@ -803,6 +822,7 @@ export default function FacilitiesLiveViewPage() {
                     const nowStart = nextHourTime();
                     const maxStart = 23 * 60;
                     const safeStart = timeToMinutes(nowStart) <= maxStart ? nowStart : minutesToTime(maxStart);
+                    setQuickEntryMode('slots');
                     setQuickBooking({
                       facility,
                       location: location ?? null,
@@ -1064,6 +1084,85 @@ export default function FacilitiesLiveViewPage() {
               </div>
               <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label>Slots</label>
+                <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className={quickEntryMode === 'slots' ? 'btn-primary' : 'btn-ghost'}
+                    style={{ padding: '0.3rem 0.65rem', fontSize: '0.82rem' }}
+                    onClick={() => setQuickEntryMode('slots')}
+                    disabled={quickBookingSubmitting}
+                  >
+                    Pick slots
+                  </button>
+                  <button
+                    type="button"
+                    className={quickEntryMode === 'manual' ? 'btn-primary' : 'btn-ghost'}
+                    style={{ padding: '0.3rem 0.65rem', fontSize: '0.82rem' }}
+                    onClick={() => setQuickEntryMode('manual')}
+                    disabled={quickBookingSubmitting}
+                  >
+                    Manual time
+                  </button>
+                </div>
+                {quickEntryMode === 'manual' ? (
+                  <div className="form-row-2" style={{ marginTop: '0.45rem' }}>
+                    <div>
+                      <label>Start</label>
+                      <input
+                        type="time"
+                        step={1800}
+                        value={quickBooking.startTime}
+                        onChange={(e) =>
+                          setQuickBooking((cur) => {
+                            if (!cur) return cur;
+                            const nextStart = e.target.value;
+                            if (!nextStart) return cur;
+                            const capEnd = maxContiguousEndForStart(nextStart, quickSlots);
+                            const startMins = timeToMinutes(nextStart);
+                            const currentEnd = cur.endTime || capEnd;
+                            const endMins = timeToMinutes(currentEnd, true);
+                            const capMins = timeToMinutes(capEnd, true);
+                            const nextEnd =
+                              endMins <= startMins
+                                ? capEnd
+                                : endMins > capMins
+                                  ? capEnd
+                                  : currentEnd;
+                            return { ...cur, startTime: nextStart, endTime: nextEnd };
+                          })
+                        }
+                        disabled={quickBookingSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label>End</label>
+                      <input
+                        type="time"
+                        step={1800}
+                        value={quickBooking.endTime === '24:00' ? '23:59' : quickBooking.endTime}
+                        onChange={(e) =>
+                          setQuickBooking((cur) => {
+                            if (!cur) return cur;
+                            const nextEnd = e.target.value;
+                            if (!nextEnd) return cur;
+                            const startMins = timeToMinutes(cur.startTime);
+                            const endMins = timeToMinutes(nextEnd, true);
+                            const capEnd = maxContiguousEndForStart(cur.startTime, quickSlots);
+                            const capMins = timeToMinutes(capEnd, true);
+                            if (endMins <= startMins) {
+                              return { ...cur, endTime: capEnd };
+                            }
+                            if (endMins > capMins) {
+                              return { ...cur, endTime: capEnd };
+                            }
+                            return { ...cur, endTime: nextEnd };
+                          })
+                        }
+                        disabled={quickBookingSubmitting}
+                      />
+                    </div>
+                  </div>
+                ) : null}
                 <div
                   style={{
                     marginTop: '0.35rem',
@@ -1115,6 +1214,9 @@ export default function FacilitiesLiveViewPage() {
                             boxSizing: 'border-box',
                           }}
                           onClick={() =>
+                            quickEntryMode !== 'slots'
+                              ? undefined
+                              :
                             setQuickBooking((cur) =>
                               (() => {
                                 if (!cur) return cur;
@@ -1150,7 +1252,8 @@ export default function FacilitiesLiveViewPage() {
                               })(),
                             )
                           }
-                          disabled={quickBookingSubmitting}
+                          aria-disabled={quickEntryMode !== 'slots'}
+                          disabled={quickBookingSubmitting || quickEntryMode !== 'slots'}
                         >
                           {compactSlotLabel(slot.startTime, slot.endTime)}
                         </button>

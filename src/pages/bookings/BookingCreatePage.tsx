@@ -109,11 +109,29 @@ function courtOnlyLabel(label: string): string {
   return parts.slice(1).join('—').trim();
 }
 
+function resolveFacilityHourlyRate(
+  opt: { pricePerSlot?: string | number | null; pricing?: any | null } | null,
+  sport: BookingSportType,
+): number {
+  if (!opt) return 0;
+  if (opt.pricePerSlot != null) {
+    const n = Number(opt.pricePerSlot);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const s = sport.toLowerCase();
+  const p =
+    opt.pricing?.[s]?.basePrice ??
+    opt.pricing?.[s === 'cricket' ? 'cricket' : 'futsal']?.basePrice;
+  const n = Number(p ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
 type BookingLine = {
   facilityKey: string;
   courtKind: CourtKind;
   courtId: string;
   startMinutes: number;
+  manualEntry: boolean;
   price: string;
   status: BookingItemStatus;
   slotPage: number;
@@ -131,6 +149,7 @@ function defaultLine(): BookingLine {
     courtKind: 'futsal_court',
     courtId: '',
     startMinutes: timeToMinutes(currentHourTime()),
+    manualEntry: false,
     price: '0',
     status: 'confirmed',
     slotPage: 0,
@@ -337,6 +356,7 @@ export default function BookingCreatePage() {
           courtKind: kind || 'futsal_court',
           courtId,
           startMinutes: timeToMinutes(startTime),
+          manualEntry: false,
           price: price || '0',
           status: 'confirmed',
           slotPage: 0,
@@ -1178,7 +1198,9 @@ export default function BookingCreatePage() {
             </div>
             {lines.map((ln, idx) => {
               const startTime = minutesToTime(ln.startMinutes);
-              const endTime = minutesToTime(Math.min(ln.startMinutes + 60, 24 * 60));
+              const endTime = minutesToTime(
+                Math.min(ln.startMinutes + (ln.durationMinutes || 60), 24 * 60),
+              );
               const selectedCourt =
                 courtOpts.find((o) => courtOptionValue(o) === ln.facilityKey) ?? null;
               const location = selectedCourt?.businessLocationId
@@ -1267,8 +1289,23 @@ export default function BookingCreatePage() {
                     </div>
                     <div className="form-row-2">
                       <div>
+                        <label>Entry mode</label>
+                        <ButtonOptionGroup
+                          value={ln.manualEntry ? 'manual' : 'slots'}
+                          onChange={(mode) => {
+                            const next = [...lines];
+                            next[idx] = { ...ln, manualEntry: mode === 'manual' };
+                            setLines(next);
+                          }}
+                          options={[
+                            { value: 'slots', label: 'Pick slots' },
+                            { value: 'manual', label: 'Manual time' },
+                          ]}
+                        />
+                      </div>
+                      <div>
                         <label>Select slots ({formatTime12h(startTime)} - {formatTime12h(endTime)})</label>
-                        {startSlots.length > 0 && (
+                        {!ln.manualEntry && startSlots.length > 0 && (
                           <div
                             style={{
                               display: 'flex',
@@ -1314,17 +1351,68 @@ export default function BookingCreatePage() {
                             </button>
                           </div>
                         )}
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: '0.4rem',
-                            flexWrap: 'nowrap',
-                            overflowX: 'hidden',
-                            paddingBottom: '0.25rem',
-                            marginTop: '0.35rem',
-                          }}
-                        >
-                          {visibleSlots.map((slot) => {
+                        {ln.manualEntry ? (
+                          <div className="form-row-2" style={{ marginTop: '0.35rem' }}>
+                            <div>
+                              <label>Start time</label>
+                              <input
+                                type="time"
+                                step={1800}
+                                value={startTime}
+                                onChange={(e) => {
+                                  const next = [...lines];
+                                  const mins = timeToMinutes(e.target.value);
+                                  const selectedCourt = courtOpts.find(
+                                    (o) => courtOptionValue(o) === ln.facilityKey,
+                                  );
+                                  const rate = resolveFacilityHourlyRate(selectedCourt ?? null, sport);
+                                  const duration = ln.durationMinutes || 60;
+                                  next[idx] = {
+                                    ...ln,
+                                    startMinutes: mins,
+                                    price: rate > 0 ? String(rate * (duration / 60)) : ln.price,
+                                  };
+                                  setLines(next);
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label>End time</label>
+                              <input
+                                type="time"
+                                step={1800}
+                                value={endTime === '24:00' ? '23:59' : endTime}
+                                onChange={(e) => {
+                                  const next = [...lines];
+                                  const start = ln.startMinutes;
+                                  const endMinutes = timeToMinutes(e.target.value, true);
+                                  const duration = Math.max(30, endMinutes - start);
+                                  const selectedCourt = courtOpts.find(
+                                    (o) => courtOptionValue(o) === ln.facilityKey,
+                                  );
+                                  const rate = resolveFacilityHourlyRate(selectedCourt ?? null, sport);
+                                  next[idx] = {
+                                    ...ln,
+                                    durationMinutes: duration,
+                                    price: rate > 0 ? String(rate * (duration / 60)) : ln.price,
+                                  };
+                                  setLines(next);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '0.4rem',
+                              flexWrap: 'nowrap',
+                              overflowX: 'hidden',
+                              paddingBottom: '0.25rem',
+                              marginTop: '0.35rem',
+                            }}
+                          >
+                            {visibleSlots.map((slot) => {
                             const slotStart = timeToMinutes(slot);
                             const selectedStart = ln.startMinutes;
                             const selectedEnd = ln.startMinutes + (ln.durationMinutes || 60);
@@ -1359,9 +1447,7 @@ export default function BookingCreatePage() {
                                   }
 
                                   const selCourt = courtOpts.find((o) => courtOptionValue(o) === ln.facilityKey);
-                                  const base = (selCourt?.pricePerSlot != null) 
-                                     ? Number(selCourt.pricePerSlot) 
-                                     : (selCourt?.pricing?.[sport.toLowerCase()]?.basePrice ?? 0);
+                                  const base = resolveFacilityHourlyRate(selCourt ?? null, sport);
                                   const priceStr = base > 0 ? String(base * (newDuration / 60)) : ln.price;
 
                                   next[idx] = { 
@@ -1376,15 +1462,16 @@ export default function BookingCreatePage() {
                                 {formatTime12h(slot)}
                               </button>
                             );
-                          })}
-                          {startSlots.length === 0 && (
-                            <span className="muted" style={{ fontSize: '0.78rem' }}>
-                              {selectedCourt?.timeSlotTemplateId
-                                ? 'No template slots available for this day.'
-                                : 'No time slot template assigned to this facility.'}
-                            </span>
-                          )}
-                        </div>
+                            })}
+                            {startSlots.length === 0 && (
+                              <span className="muted" style={{ fontSize: '0.78rem' }}>
+                                {selectedCourt?.timeSlotTemplateId
+                                  ? 'No template slots available for this day.'
+                                  : 'No time slot template assigned to this facility.'}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label>Slot duration</label>
