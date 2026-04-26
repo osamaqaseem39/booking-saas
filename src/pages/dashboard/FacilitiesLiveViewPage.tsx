@@ -22,6 +22,8 @@ import {
   type FacilityLiveType,
 } from '../../utils/facilityLiveStats';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
+import { useSession } from '../../context/SessionContext';
+import { isLocationOnlyAdmin } from '../../rbac';
 
 type FacilityCardRow = {
   id: string;
@@ -196,7 +198,19 @@ function compactSlotLabel(startTime: string, endTime: string): string {
 }
 
 export default function FacilitiesLiveViewPage() {
-  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
+  const { session } = useSession();
+  const { selectedLocationId, dashboardLocations } =
+    useOutletContext<DashboardOutletContext>();
+  const isLocOnly = isLocationOnlyAdmin(session?.roles);
+  const locationFacilitiesHref = useMemo(() => {
+    if (dashboardLocations.length === 1) {
+      return `/app/locations/${dashboardLocations[0]!.id}/facilities`;
+    }
+    if (selectedLocationId && selectedLocationId !== 'all') {
+      return `/app/locations/${selectedLocationId}/facilities`;
+    }
+    return null;
+  }, [dashboardLocations, selectedLocationId]);
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityCardRow[]>([]);
@@ -745,9 +759,15 @@ export default function FacilitiesLiveViewPage() {
           >
             {refreshing ? 'Refreshing...' : 'Refresh now'}
           </button>
-          <Link to="/app/Facilities" className="btn-primary btn-compact">
-            Manage facilities
-          </Link>
+          {!isLocOnly ? (
+            <Link to="/app/Facilities" className="btn-primary btn-compact">
+              Manage facilities
+            </Link>
+          ) : locationFacilitiesHref ? (
+            <Link to={locationFacilitiesHref} className="btn-primary btn-compact">
+              Location facilities
+            </Link>
+          ) : null}
         </div>
       </div>
 
