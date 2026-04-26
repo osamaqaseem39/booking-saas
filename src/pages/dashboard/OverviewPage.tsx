@@ -1006,7 +1006,7 @@ export default function OverviewPage() {
                       <h4>Bookings by sport</h4>
                       <span className="muted small">Activity distribution</span>
                     </header>
-                    <div className="mosaic-content mosaic-content--chart" style={{ flex: 1 }}>
+                    <div className="mosaic-content mosaic-content--chart">
                       <div className="mosaic-recharts-wrap">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
@@ -1055,7 +1055,7 @@ export default function OverviewPage() {
                       <h4>Booking from</h4>
                       <span className="muted small">Source analytics</span>
                     </header>
-                    <div className="mosaic-content mosaic-content--chart" style={{ flex: 1 }}>
+                    <div className="mosaic-content mosaic-content--chart">
                       <div className="mosaic-recharts-wrap">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
