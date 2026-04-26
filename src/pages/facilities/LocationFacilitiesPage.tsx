@@ -8,9 +8,11 @@ import {
   listBusinessLocations,
   listTurfCourts,
   listPadelCourts,
+  listTableTennisCourts,
 } from '../../api/saasClient';
 import {
   isCourtSetupAllowedForLocation,
+  TABLE_TENNIS_COURT_SETUP_CODE,
 } from '../../constants/locationFacilityTypes';
 import {
   GAMING_SETUP_OPTIONS,
@@ -190,6 +192,7 @@ export default function LocationFacilitiesPage() {
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [turfCourts, setTurfCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
+  const [tableTennis, setTableTennis] = useState<NamedCourt[]>([]);
   const [gamingStations, setGamingStations] = useState<GamingStationRecord[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,6 +204,14 @@ export default function LocationFacilitiesPage() {
   const tenantIdOverride = isOwner ? location?.business?.tenantId ?? '' : '';
   const arenaPrimarySetupCode = useMemo(() => {
     if (!location || location.locationType === 'gaming-zone') return '';
+    if (location.locationType === 'table-tennis') {
+      return isCourtSetupAllowedForLocation(
+        location,
+        TABLE_TENNIS_COURT_SETUP_CODE,
+      )
+        ? TABLE_TENNIS_COURT_SETUP_CODE
+        : '';
+    }
     if (isCourtSetupAllowedForLocation(location, 'futsal-court')) {
       return 'futsal-court';
     }
@@ -224,13 +235,15 @@ export default function LocationFacilitiesPage() {
         const currentTenantId = isOwner
           ? currentLocation?.business?.tenantId ?? ''
           : '';
-        const [tc, pa] = await Promise.all([
+        const [tc, pa, tt] = await Promise.all([
           listTurfCourts(locationId, currentTenantId),
           listPadelCourts(locationId, currentTenantId),
+          listTableTennisCourts(locationId, currentTenantId),
         ]);
         setLocations(locs);
         setTurfCourts(tc);
         setPadel(pa);
+        setTableTennis(tt);
         setGamingStations(await listGamingStationsForLocation(locationId));
       } catch (e) {
         setErr(e instanceof Error ? e.message : 'Failed to load');
@@ -287,13 +300,21 @@ export default function LocationFacilitiesPage() {
                   label: `Add ${o.label}`,
                   allowed: isGamingSetupAllowedForLocation(location, o.value),
                 }))
-              : [
-                  {
-                    code: arenaPrimarySetupCode || 'futsal-court',
-                    label: 'Add turf/padel (setup form)',
-                    allowed: Boolean(arenaPrimarySetupCode),
-                  },
-                ]
+              : location.locationType === 'table-tennis'
+                ? [
+                    {
+                      code: TABLE_TENNIS_COURT_SETUP_CODE,
+                      label: 'Add table (setup form)',
+                      allowed: Boolean(arenaPrimarySetupCode),
+                    },
+                  ]
+                : [
+                    {
+                      code: arenaPrimarySetupCode || 'futsal-court',
+                      label: 'Add turf/padel (setup form)',
+                      allowed: Boolean(arenaPrimarySetupCode),
+                    },
+                  ]
             ).map((o) =>
               o.allowed ? (
                 <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">
@@ -361,6 +382,15 @@ export default function LocationFacilitiesPage() {
                 title="Padel courts"
                 rows={padel}
                 facilityCode="padel-court"
+                locationId={locationId}
+                onReload={load}
+                setPageErr={setErr}
+                tenantIdOverride={tenantIdOverride}
+              />
+              <FacilitiesTableBlock
+                title="Table tennis"
+                rows={tableTennis}
+                facilityCode="table-tennis-court"
                 locationId={locationId}
                 onReload={load}
                 setPageErr={setErr}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArenaTurfCourtSetupForm } from '../../components/facilities/arena/ArenaTurfCourtSetupForm';
 import { PadelCourtSetupForm } from '../../components/facilities/arena/PadelCourtSetupForm';
+import { TableTennisCourtSetupForm } from '../../components/facilities/arena/TableTennisCourtSetupForm';
 import { GamingFacilitySetupForm } from '../../components/facilities/gaming/GamingFacilitySetupForm';
 import { listBusinessLocations } from '../../api/saasClient';
 import {
@@ -11,6 +12,7 @@ import {
 import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
+  TABLE_TENNIS_COURT_SETUP_CODE,
 } from '../../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../../types/domain';
 import { useSession } from '../../context/SessionContext';
@@ -20,6 +22,7 @@ const EDITABLE_CODES = new Set<string>([
   FUTSAL_COURT_SETUP_CODE,
   CRICKET_COURT_SETUP_CODE,
   'padel-court',
+  TABLE_TENNIS_COURT_SETUP_CODE,
   'futsal-field',
   'cricket-indoor',
   ...GAMING_SETUP_CODES,
@@ -176,6 +179,17 @@ export default function FacilityEditPage() {
       {normalizedCode === 'padel-court' && location ? (
         <div style={{ marginTop: '1rem' }}>
           <PadelCourtSetupForm
+            locationId={locationId}
+            locations={locations}
+            existingCourtId={courtId}
+            onSuccess={() => navigate('/app/Facilities')}
+          />
+        </div>
+      ) : null}
+
+      {normalizedCode === TABLE_TENNIS_COURT_SETUP_CODE && location ? (
+        <div style={{ marginTop: '1rem' }}>
+          <TableTennisCourtSetupForm
             locationId={locationId}
             locations={locations}
             existingCourtId={courtId}

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listBusinessLocations } from '../../api/saasClient';
 import { ArenaTurfCourtSetupForm } from '../../components/facilities/arena/ArenaTurfCourtSetupForm';
 import { PadelCourtSetupForm } from '../../components/facilities/arena/PadelCourtSetupForm';
+import { TableTennisCourtSetupForm } from '../../components/facilities/arena/TableTennisCourtSetupForm';
 import { GamingFacilitySetupForm } from '../../components/facilities/gaming/GamingFacilitySetupForm';
 import {
   formatGamingSetupLabel,
@@ -13,6 +14,7 @@ import {
 import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
+  TABLE_TENNIS_COURT_SETUP_CODE,
   isCourtSetupAllowedForLocation,
 } from '../../constants/locationFacilityTypes';
 import type { BusinessLocationRow } from '../../types/domain';
@@ -22,6 +24,7 @@ const ARENA_SETUP_CODES = new Set<string>([
   FUTSAL_COURT_SETUP_CODE,
   CRICKET_COURT_SETUP_CODE,
   'padel-court',
+  TABLE_TENNIS_COURT_SETUP_CODE,
 ]);
 
 const GAMING_CODES_SET = new Set<string>(GAMING_SETUP_CODES);
@@ -69,6 +72,9 @@ export default function LocationFacilitySetupPage() {
     }
     if (facilityCode === 'padel-court') {
       return { label: 'Padel court' };
+    }
+    if (facilityCode === TABLE_TENNIS_COURT_SETUP_CODE) {
+      return { label: 'Table tennis table' };
     }
     if (isGamingSetupCode(facilityCode)) {
       return { label: formatGamingSetupLabel(facilityCode) };
@@ -145,7 +151,9 @@ export default function LocationFacilitySetupPage() {
     ARENA_SETUP_CODES.has(facilityCode) &&
     (facilityCode === 'padel-court'
       ? isCourtSetupAllowedForLocation(location, facilityCode)
-      : hasFutsalForLocation || hasCricketForLocation);
+      : facilityCode === TABLE_TENNIS_COURT_SETUP_CODE
+        ? isCourtSetupAllowedForLocation(location, facilityCode)
+        : hasFutsalForLocation || hasCricketForLocation);
   const gamingAllowed =
     location &&
     GAMING_CODES_SET.has(facilityCode) &&
@@ -194,6 +202,18 @@ export default function LocationFacilitySetupPage() {
             onSuccess={() => navigate('/app/Facilities')}
           />
         </div>
+      ) : facilityCode === TABLE_TENNIS_COURT_SETUP_CODE ? (
+        <>
+          <p className="muted">
+            Location: <strong>{location.name}</strong>. Table tennis: hourly
+            rate, optional slot template.
+          </p>
+          <TableTennisCourtSetupForm
+            locationId={locationId}
+            locations={locations}
+            onSuccess={() => navigate('/app/Facilities')}
+          />
+        </>
       ) : (
         <>
           <p className="muted">

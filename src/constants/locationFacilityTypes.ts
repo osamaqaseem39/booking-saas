@@ -2,6 +2,7 @@
 
 export const FUTSAL_COURT_SETUP_CODE = 'futsal-court' as const;
 export const CRICKET_COURT_SETUP_CODE = 'cricket-court' as const;
+export const TABLE_TENNIS_COURT_SETUP_CODE = 'table-tennis-court' as const;
 
 /** @deprecated Use FUTSAL_COURT_SETUP_CODE */
 export const TURF_COURT_SETUP_CODE = FUTSAL_COURT_SETUP_CODE;
@@ -10,6 +11,7 @@ export const LOCATION_FACILITY_TYPE_OPTIONS: { value: string; label: string }[] 
   [
     { value: 'turf', label: 'Turf' },
     { value: 'padel', label: 'Padel' },
+    { value: 'table-tennis', label: 'Table tennis' },
   ];
 
 /** Collapse legacy arena facility tags into current toggle values. */
@@ -34,6 +36,14 @@ export function normalizeLocationFacilityTypesSelection(
     }
     if (t === 'padel' || t === 'padel-court') {
       out.add('padel');
+      continue;
+    }
+    if (
+      t === 'table-tennis' ||
+      t === 'table-tennis-court' ||
+      t === 'table-tennis-table'
+    ) {
+      out.add('table-tennis');
       continue;
     }
     out.add(t);
@@ -71,6 +81,14 @@ export function isCourtSetupAllowedForLocation(
   if (facilityCode === 'padel-court') {
     return allowed.some((c) => c === 'padel' || c === 'padel-court');
   }
+  if (facilityCode === TABLE_TENNIS_COURT_SETUP_CODE) {
+    return allowed.some(
+      (c) =>
+        c === 'table-tennis' ||
+        c === 'table-tennis-court' ||
+        c === 'table-tennis-table',
+    );
+  }
   return allowed.includes(facilityCode);
 }
 
@@ -79,6 +97,7 @@ export function courtSetupOptions(): { code: string; label: string }[] {
     { code: FUTSAL_COURT_SETUP_CODE, label: 'Futsal pitch' },
     { code: CRICKET_COURT_SETUP_CODE, label: 'Cricket pitch' },
     { code: 'padel-court', label: 'Padel court' },
+    { code: TABLE_TENNIS_COURT_SETUP_CODE, label: 'Table tennis table' },
   ];
 }
 
@@ -98,6 +117,9 @@ const LABEL_BY_CODE: Record<string, string> = {
   'futsal-field': 'Futsal (legacy field)',
   'cricket-indoor': 'Cricket indoor (legacy)',
   turf: 'Turf (futsal + cricket)',
+  'table-tennis': 'Table tennis',
+  'table-tennis-court': 'Table tennis',
+  'table-tennis-table': 'Table tennis',
 };
 
 export function formatFacilityTypeLabel(code: string): string {

@@ -1667,6 +1667,85 @@ export async function deletePadelCourt(
   return request<{ deleted: true; id: string }>(path, { method: 'DELETE' });
 }
 
+export type CreateTableTennisCourtBody = {
+  businessLocationId: string;
+  name: string;
+  description?: string;
+  courtStatus?: 'active' | 'maintenance' | 'draft';
+  pricePerSlot?: number;
+  slotDurationMinutes?: 60;
+  bufferBetweenSlotsMinutes?: number;
+  isActive?: boolean;
+  timeSlotTemplateId?: string | null;
+};
+
+export type TableTennisCourtDetail = Partial<CreateTableTennisCourtBody> & {
+  id: string;
+  name: string;
+  tenantId?: string;
+  businessLocationId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function listTableTennisCourts(
+  businessLocationId?: string,
+  tenantIdOverride?: string,
+): Promise<NamedCourt[]> {
+  const q = businessLocationId?.trim()
+    ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
+    : '';
+  const path = `/arena/table-tennis-court${q}`;
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
+  }
+  return request<NamedCourt[]>(path, { method: 'GET' });
+}
+
+export async function getTableTennisCourt(id: string): Promise<TableTennisCourtDetail> {
+  return request<TableTennisCourtDetail>(`/arena/table-tennis-court/${id}`, {
+    method: 'GET',
+  });
+}
+
+export async function createTableTennisCourt(
+  body: CreateTableTennisCourtBody,
+): Promise<NamedCourt> {
+  return request<NamedCourt>('/arena/table-tennis-court', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export type UpdateTableTennisCourtBody = Partial<
+  Omit<CreateTableTennisCourtBody, 'businessLocationId'>
+>;
+
+export async function updateTableTennisCourt(
+  id: string,
+  body: UpdateTableTennisCourtBody,
+): Promise<NamedCourt> {
+  return request<NamedCourt>(`/arena/table-tennis-court/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteTableTennisCourt(
+  id: string,
+  tenantIdOverride?: string,
+): Promise<{ deleted: true; id: string }> {
+  const path = `/arena/table-tennis-court/${id}`;
+  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  if (tid) {
+    return requestForTenant<{ deleted: true; id: string }>(tid, path, {
+      method: 'DELETE',
+    });
+  }
+  return request<{ deleted: true; id: string }>(path, { method: 'DELETE' });
+}
+
 export type TimeSlotTemplateRecord = {
   id: string;
   name: string;

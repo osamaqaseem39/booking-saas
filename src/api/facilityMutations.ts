@@ -2,6 +2,7 @@ import {
   deleteCricketCourt,
   deleteFutsalCourt,
   deletePadelCourt,
+  deleteTableTennisCourt,
 } from './saasClient';
 import {
   isGamingSetupCode,
@@ -14,6 +15,7 @@ export type FacilityRowCode =
   | 'futsal-court'
   | 'cricket-court'
   | 'padel-court'
+  | 'table-tennis-court'
   | GamingSetupCode;
 
 export async function deleteFacilityByCode(
@@ -44,6 +46,10 @@ export async function deleteFacilityByCode(
   }
   if (code === 'padel-court') {
     await deletePadelCourt(id, tenantIdOverride);
+    return;
+  }
+  if (code === 'table-tennis-court') {
+    await deleteTableTennisCourt(id, tenantIdOverride);
     return;
   }
   throw new Error('Unknown facility type');

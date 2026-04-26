@@ -14,6 +14,7 @@ import {
   listBusinessLocations,
   listTurfCourts,
   listPadelCourts,
+  listTableTennisCourts,
   updateFutsalCourt,
 } from '../../api/saasClient';
 import {
@@ -24,6 +25,7 @@ import {
 import {
   CRICKET_COURT_SETUP_CODE,
   FUTSAL_COURT_SETUP_CODE,
+  TABLE_TENNIS_COURT_SETUP_CODE,
   isCourtSetupAllowedForLocation,
 } from '../../constants/locationFacilityTypes';
 import {
@@ -59,13 +61,16 @@ const SETUP_OPTIONS_BY_LOCATION_TYPE: Record<string, SetupOption[]> = {
   arena: [
     { code: FUTSAL_COURT_SETUP_CODE, label: 'Turf field' },
     { code: 'padel-court', label: 'Padel' },
+    { code: TABLE_TENNIS_COURT_SETUP_CODE, label: 'Table tennis' },
   ],
   'gaming-zone': GAMING_SETUP_OPTIONS.map((o) => ({
     code: o.value,
     label: o.label,
   })),
   snooker: [],
-  'table-tennis': [],
+  'table-tennis': [
+    { code: TABLE_TENNIS_COURT_SETUP_CODE, label: 'Table tennis table' },
+  ],
 };
 
 function hasSetupForm(code: string): boolean {
@@ -73,6 +78,7 @@ function hasSetupForm(code: string): boolean {
     code === FUTSAL_COURT_SETUP_CODE ||
     code === CRICKET_COURT_SETUP_CODE ||
     code === 'padel-court' ||
+    code === TABLE_TENNIS_COURT_SETUP_CODE ||
     isGamingSetupCode(code)
   );
 }
@@ -89,6 +95,7 @@ export default function AddFacilityPage() {
   const [locationId, setLocationId] = useState('');
   const [turfCourts, setTurfCourts] = useState<NamedCourt[]>([]);
   const [padel, setPadel] = useState<NamedCourt[]>([]);
+  const [tableTennis, setTableTennis] = useState<NamedCourt[]>([]);
   const [gamingStations, setGamingStations] = useState<
     Array<{
       id: string;
@@ -116,43 +123,69 @@ export default function AddFacilityPage() {
       setLoading(false);
       setTurfCourts([]);
       setPadel([]);
+      setTableTennis([]);
       setGamingStations([]);
       return;
     }
     const selected = locs.find((l) => l.id === locationIdArg);
     const locationType = selected?.locationType ?? '';
-    if (locationType && locationType !== 'arena') {
-      if (locationType === 'gaming-zone') {
-        try {
-          const rows = await listGamingStationsForLocation(locationIdArg);
-          setGamingStations(
-            rows.map((r) => ({
-              id: r.id,
-              name: r.name,
-              businessLocationId: r.businessLocationId,
-              setupCode: r.setupCode,
-            })),
-          );
-        } catch (e) {
-          setErr(e instanceof Error ? e.message : 'Failed to load facilities');
-          setGamingStations([]);
-        }
-      } else {
+    if (locationType === 'gaming-zone') {
+      setLoading(true);
+      try {
+        const rows = await listGamingStationsForLocation(locationIdArg);
+        setGamingStations(
+          rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            businessLocationId: r.businessLocationId,
+            setupCode: r.setupCode,
+          })),
+        );
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'Failed to load facilities');
         setGamingStations([]);
+      } finally {
+        setLoading(false);
       }
+      setTurfCourts([]);
+      setPadel([]);
+      setTableTennis([]);
+      return;
+    }
+    if (locationType === 'table-tennis') {
+      setLoading(true);
+      try {
+        const tt = await listTableTennisCourts(locationIdArg);
+        setTableTennis(tt);
+        setTurfCourts([]);
+        setPadel([]);
+        setGamingStations([]);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'Failed to load facilities');
+        setTableTennis([]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (locationType && locationType !== 'arena') {
+      setGamingStations([]);
       setLoading(false);
       setTurfCourts([]);
       setPadel([]);
+      setTableTennis([]);
       return;
     }
     setLoading(true);
     try {
-      const [tc, pa] = await Promise.all([
+      const [tc, pa, ttb] = await Promise.all([
         listTurfCourts(locationIdArg),
         listPadelCourts(locationIdArg),
+        listTableTennisCourts(locationIdArg),
       ]);
       setTurfCourts(tc);
       setPadel(pa);
+      setTableTennis(ttb);
       setGamingStations([]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load facilities');
@@ -219,11 +252,15 @@ export default function AddFacilityPage() {
   const isGamingLocation = (location?.locationType ?? '') === 'gaming-zone';
   const arenaAddButtons = useMemo(() => {
     if (!isArenaLocation || !location) {
-      return { sharedArenaCode: '', hasPadel: false };
+      return { sharedArenaCode: '', hasPadel: false, hasTableTennis: false };
     }
     const hasFutsal = isCourtSetupAllowedForLocation(location, FUTSAL_COURT_SETUP_CODE);
     const hasCricket = isCourtSetupAllowedForLocation(location, CRICKET_COURT_SETUP_CODE);
     const hasPadel = isCourtSetupAllowedForLocation(location, 'padel-court');
+    const hasTableTennis = isCourtSetupAllowedForLocation(
+      location,
+      TABLE_TENNIS_COURT_SETUP_CODE,
+    );
     return {
       sharedArenaCode: hasFutsal
         ? FUTSAL_COURT_SETUP_CODE
@@ -231,6 +268,7 @@ export default function AddFacilityPage() {
           ? CRICKET_COURT_SETUP_CODE
           : '',
       hasPadel,
+      hasTableTennis,
     };
   }, [isArenaLocation, location]);
 
@@ -253,10 +291,15 @@ export default function AddFacilityPage() {
         code: 'turf-court' as const,
       })),
       ...padel.map((r) => ({ ...r, type: 'Padel court', code: 'padel-court' })),
+      ...tableTennis.map((r) => ({
+        ...r,
+        type: 'Table tennis',
+        code: 'table-tennis-court' as const,
+      })),
       ...gamingRows,
     ];
     return list.sort((a, b) => a.name.localeCompare(b.name));
-  }, [turfCourts, padel, gamingRows]);
+  }, [turfCourts, padel, tableTennis, gamingRows]);
 
 
 
@@ -440,7 +483,21 @@ export default function AddFacilityPage() {
                 </button>
               )
             ) : null}
-            {!arenaAddButtons.sharedArenaCode && !arenaAddButtons.hasPadel ? (
+            {arenaAddButtons.hasTableTennis ? (
+              locationId ? (
+                <Link
+                  to={setupPath(locationId, TABLE_TENNIS_COURT_SETUP_CODE)}
+                  className="btn-primary"
+                >
+                  Add table tennis
+                </Link>
+              ) : (
+                <button type="button" className="btn-primary" disabled>
+                  Add table tennis
+                </button>
+              )
+            ) : null}
+            {!arenaAddButtons.sharedArenaCode && !arenaAddButtons.hasPadel && !arenaAddButtons.hasTableTennis ? (
               <button type="button" className="btn-primary" disabled>
                 No configured arena facility types
               </button>
