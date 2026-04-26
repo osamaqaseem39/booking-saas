@@ -1000,111 +1000,105 @@ export default function OverviewPage() {
 
 
               <div className="overview-mosaic-grid">
-                {/* Combined Distribution Card */}
-                <article className="overview-mosaic-card mosaic-card--full">
-                  <div className="mosaic-combined-layout">
-                    {/* Sport Distribution */}
-                    <div className="mosaic-combined-col">
-                      <header className="mosaic-header">
-                        <h4>Bookings by sport</h4>
-                        <span className="muted small">Activity distribution</span>
-                      </header>
-                      <div className="mosaic-content mosaic-content--chart">
-                        <div className="mosaic-recharts-wrap">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={sportChartStats}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="count"
-                                animationDuration={1000}
-                              >
-                                {sportChartStats.map((entry: any, index: number) => (
-                                  <Cell key={`cell-${index}`} fill={SPORT_COLORS[entry.sport] || SPORT_COLORS.other} />
-                                ))}
-                              </Pie>
-                              <Tooltip 
-                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
-                                itemStyle={{ color: '#fff' }}
-                                formatter={(value: any) => [value, 'Bookings']}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="mosaic-donut-center">
-                            <strong>{locationFilteredBookings.length}</strong>
-                            <span>Total</span>
-                          </div>
-                        </div>
-                        <div className="mosaic-legend-grid">
-                          {sportChartStats.map((row: any) => (
-                            <div key={row.sport} className="mosaic-legend-pill">
-                              <span className="mosaic-legend-swatch" style={{ backgroundColor: SPORT_COLORS[row.sport] || SPORT_COLORS.other }} />
-                              <span className="mosaic-legend-name">{titleCase(row.sport)}</span>
-                              <span className="mosaic-legend-val">{row.pct}%</span>
-                            </div>
-                          ))}
+                <div className="mosaic-pies-pair">
+                  <article className="overview-mosaic-card mosaic-card--eq">
+                    <header className="mosaic-header">
+                      <h4>Bookings by sport</h4>
+                      <span className="muted small">Activity distribution</span>
+                    </header>
+                    <div className="mosaic-content mosaic-content--chart" style={{ flex: 1 }}>
+                      <div className="mosaic-recharts-wrap">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={sportChartStats}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={5}
+                              dataKey="count"
+                              animationDuration={1000}
+                            >
+                              {sportChartStats.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={SPORT_COLORS[entry.sport] || SPORT_COLORS.other} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                              itemStyle={{ color: '#fff' }}
+                              formatter={(value: any) => [value, 'Bookings']}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="mosaic-donut-center">
+                          <strong>{locationFilteredBookings.length}</strong>
+                          <span>Total</span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="mosaic-divider" />
-
-                    {/* Source Distribution */}
-                    <div className="mosaic-combined-col">
-                      <header className="mosaic-header">
-                        <h4>Booking from</h4>
-                        <span className="muted small">Source analytics</span>
-                      </header>
-                      <div className="mosaic-content mosaic-content--chart">
-                        <div className="mosaic-recharts-wrap">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={sourceChartStats}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="count"
-                                animationDuration={1200}
-                              >
-                                {sourceChartStats.map((entry: any, index: number) => (
-                                  <Cell key={`cell-${index}`} fill={SOURCE_COLORS[entry.source] || '#64748b'} />
-                                ))}
-                              </Pie>
-                              <Tooltip 
-                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
-                                itemStyle={{ color: '#fff' }}
-                                formatter={(value: any) => [value, 'Bookings']}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="mosaic-donut-center">
-                            <strong>{sourceChartStats.reduce((s, r) => s + r.count, 0)}</strong>
-                            <span>Sources</span>
+                      <div className="mosaic-legend-grid">
+                        {sportChartStats.map((row: any) => (
+                          <div key={row.sport} className="mosaic-legend-pill">
+                            <span className="mosaic-legend-swatch" style={{ backgroundColor: SPORT_COLORS[row.sport] || SPORT_COLORS.other }} />
+                            <span className="mosaic-legend-name">{titleCase(row.sport)}</span>
+                            <span className="mosaic-legend-val">{row.pct}%</span>
                           </div>
-                        </div>
-                        <div className="mosaic-legend-grid">
-                          {sourceChartStats.map((row: any) => (
-                            <div key={row.source} className="mosaic-legend-pill">
-                              <span className="mosaic-legend-swatch" style={{ backgroundColor: SOURCE_COLORS[row.source] || '#64748b' }} />
-                              <span className="mosaic-legend-name">{bookingFromLabel(row.source)}</span>
-                              <span className="mosaic-legend-val">{row.pct}%</span>
-                            </div>
-                          ))}
-                        </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
 
-                {/* Revenue Trend Card */}
-                <article className="overview-mosaic-card mosaic-card--medium">
+                  <div className="mosaic-divider mosaic-divider--pies-pair" aria-hidden />
+
+                  <article className="overview-mosaic-card mosaic-card--eq">
+                    <header className="mosaic-header">
+                      <h4>Booking from</h4>
+                      <span className="muted small">Source analytics</span>
+                    </header>
+                    <div className="mosaic-content mosaic-content--chart" style={{ flex: 1 }}>
+                      <div className="mosaic-recharts-wrap">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={sourceChartStats}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={5}
+                              dataKey="count"
+                              animationDuration={1200}
+                            >
+                              {sourceChartStats.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={SOURCE_COLORS[entry.source] || '#64748b'} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                              itemStyle={{ color: '#fff' }}
+                              formatter={(value: any) => [value, 'Bookings']}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="mosaic-donut-center">
+                          <strong>{sourceChartStats.reduce((s, r) => s + r.count, 0)}</strong>
+                          <span>Sources</span>
+                        </div>
+                      </div>
+                      <div className="mosaic-legend-grid">
+                        {sourceChartStats.map((row: any) => (
+                          <div key={row.source} className="mosaic-legend-pill">
+                            <span className="mosaic-legend-swatch" style={{ backgroundColor: SOURCE_COLORS[row.source] || '#64748b' }} />
+                            <span className="mosaic-legend-name">{bookingFromLabel(row.source)}</span>
+                            <span className="mosaic-legend-val">{row.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <article className="overview-mosaic-card mosaic-card--revenue-trend">
                   <header className="mosaic-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <h4>Revenue trend</h4>
@@ -1128,7 +1122,7 @@ export default function OverviewPage() {
                       ))}
                     </div>
                   </header>
-                  <div className="mosaic-content" style={{ height: '220px', width: '100%', marginTop: 'auto' }}>
+                  <div className="mosaic-content mosaic-content--revenue-chart">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
                         data={revenueTrend}

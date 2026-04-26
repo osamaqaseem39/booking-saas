@@ -2573,10 +2573,11 @@ table.data.data--noninteractive tbody tr:hover {
 
 .overview-mosaic-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto;
   gap: 1.25rem;
   margin-top: 1.5rem;
+  align-items: stretch;
 }
 
 .overview-mosaic-card {
@@ -2792,16 +2793,16 @@ table.data.data--noninteractive tbody tr:hover {
 
 .ok { color: var(--ok); }
 
-@media (max-width: 1080px) {
+@media (max-width: 1200px) {
   .overview-mosaic-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+  }
+  .mosaic-card--large, .mosaic-card--medium, .mosaic-card--small, .mosaic-card--eq {
+    grid-column: span 1;
   }
 }
 
 @media (max-width: 640px) {
-  .overview-mosaic-grid {
-    grid-template-columns: 1fr;
-  }
   .mosaic-card--large, .mosaic-card--medium, .mosaic-card--small {
     grid-column: span 1;
   }
@@ -2812,11 +2813,60 @@ table.data.data--noninteractive tbody tr:hover {
   }
 }
 
-/* Combined Mosaic Card Styles */
-.mosaic-card--full {
-  grid-column: 1 / -1;
-  grid-row: span 1;
-  padding: 1.5rem;
+/* Left: two pie cards; right: revenue (see .mosaic-pies-pair) */
+.mosaic-pies-pair {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+}
+
+.mosaic-pies-pair > .overview-mosaic-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.mosaic-divider--pies-pair {
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  margin: 0.6rem 0;
+}
+
+.mosaic-card--eq {
+  min-width: 0;
+  grid-column: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem 1.15rem;
+}
+
+.mosaic-card--revenue-trend {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 1.1rem 1.15rem;
+}
+
+.mosaic-content--revenue-chart {
+  flex: 1;
+  min-height: 220px;
+  width: 100%;
+  min-width: 0;
+  margin-top: auto;
+}
+
+@media (max-width: 820px) {
+  .mosaic-pies-pair {
+    flex-direction: column;
+  }
+
+  .mosaic-divider--pies-pair {
+    width: 100%;
+    height: 1px;
+    min-height: 0;
+  }
 }
 
 .mosaic-combined-layout {
@@ -2850,6 +2900,20 @@ table.data.data--noninteractive tbody tr:hover {
   height: 200px;
   position: relative;
   flex-shrink: 0;
+}
+
+.overview-mosaic-grid .mosaic-pies-pair .mosaic-recharts-wrap {
+  width: min(200px, 100%);
+  height: min(200px, 100%);
+  margin-inline: auto;
+}
+
+.overview-mosaic-grid .mosaic-donut-center strong {
+  font-size: 1.45rem;
+}
+
+.overview-mosaic-grid .mosaic-content--chart {
+  gap: 0.85rem 1rem;
 }
 
 .mosaic-donut-center {
