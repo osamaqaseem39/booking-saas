@@ -815,6 +815,7 @@ export default function FacilitiesLiveViewPage() {
               <article
                 key={cardId}
                 className={`${boxClass} ${sportClass}`}
+                data-facility-state={v}
                 role="button"
                 tabIndex={0}
                 style={{ cursor: 'pointer' }}
@@ -854,30 +855,31 @@ export default function FacilitiesLiveViewPage() {
                   }
                 }}
               >
-                <div className="facilities-live-box__top">
-                  <div>
-                    <h2 className="facilities-live-box__title">{facility.name}</h2>
-                    <p className="facilities-live-box__subtitle">
-                      {typeLabel(facility.type)}
-                      {location?.name ? ` · ${location.name}` : ''}
-                    </p>
+                <div className="facilities-live-box__header">
+                  <div className="facilities-live-box__top">
+                    <div>
+                      <h2 className="facilities-live-box__title">{facility.name}</h2>
+                      <p className="facilities-live-box__subtitle">
+                        {typeLabel(facility.type)}
+                        {location?.name ? ` · ${location.name}` : ''}
+                      </p>
+                    </div>
+                    {v === 'live' && (
+                      <span className="facilities-live-box__pill facilities-live-box__pill--live">
+                        In session
+                      </span>
+                    )}
+                    {v === 'soon' && !snap?.ongoing && (
+                      <span className="facilities-live-box__pill facilities-live-box__pill--soon">
+                        Starting soon
+                      </span>
+                    )}
                   </div>
-                  {v === 'live' && (
-                    <span className="facilities-live-box__pill facilities-live-box__pill--live">
-                      Live
-                    </span>
-                  )}
-                  {v === 'soon' && !snap?.ongoing && (
-                    <span className="facilities-live-box__pill facilities-live-box__pill--soon">
-                      Next soon
-                    </span>
-                  )}
+                  <p className="facilities-live-box__biz muted">
+                    {business?.businessName ?? '—'}
+                    {location?.city ? ` · ${location.city}` : ''}
+                  </p>
                 </div>
-
-                <p className="facilities-live-box__biz muted">
-                  {business?.businessName ?? '—'}
-                  {location?.city ? ` · ${location.city}` : ''}
-                </p>
 
                 <div className="facilities-live-box__stats">
                   <div className="facilities-live-box__stat">
@@ -885,16 +887,22 @@ export default function FacilitiesLiveViewPage() {
                     <span className="facilities-live-box__stat-value">
                       {snap?.ongoing ? (
                         <>
-                          <span className="facilities-live-box__emph">{snap.ongoing.label}</span>
+                          <span className="facilities-live-box__now-text facilities-live-box__now-text--in-session">
+                            {snap.ongoing.label}
+                          </span>
                           <span className="muted facilities-live-box__stat-meta">
                             {' '}
                             · {snap.ongoing.booking.bookingStatus}
                           </span>
                         </>
                       ) : v === 'inactive' ? (
-                        <span className="muted">Unavailable</span>
+                        <span className="facilities-live-box__now-text facilities-live-box__now-text--unavailable">
+                          Unavailable
+                        </span>
                       ) : (
-                        <span className="muted">Available</span>
+                        <span className="facilities-live-box__now-text facilities-live-box__now-text--available">
+                          Available
+                        </span>
                       )}
                     </span>
                   </div>
@@ -902,7 +910,7 @@ export default function FacilitiesLiveViewPage() {
                     <span className="facilities-live-box__stat-label">Next</span>
                     <span className="facilities-live-box__stat-value">
                       {snap?.next ? (
-                        <span>{snap.next.label}</span>
+                        <span className="facilities-live-box__next-line">{snap.next.label}</span>
                       ) : (
                         <span className="muted">—</span>
                       )}

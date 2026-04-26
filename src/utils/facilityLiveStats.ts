@@ -98,8 +98,9 @@ function collectWindows(
 
 function nextLabel(booking: BookingRecord, item: BookingItemRow, todayStr: string): string {
   const range = formatTimeRange12h(item.startTime, item.endTime);
-  if (booking.bookingDate === todayStr) return range;
-  return `${booking.bookingDate} · ${range}`;
+  const day =
+    booking.bookingDate === todayStr ? 'Today' : (booking.bookingDate ?? '');
+  return `${day} · ${range}`;
 }
 
 /**
