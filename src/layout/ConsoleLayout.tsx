@@ -40,6 +40,11 @@ export default function ConsoleLayout() {
     roles.includes('business-admin') ||
     roles.includes('location-admin') ||
     roles.includes('business-staff');
+  /** Location-only admins are scoped to a single location; no topbar location switcher. */
+  const isLocationOnlyAdmin =
+    roles.includes('location-admin') &&
+    !roles.includes('business-admin') &&
+    !roles.includes('platform-owner');
   /** Show business-scoped topbar controls only for business-side users. */
   const showBusinessContext = isBusinessUser;
   const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
@@ -101,16 +106,26 @@ export default function ConsoleLayout() {
           (l) => (l.business?.tenantId ?? '').trim() === tid,
         );
         setDashboardLocations(filtered);
+        if (isLocationOnlyAdmin) {
+          if (filtered.length === 1) {
+            setSelectedLocationId(filtered[0]!.id);
+          } else {
+            setSelectedLocationId('all');
+          }
+        } else {
+          setSelectedLocationId('all');
+        }
       } catch {
         setDashboardLocations([]);
       }
     })();
-  }, [showBusinessContext, tenantId, isPlatformOwner]);
+  }, [showBusinessContext, tenantId, isPlatformOwner, isLocationOnlyAdmin]);
 
-  // Reset selection when tenant changes
+  // Reset selection when tenant changes (location-only admin selection is set when locations load)
   useEffect(() => {
+    if (isLocationOnlyAdmin) return;
     setSelectedLocationId('all');
-  }, [tenantId]);
+  }, [tenantId, isLocationOnlyAdmin]);
 
   useEffect(() => {
     const onResize = () => {
@@ -194,6 +209,11 @@ export default function ConsoleLayout() {
   };
 
   const profileInitial = (session.fullName || '?').trim().charAt(0).toUpperCase() || '?';
+  /** Pills / dropdown: hide for location-only admins with a single site. */
+  const showTopbarLocationBar =
+    showBusinessContext &&
+    dashboardLocations.length > 0 &&
+    !(isLocationOnlyAdmin && dashboardLocations.length === 1);
 
   return (
     <div
@@ -288,7 +308,7 @@ export default function ConsoleLayout() {
             {isMobileViewport ? (
               <>
                 {/* Mobile: compact dropdown */}
-                {showBusinessContext && dashboardLocations.length > 0 ? (
+                {showTopbarLocationBar ? (
                   <select
                     className="topbar-location-select"
                     value={selectedLocationId}
@@ -309,14 +329,16 @@ export default function ConsoleLayout() {
                       </option>
                     ))}
                   </select>
-                ) : (
+                ) : !showBusinessContext ? (
+                  <span className="muted console-topbar-location-empty">No locations</span>
+                ) : isLocationOnlyAdmin && dashboardLocations.length === 1 ? null : (
                   <span className="muted console-topbar-location-empty">No locations</span>
                 )}
               </>
             ) : (
               <>
                 {/* Desktop: pill row */}
-                {showBusinessContext && dashboardLocations.length > 0 && (
+                {showTopbarLocationBar && (
                   <div className="topbar-loc-bar">
                     <button
                       type="button"

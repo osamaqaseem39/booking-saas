@@ -1225,14 +1225,16 @@ table.data.data--noninteractive tbody tr:hover {
   width: var(--console-nav-width-collapsed);
 }
 
+/* Grow when the column is tall, but never shrink below link content — flex-shrink + min-height: 0
+   let the block collapse and paint links on top of the footer at short viewport heights. */
 .console-nav-main {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 0 auto;
 }
 
 .console-nav-group {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .console-nav-parent.console-nav-parent--open:not(.active) {
@@ -1273,6 +1275,7 @@ table.data.data--noninteractive tbody tr:hover {
 }
 
 .console-nav-brand {
+  flex-shrink: 0;
   padding: 0 1rem 1rem;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0.75rem;
@@ -1319,9 +1322,10 @@ table.data.data--noninteractive tbody tr:hover {
   text-decoration: none;
   font-size: 0.86rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
   letter-spacing: 0.01em;
   border-left: 3px solid transparent;
+  flex-shrink: 0;
   transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
 
