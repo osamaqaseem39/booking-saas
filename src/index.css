@@ -3700,9 +3700,8 @@ table.data.data--noninteractive tbody tr:hover {
 .facilities-live-box__stats {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.55rem 1rem 0.9rem;
-  flex: 1;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem 0.75rem;
 }
 
 .facilities-live-box__stat {
@@ -3727,6 +3726,10 @@ table.data.data--noninteractive tbody tr:hover {
   word-break: break-word;
   text-align: right;
   min-width: 0;
+}
+
+.facilities-live-box__stat-value--next {
+  text-align: left;
 }
 
 .facilities-live-box__stat-value--with-tag {
@@ -3788,35 +3791,37 @@ table.data.data--noninteractive tbody tr:hover {
   max-width: 100%;
 }
 
-.facilities-live-next-block {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
-  text-align: right;
+.facilities-live-next-panel {
   width: 100%;
   min-width: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.35);
+  text-align: left;
 }
 
-.facilities-live-box__next-line {
-  display: block;
-  line-height: 1.4;
+.facilities-live-next-when {
   font-size: 0.78rem;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  margin: 0 0 0.3rem;
 }
 
-.facilities-live-next-contact {
+.facilities-live-next-who {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
-  font-size: 0.74rem;
+  align-items: flex-start;
+  gap: 0.2rem;
+  font-size: 0.8rem;
 }
 
 .facilities-live-next-name {
   font-weight: 600;
   color: var(--text);
-  line-height: 1.25;
+  line-height: 1.3;
+  display: block;
 }
 
 a.facilities-live-next-phone {
@@ -3828,6 +3833,49 @@ a.facilities-live-next-phone {
 
 a.facilities-live-next-phone:hover {
   text-decoration: underline;
+}
+
+.facilities-live-box__stats-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.6rem;
+  margin-top: 0.1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  align-items: start;
+}
+
+.facilities-live-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.facilities-live-metric__label {
+  color: var(--muted);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.facilities-live-metric__value {
+  font-weight: 650;
+  font-size: 0.9rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme='light'] .facilities-live-next-panel {
+  background: rgba(241, 245, 249, 0.8);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme='light'] .facilities-live-box__stats-metrics {
+  border-top-color: rgba(15, 23, 42, 0.08);
 }
 
 .facilities-live-box__stat-meta {

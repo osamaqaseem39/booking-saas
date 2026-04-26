@@ -20,6 +20,8 @@ import {
   computeFacilityLiveSnapshot,
   contactFromBooking,
   facilityTypeToCourtKind,
+  formatBookingDisplayName,
+  formatPhoneForDisplay,
   type FacilityLiveType,
 } from '../../utils/facilityLiveStats';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
@@ -911,25 +913,27 @@ export default function FacilitiesLiveViewPage() {
                   </div>
                   <div className="facilities-live-box__stat">
                     <span className="facilities-live-box__stat-label">Next</span>
-                    <span className="facilities-live-box__stat-value">
+                    <span className="facilities-live-box__stat-value facilities-live-box__stat-value--next">
                       {snap?.next ? (
-                        <div className="facilities-live-next-block">
-                          <div className="facilities-live-box__next-line">{snap.next.label}</div>
+                        <div className="facilities-live-next-panel">
+                          <div className="facilities-live-next-when">{snap.next.label}</div>
                           {(() => {
                             const { name, phone } = contactFromBooking(snap.next.booking);
                             if (!name && !phone) return null;
                             return (
-                              <div className="facilities-live-next-contact">
+                              <div className="facilities-live-next-who">
                                 {name ? (
-                                  <div className="facilities-live-next-name">{name}</div>
+                                  <span className="facilities-live-next-name">
+                                    {formatBookingDisplayName(name)}
+                                  </span>
                                 ) : null}
                                 {phone ? (
                                   <a
                                     className="facilities-live-next-phone"
-                                    href={`tel:${phone.replace(/\s/g, '')}`}
+                                    href={`tel:${phone.replace(/\D/g, '')}`}
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    {phone}
+                                    {formatPhoneForDisplay(phone)}
                                   </a>
                                 ) : null}
                               </div>
@@ -941,17 +945,19 @@ export default function FacilitiesLiveViewPage() {
                       )}
                     </span>
                   </div>
-                  <div className="facilities-live-box__stat">
-                    <span className="facilities-live-box__stat-label">Booked today</span>
-                    <span className="facilities-live-box__stat-value">
-                      {snap ? `${snap.hoursBookedToday} h` : '—'}
-                    </span>
-                  </div>
-                  <div className="facilities-live-box__stat">
-                    <span className="facilities-live-box__stat-label">Last 7 days</span>
-                    <span className="facilities-live-box__stat-value">
-                      {snap ? `${snap.hoursBookedWeek} h` : '—'}
-                    </span>
+                  <div className="facilities-live-box__stats-metrics">
+                    <div className="facilities-live-metric">
+                      <span className="facilities-live-metric__label">Booked today</span>
+                      <span className="facilities-live-metric__value">
+                        {snap ? `${snap.hoursBookedToday} h` : '—'}
+                      </span>
+                    </div>
+                    <div className="facilities-live-metric">
+                      <span className="facilities-live-metric__label">Last 7 days</span>
+                      <span className="facilities-live-metric__value">
+                        {snap ? `${snap.hoursBookedWeek} h` : '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </article>

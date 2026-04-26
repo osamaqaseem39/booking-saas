@@ -113,6 +113,35 @@ export function contactFromBooking(
   return { name, phone };
 }
 
+/** Title-style name for card display. */
+export function formatBookingDisplayName(fullName: string): string {
+  return fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+/** Group digits for readability (e.g. PK local). */
+export function formatPhoneForDisplay(raw: string): string {
+  const d = raw.replace(/\D/g, '');
+  if (!d) return raw.trim();
+  if (d.length === 10) {
+    return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
+  }
+  if (d.length === 11 && d.startsWith('0')) {
+    return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
+  }
+  if (d.length === 12 && d.startsWith('92')) {
+    return `+92 ${d.slice(2, 5)} ${d.slice(5, 9)} ${d.slice(9)}`;
+  }
+  if (d.length === 13 && d.startsWith('92')) {
+    return `+92 ${d.slice(2, 5)} ${d.slice(5, 9)} ${d.slice(9)}`;
+  }
+  return raw.trim();
+}
+
 /**
  * Live snapshot for one court/facility card.
  */
