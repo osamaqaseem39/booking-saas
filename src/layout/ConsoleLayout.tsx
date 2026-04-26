@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Outlet } from 'react-router-dom';
 import { listBusinesses, listBusinessLocations } from '../api/saasClient';
 import { useSession } from '../context/SessionContext';
-import { navSectionsForRoles } from '../rbac';
+import { isLocationOnlyAdmin, navSectionsForRoles } from '../rbac';
 import type { BusinessLocationRow, BusinessRow } from '../types/domain';
 
 export interface DashboardOutletContext {
@@ -41,10 +41,7 @@ export default function ConsoleLayout() {
     roles.includes('location-admin') ||
     roles.includes('business-staff');
   /** Location-only admins are scoped to a single location; no topbar location switcher. */
-  const isLocationOnlyAdmin =
-    roles.includes('location-admin') &&
-    !roles.includes('business-admin') &&
-    !roles.includes('platform-owner');
+  const isLocationOnly = isLocationOnlyAdmin(roles);
   /** Show business-scoped topbar controls only for business-side users. */
   const showBusinessContext = isBusinessUser;
   const { main: navMain, footer: navFooter } = navSectionsForRoles(roles);
@@ -106,7 +103,7 @@ export default function ConsoleLayout() {
               const oneTid = (locs[0]!.business?.tenantId ?? '').trim();
               if (oneTid) setTenantId(oneTid);
             }
-            if (isLocationOnlyAdmin) {
+            if (isLocationOnly) {
               if (locs.length === 1) {
                 setSelectedLocationId(locs[0]!.id);
               } else {
@@ -122,7 +119,7 @@ export default function ConsoleLayout() {
           (l) => (l.business?.tenantId ?? '').trim() === tid,
         );
         setDashboardLocations(filtered);
-        if (isLocationOnlyAdmin) {
+        if (isLocationOnly) {
           if (filtered.length === 1) {
             setSelectedLocationId(filtered[0]!.id);
           } else {
@@ -135,13 +132,13 @@ export default function ConsoleLayout() {
         setDashboardLocations([]);
       }
     })();
-  }, [showBusinessContext, tenantId, isPlatformOwner, isLocationOnlyAdmin, setTenantId]);
+  }, [showBusinessContext, tenantId, isPlatformOwner, isLocationOnly, setTenantId]);
 
   // Reset selection when tenant changes (location-only admin selection is set when locations load)
   useEffect(() => {
-    if (isLocationOnlyAdmin) return;
+    if (isLocationOnly) return;
     setSelectedLocationId('all');
-  }, [tenantId, isLocationOnlyAdmin]);
+  }, [tenantId, isLocationOnly]);
 
   useEffect(() => {
     const onResize = () => {
@@ -229,7 +226,7 @@ export default function ConsoleLayout() {
   const showTopbarLocationBar =
     showBusinessContext &&
     dashboardLocations.length > 0 &&
-    !(isLocationOnlyAdmin && dashboardLocations.length === 1);
+    !(isLocationOnly && dashboardLocations.length === 1);
 
   return (
     <div
@@ -347,7 +344,7 @@ export default function ConsoleLayout() {
                   </select>
                 ) : !showBusinessContext ? (
                   <span className="muted console-topbar-location-empty">No locations</span>
-                ) : isLocationOnlyAdmin && dashboardLocations.length === 1 ? null : (
+                ) : isLocationOnly && dashboardLocations.length === 1 ? null : (
                   <span className="muted console-topbar-location-empty">No locations</span>
                 )}
               </>

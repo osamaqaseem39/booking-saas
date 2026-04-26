@@ -1,8 +1,10 @@
+import { type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SessionProvider, useSession } from './context/SessionContext';
 import ConsoleLayout from './layout/ConsoleLayout';
 import RequireRoles from './layout/RequireRoles';
 import RequireSelfOrRoles from './layout/RequireSelfOrRoles';
+import { isLocationOnlyAdmin } from './rbac';
 import LoginPage from './pages/authentication/LoginPage';
 import OwnerSignupPage from './pages/authentication/OwnerSignupPage';
 import OverviewPage from './pages/dashboard/OverviewPage';
@@ -40,6 +42,15 @@ function HealthAccess() {
     return <HealthPage />;
   }
   return <Navigate to="/app" replace />;
+}
+
+/** Hide org-scoped areas from location-only admins (no sidebar + block direct URL). */
+function ForbidLocationOnly({ children }: { children: ReactNode }) {
+  const { session } = useSession();
+  if (isLocationOnlyAdmin(session?.roles)) {
+    return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
 }
 
 export default function App() {
@@ -87,7 +98,9 @@ export default function App() {
               path="locations"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'customer-end-user']}>
-                  <LocationsPage />
+                  <ForbidLocationOnly>
+                    <LocationsPage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -154,7 +167,9 @@ export default function App() {
               path="users"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <UsersPage />
+                  <ForbidLocationOnly>
+                    <UsersPage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -162,7 +177,9 @@ export default function App() {
               path="users/new"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <UserCreatePage />
+                  <ForbidLocationOnly>
+                    <UserCreatePage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -174,7 +191,9 @@ export default function App() {
                   selfRole="customer-end-user"
                   paramName="userId"
                 >
-                  <UserDetailPage />
+                  <ForbidLocationOnly>
+                    <UserDetailPage />
+                  </ForbidLocationOnly>
                 </RequireSelfOrRoles>
               }
             />
@@ -182,7 +201,9 @@ export default function App() {
               path="users/:userId/edit"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <UserEditPage />
+                  <ForbidLocationOnly>
+                    <UserEditPage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -270,7 +291,9 @@ export default function App() {
               path="facilities-live"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <FacilitiesLiveViewPage />
+                  <ForbidLocationOnly>
+                    <FacilitiesLiveViewPage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -278,7 +301,9 @@ export default function App() {
               path="billing"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
-                  <BillingPage />
+                  <ForbidLocationOnly>
+                    <BillingPage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />

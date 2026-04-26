@@ -31,6 +31,16 @@ const BUSINESS_ADMIN_FOOTER_ORDER = [
 
 const BUSINESS_ADMIN_FOOTER_SET = new Set<string>(BUSINESS_ADMIN_FOOTER_ORDER);
 
+/** Location admin without org-wide (business) access — show only venue + bookings, not org pages. */
+export function isLocationOnlyAdmin(userRoles: string[] | undefined): boolean {
+  const r = userRoles ?? [];
+  return (
+    r.includes('location-admin') &&
+    !r.includes('business-admin') &&
+    !r.includes('platform-owner')
+  );
+}
+
 function businessAdminFooterSortKey(to: string): number {
   const i = (BUSINESS_ADMIN_FOOTER_ORDER as readonly string[]).indexOf(to);
   return i === -1 ? 999 : i;
@@ -47,11 +57,13 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/users',
     label: 'Users',
     anyOf: ['platform-owner', 'business-admin', 'location-admin'],
+    hideWhen: (roles) => isLocationOnlyAdmin(roles),
   },
   {
     to: '/app/locations',
     label: 'Locations',
     anyOf: ['platform-owner', 'business-admin', 'location-admin'],
+    hideWhen: (roles) => isLocationOnlyAdmin(roles),
   },
   {
     to: '/app/Facilities',
@@ -78,11 +90,13 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/facilities-live',
     label: 'Facilities live',
     anyOf: ['business-admin', 'location-admin'],
+    hideWhen: (roles) => isLocationOnlyAdmin(roles),
   },
   {
     to: '/app/billing',
     label: 'Billing',
     anyOf: ['platform-owner', 'business-admin', 'location-admin', 'business-staff'],
+    hideWhen: (roles) => isLocationOnlyAdmin(roles),
   },
 ];
 
