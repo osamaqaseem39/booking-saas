@@ -307,81 +307,70 @@ export default function AddTimeSlotTemplatePage() {
             {newTplLines.length > 0 && (
               <div
                 style={{
-                  display: 'grid',
-                  gap: '0.55rem',
+                  overflowX: 'auto',
+                  border: '1px solid var(--border-subtle, #2a2f3a)',
+                  borderRadius: '8px',
                 }}
               >
-                {newTplLines.map((line, idx) => (
-                  <div
-                    key={line.id}
-                    style={{
-                      border: '1px solid var(--border-subtle, #2a2f3a)',
-                      borderRadius: '8px',
-                      padding: '0.55rem',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(160px, 0.9fr) auto',
-                        gap: '0.55rem',
-                        alignItems: 'end',
-                      }}
-                    >
-                      <label>
-                        <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                          Child #{idx + 1} start time
-                        </span>
-                        <input
-                          type="time"
-                          step={1800}
-                          value={line.startTime}
-                          onChange={(e) =>
-                            onChangeSlotLine(line.id, { startTime: e.target.value })
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                          Child #{idx + 1} end time
-                        </span>
-                        <input
-                          type="time"
-                          step={1800}
-                          value={line.endTime}
-                          onChange={(e) =>
-                            onChangeSlotLine(line.id, { endTime: e.target.value })
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                          Child #{idx + 1} status
-                        </span>
-                        <select
-                          value={line.status}
-                          onChange={(e) =>
-                            onChangeSlotLine(line.id, {
-                              status:
-                                e.target.value === 'blocked' ? 'blocked' : 'available',
-                            })
-                          }
-                        >
-                          <option value="available">Available</option>
-                          <option value="blocked">Blocked</option>
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        className="btn-ghost btn-compact"
-                        onClick={() => onRemoveSlotLine(line.id)}
-                        style={{ whiteSpace: 'nowrap' }}
-                      >
-                        Remove child line
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                <table className="data" style={{ margin: 0, minWidth: '640px' }}>
+                  <thead>
+                    <tr>
+                      <th>Start time</th>
+                      <th>End time</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {newTplLines.map((line) => (
+                      <tr key={line.id}>
+                        <td>
+                          <input
+                            type="time"
+                            step={1800}
+                            value={line.startTime}
+                            onChange={(e) =>
+                              onChangeSlotLine(line.id, { startTime: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="time"
+                            step={1800}
+                            value={line.endTime}
+                            onChange={(e) =>
+                              onChangeSlotLine(line.id, { endTime: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <select
+                            value={line.status}
+                            onChange={(e) =>
+                              onChangeSlotLine(line.id, {
+                                status: e.target.value === 'blocked' ? 'blocked' : 'available',
+                              })
+                            }
+                          >
+                            <option value="available">Available</option>
+                            <option value="blocked">Blocked</option>
+                          </select>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn-ghost btn-compact"
+                            onClick={() => onRemoveSlotLine(line.id)}
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
             <div className="page-actions-row" style={{ marginTop: '0.6rem' }}>
