@@ -12,6 +12,10 @@ export interface SessionUser {
   phone?: string | null;
   isActive: boolean;
   roles: string[];
+  /** Set when the user is scoped to a business (e.g. location admin) — use for `X-Tenant-Id` before businesses list loads. */
+  tenantId?: string | null;
+  /** Scoping location for `location-admin` (from `GET /iam/me`). */
+  locationId?: string | null;
 }
 
 export interface BusinessMembershipRow {

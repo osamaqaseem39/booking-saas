@@ -65,6 +65,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const me = await fetchSessionUser();
       setSession(me);
       setUserIdState(me.id);
+      const fromMe = (me.tenantId ?? '').toString().trim();
+      if (fromMe) {
+        setTenantIdState(fromMe);
+        setTenantIdStorage(fromMe);
+      }
       if (!me.roles?.length) {
         setError('This user has no roles assigned yet.');
       }
@@ -134,6 +139,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const me = await fetchSessionUser();
       setSession(me);
       setUserIdState(me.id);
+      const fromMe = (me.tenantId ?? '').toString().trim();
+      if (fromMe) {
+        setTenantIdState(fromMe);
+        setTenantIdStorage(fromMe);
+      }
       if (!me.roles?.length) {
         setError('This user has no roles assigned yet.');
       }

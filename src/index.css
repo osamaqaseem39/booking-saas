@@ -2843,6 +2843,9 @@ table.data.data--noninteractive tbody tr:hover {
   display: flex;
   flex-direction: column;
   padding: 1.1rem 1.15rem;
+  /* Stack chart + legend from card width, not just viewport (sidebar / zoom). */
+  container-type: inline-size;
+  container-name: mosaic-pie;
 }
 
 .mosaic-card--revenue-trend {
@@ -2897,19 +2900,25 @@ table.data.data--noninteractive tbody tr:hover {
   align-items: center;
   gap: 2rem;
   flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .mosaic-recharts-wrap {
-  width: 200px;
-  height: 200px;
   position: relative;
-  flex-shrink: 0;
+  /* Square box scales down when the card is narrow; Recharts uses % radii. */
+  width: min(200px, 100%);
+  max-width: 200px;
+  aspect-ratio: 1;
+  flex: 0 1 auto;
+  min-width: 0;
+  align-self: center;
 }
 
 .overview-mosaic-grid .mosaic-pies-pair .mosaic-recharts-wrap {
   width: min(200px, 100%);
-  height: min(200px, 100%);
-  margin-inline: auto;
+  max-height: 200px;
+  margin-inline: 0;
 }
 
 .overview-mosaic-grid .mosaic-donut-center strong {
@@ -2949,9 +2958,12 @@ table.data.data--noninteractive tbody tr:hover {
 
 .mosaic-legend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  /* minmax(140px) forced overflow in narrow cards; 1fr + wrap handles small widths. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   flex: 1;
+  min-width: 0;
+  align-content: start;
 }
 
 .mosaic-legend-pill {
@@ -2963,6 +2975,7 @@ table.data.data--noninteractive tbody tr:hover {
   align-items: center;
   gap: 0.75rem;
   transition: background 0.2s ease;
+  min-width: 0;
 }
 
 .mosaic-legend-pill:hover {
@@ -2981,6 +2994,9 @@ table.data.data--noninteractive tbody tr:hover {
   font-weight: 600;
   color: var(--muted);
   flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .mosaic-legend-val {
@@ -3004,13 +3020,31 @@ table.data.data--noninteractive tbody tr:hover {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 720px) {
   .mosaic-content--chart {
     flex-direction: column;
     align-items: center;
   }
   .mosaic-legend-grid {
     width: 100%;
+  }
+  .mosaic-recharts-wrap {
+    margin-inline: auto;
+  }
+}
+
+/* Narrow pie cards: stack so legend has full width (sidebar / zoom / small two-column layout). */
+@container mosaic-pie (max-width: 380px) {
+  .mosaic-content--chart {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .mosaic-legend-grid {
+    width: 100%;
+  }
+  .mosaic-recharts-wrap {
+    margin-inline: auto;
   }
 }
 

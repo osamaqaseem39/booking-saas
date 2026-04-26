@@ -10,6 +10,7 @@ import {
   type TableTennisCourtMeta,
 } from '../../../api/saasClient';
 import type { BusinessLocationRow } from '../../../types/domain';
+import ImageGallery from '../../locations/ImageGallery';
 
 function parseNum(s: string): number | undefined {
   const t = s.trim();
@@ -145,6 +146,15 @@ export function TableTennisCourtSetupForm({
         a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
       ),
     [locations],
+  );
+
+  const imageUrls = useMemo(
+    () =>
+      imageLines
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [imageLines],
   );
 
   useEffect(() => {
@@ -373,22 +383,11 @@ export function TableTennisCourtSetupForm({
                 Accepting bookings (active listing)
               </label>
             </div>
-            <div>
-              <label>Image URLs (one per line)</label>
-              <textarea
-                rows={3}
-                value={imageLines}
-                onChange={(e) => setImageLines(e.target.value)}
-                placeholder="https://…"
-              />
-              <p
-                className="muted"
-                style={{ marginTop: '0.35rem', fontSize: '0.85rem' }}
-              >
-                Shown in apps when you connect gallery / listings to these
-                links.
-              </p>
-            </div>
+            <ImageGallery
+              label="Facility images"
+              value={imageUrls}
+              onChange={(urls) => setImageLines(urls.join('\n'))}
+            />
           </div>
         </div>
 

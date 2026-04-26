@@ -63,7 +63,9 @@ export default function AddTimeSlotTemplatePage() {
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [generatorStartTime, setGeneratorStartTime] = useState('09:00');
   const [generatorEndTime, setGeneratorEndTime] = useState('18:00');
-  const [generatorDuration, setGeneratorDuration] = useState<'30' | '60'>('60');
+  /** Minutes per slot; drives generator steps and time-picker increments. */
+  const [slotDurationMinutes, setSlotDurationMinutes] = useState(60);
+  const [slotDurationDraft, setSlotDurationDraft] = useState('60');
 
   const pageTitle = useMemo(
     () => (isEdit ? 'Edit time slot template' : 'Add time slot template'),
@@ -84,18 +86,42 @@ export default function AddTimeSlotTemplatePage() {
         }
         if (cancelled) return;
         setNewTplName(row.name);
+        let derivedDuration = 60;
         const linesSource =
           row.slotLines && row.slotLines.length > 0
-            ? row.slotLines.map((line) => ({
-                startTime: line.startTime,
-                endTime: normalizeTimeInputValue(line.endTime),
-                status: line.status,
-              }))
-            : row.slotStarts.map((startTime) => ({
-                startTime,
-                endTime: addMinutes(startTime, 60),
-                status: 'available' as const,
-              }));
+            ? (() => {
+                const fromLines = row.slotLines.map((line) => ({
+                  startTime: line.startTime,
+                  endTime: normalizeTimeInputValue(line.endTime),
+                  status: line.status,
+                }));
+                const first = fromLines[0];
+                if (first) {
+                  const d = toMinutes(first.endTime, true) - toMinutes(first.startTime);
+                  if (d > 0) derivedDuration = d;
+                }
+                return fromLines;
+              })()
+            : (() => {
+                const sorted = [...row.slotStarts].sort(
+                  (a, b) => toMinutes(a) - toMinutes(b),
+                );
+                const gap =
+                  sorted.length >= 2
+                    ? toMinutes(sorted[1]!) - toMinutes(sorted[0]!)
+                    : 60;
+                if (gap > 0) derivedDuration = gap;
+                return sorted.map((startTime, i) => ({
+                  startTime,
+                  endTime:
+                    i + 1 < sorted.length
+                      ? sorted[i + 1]!
+                      : addMinutes(startTime, gap),
+                  status: 'available' as const,
+                }));
+              })();
+        setSlotDurationMinutes(derivedDuration);
+        setSlotDurationDraft(String(derivedDuration));
         setNewTplLines(linesSource.map((line) => makeSlotLine(line)));
       } catch (e) {
         if (!cancelled) setTplErr(e instanceof Error ? e.message : 'Failed to load template');
@@ -177,11 +203,20 @@ export default function AddTimeSlotTemplatePage() {
 
   function onGenerateSlotLines() {
     setTplErr(null);
+    const rawDuration = parseInt(slotDurationDraft, 10);
+    if (!Number.isFinite(rawDuration) || rawDuration < 5 || rawDuration > 24 * 60) {
+      setTplErr('Set a valid slot duration between 5 and 1440 minutes.');
+      return;
+    }
+    if (rawDuration !== slotDurationMinutes) {
+      setSlotDurationMinutes(rawDuration);
+      setSlotDurationDraft(String(rawDuration));
+    }
     if (!isValidTimeLabel(generatorStartTime) || !isValidTimeLabel(generatorEndTime)) {
       setTplErr('Pick valid start and end times for slot generation.');
       return;
     }
-    const duration = Number(generatorDuration);
+    const duration = rawDuration;
     const startMinutes = toMinutes(generatorStartTime);
     const endMinutes = toMinutes(generatorEndTime, true);
     if (endMinutes <= startMinutes) {
@@ -213,6 +248,13 @@ export default function AddTimeSlotTemplatePage() {
       return [...cur, ...fresh];
     });
   }
+
+  const effectiveSlotDuration = useMemo(() => {
+    const n = parseInt(slotDurationDraft, 10);
+    if (Number.isFinite(n) && n >= 5 && n <= 24 * 60) return n;
+    return slotDurationMinutes;
+  }, [slotDurationDraft, slotDurationMinutes]);
+  const timeInputStepSec = Math.max(60, Math.round(effectiveSlotDuration * 60));
 
   return (
     <>
@@ -257,7 +299,7 @@ export default function AddTimeSlotTemplatePage() {
                   </span>
                   <input
                     type="time"
-                    step={1800}
+                    step={timeInputStepSec}
                     value={generatorStartTime}
                     onChange={(e) => setGeneratorStartTime(e.target.value)}
                   />
@@ -268,7 +310,7 @@ export default function AddTimeSlotTemplatePage() {
                   </span>
                   <input
                     type="time"
-                    step={1800}
+                    step={timeInputStepSec}
                     value={generatorEndTime}
                     onChange={(e) => setGeneratorEndTime(e.target.value)}
                   />
@@ -277,17 +319,32 @@ export default function AddTimeSlotTemplatePage() {
               <div className="form-row-2">
                 <label>
                   <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
-                    Slot duration
+                    Slot duration (minutes)
                   </span>
-                  <select
-                    value={generatorDuration}
-                    onChange={(e) =>
-                      setGeneratorDuration(e.target.value === '30' ? '30' : '60')
-                    }
-                  >
-                    <option value="30">30 minutes</option>
-                    <option value="60">60 minutes</option>
-                  </select>
+                  <input
+                    type="number"
+                    min={5}
+                    max={24 * 60}
+                    step={1}
+                    value={slotDurationDraft}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSlotDurationDraft(v);
+                      const n = parseInt(v, 10);
+                      if (Number.isFinite(n) && n >= 5 && n <= 24 * 60) {
+                        setSlotDurationMinutes(n);
+                      }
+                    }}
+                    onBlur={() => {
+                      const n = parseInt(slotDurationDraft, 10);
+                      if (Number.isFinite(n) && n >= 5 && n <= 24 * 60) {
+                        setSlotDurationMinutes(n);
+                        setSlotDurationDraft(String(n));
+                      } else {
+                        setSlotDurationDraft(String(slotDurationMinutes));
+                      }
+                    }}
+                  />
                 </label>
                 <div className="page-actions-row" style={{ alignItems: 'end' }}>
                   <button
@@ -327,7 +384,7 @@ export default function AddTimeSlotTemplatePage() {
                         <td>
                           <input
                             type="time"
-                            step={1800}
+                            step={timeInputStepSec}
                             value={line.startTime}
                             onChange={(e) =>
                               onChangeSlotLine(line.id, { startTime: e.target.value })
@@ -337,7 +394,7 @@ export default function AddTimeSlotTemplatePage() {
                         <td>
                           <input
                             type="time"
-                            step={1800}
+                            step={timeInputStepSec}
                             value={line.endTime}
                             onChange={(e) =>
                               onChangeSlotLine(line.id, { endTime: e.target.value })

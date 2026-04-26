@@ -96,9 +96,25 @@ export default function ConsoleLayout() {
         if (!tid) {
           if (isPlatformOwner) {
             setDashboardLocations(locs);
-          } else {
-            setDashboardLocations([]);
             setSelectedLocationId('all');
+          } else {
+            // `tenantId` is often empty right after sign-in. The API already returns only
+            // locations this user may access; do not clear the list. Derive tenant from
+            // a single visible location so `X-Tenant-Id` is set for IAM/bookings calls.
+            setDashboardLocations(locs);
+            if (locs.length === 1) {
+              const oneTid = (locs[0]!.business?.tenantId ?? '').trim();
+              if (oneTid) setTenantId(oneTid);
+            }
+            if (isLocationOnlyAdmin) {
+              if (locs.length === 1) {
+                setSelectedLocationId(locs[0]!.id);
+              } else {
+                setSelectedLocationId('all');
+              }
+            } else {
+              setSelectedLocationId('all');
+            }
           }
           return;
         }
@@ -119,7 +135,7 @@ export default function ConsoleLayout() {
         setDashboardLocations([]);
       }
     })();
-  }, [showBusinessContext, tenantId, isPlatformOwner, isLocationOnlyAdmin]);
+  }, [showBusinessContext, tenantId, isPlatformOwner, isLocationOnlyAdmin, setTenantId]);
 
   // Reset selection when tenant changes (location-only admin selection is set when locations load)
   useEffect(() => {

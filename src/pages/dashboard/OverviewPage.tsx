@@ -1014,8 +1014,8 @@ export default function OverviewPage() {
                               data={sportChartStats}
                               cx="50%"
                               cy="50%"
-                              innerRadius={55}
-                              outerRadius={75}
+                              innerRadius="55%"
+                              outerRadius="75%"
                               paddingAngle={5}
                               dataKey="count"
                               animationDuration={1000}
@@ -1063,8 +1063,8 @@ export default function OverviewPage() {
                               data={sourceChartStats}
                               cx="50%"
                               cy="50%"
-                              innerRadius={55}
-                              outerRadius={75}
+                              innerRadius="55%"
+                              outerRadius="75%"
                               paddingAngle={5}
                               dataKey="count"
                               animationDuration={1200}
