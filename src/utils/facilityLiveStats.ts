@@ -103,6 +103,52 @@ function nextLabel(booking: BookingRecord, item: BookingItemRow, todayStr: strin
   return `${day} · ${range}`;
 }
 
+/** Human-readable day for the next-slot panel (e.g. Today, Tue, 28 Apr). */
+export function formatNextDayLabel(bookingDate: string, todayStr: string): string {
+  if (bookingDate === todayStr) return 'Today';
+  const parts = bookingDate.split('-').map((x) => parseInt(x, 10));
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return bookingDate;
+  const [y, mo, d] = parts;
+  const dt = new Date(y, mo - 1, d);
+  if (Number.isNaN(dt.getTime())) return bookingDate;
+  return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+export interface NextSlotWhenDisplay {
+  dayLabel: string;
+  timeRange: string;
+  isToday: boolean;
+}
+
+export function nextSlotWhenDisplay(
+  booking: BookingRecord,
+  item: BookingItemRow,
+  todayStr: string,
+): NextSlotWhenDisplay {
+  return {
+    dayLabel: formatNextDayLabel(booking.bookingDate, todayStr),
+    timeRange: formatTimeRange12h(item.startTime, item.endTime),
+    isToday: booking.bookingDate === todayStr,
+  };
+}
+
+/** Short line for front desk: payment + optional flow status. */
+export function nextBookingMetaLine(booking: BookingRecord): { payment: string | null; flow: string | null } {
+  const ps = booking.payment?.paymentStatus;
+  let payment: string | null = null;
+  if (ps === 'paid') payment = 'Paid';
+  else if (ps === 'partially_paid') payment = 'Partially paid';
+  else if (ps === 'pending') payment = 'Unpaid';
+  else if (ps === 'failed') payment = 'Payment failed';
+  else if (ps === 'refunded') payment = 'Refunded';
+
+  let flow: string | null = null;
+  if (booking.bookingStatus === 'pending') flow = 'Awaiting confirmation';
+  else if (booking.bookingStatus === 'no_show') flow = 'No-show';
+
+  return { payment, flow };
+}
+
 /** Name / phone for display on live cards; favours `user` on the booking. */
 export function contactFromBooking(
   b: BookingRecord | null | undefined,

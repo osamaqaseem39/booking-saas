@@ -22,6 +22,8 @@ import {
   facilityTypeToCourtKind,
   formatBookingDisplayName,
   formatPhoneForDisplay,
+  nextBookingMetaLine,
+  nextSlotWhenDisplay,
   type FacilityLiveType,
 } from '../../utils/facilityLiveStats';
 import type { DashboardOutletContext } from '../../layout/ConsoleLayout';
@@ -202,18 +204,8 @@ function compactSlotLabel(startTime: string, endTime: string): string {
 
 export default function FacilitiesLiveViewPage() {
   const { session } = useSession();
-  const { selectedLocationId, dashboardLocations } =
-    useOutletContext<DashboardOutletContext>();
+  const { selectedLocationId } = useOutletContext<DashboardOutletContext>();
   const isLocOnly = isLocationOnlyAdmin(session?.roles);
-  const locationFacilitiesHref = useMemo(() => {
-    if (dashboardLocations.length === 1) {
-      return `/app/locations/${dashboardLocations[0]!.id}/facilities`;
-    }
-    if (selectedLocationId && selectedLocationId !== 'all') {
-      return `/app/locations/${selectedLocationId}/facilities`;
-    }
-    return null;
-  }, [dashboardLocations, selectedLocationId]);
   const [dashboard, setDashboard] = useState<BusinessDashboardView | null>(null);
   const [locations, setLocations] = useState<BusinessLocationRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityCardRow[]>([]);
@@ -766,10 +758,6 @@ export default function FacilitiesLiveViewPage() {
             <Link to="/app/Facilities" className="btn-primary btn-compact">
               Manage facilities
             </Link>
-          ) : locationFacilitiesHref ? (
-            <Link to={locationFacilitiesHref} className="btn-primary btn-compact">
-              Location facilities
-            </Link>
           ) : null}
         </div>
       </div>
@@ -915,31 +903,85 @@ export default function FacilitiesLiveViewPage() {
                     <span className="facilities-live-box__stat-label">Next</span>
                     <span className="facilities-live-box__stat-value facilities-live-box__stat-value--next">
                       {snap?.next ? (
-                        <div className="facilities-live-next-panel">
-                          <div className="facilities-live-next-when">{snap.next.label}</div>
-                          {(() => {
-                            const { name, phone } = contactFromBooking(snap.next.booking);
-                            if (!name && !phone) return null;
-                            return (
-                              <div className="facilities-live-next-who">
-                                {name ? (
-                                  <span className="facilities-live-next-name">
-                                    {formatBookingDisplayName(name)}
-                                  </span>
-                                ) : null}
-                                {phone ? (
-                                  <a
-                                    className="facilities-live-next-phone"
-                                    href={`tel:${phone.replace(/\D/g, '')}`}
-                                    onClick={(e) => e.stopPropagation()}
+                        (() => {
+                          const n = snap.next;
+                          const when = nextSlotWhenDisplay(n.booking, n.item, localDateYmd());
+                          const { name, phone } = contactFromBooking(n.booking);
+                          const meta = nextBookingMetaLine(n.booking);
+                          const showMeta = Boolean(meta.payment || meta.flow);
+                          return (
+                            <div
+                              className="facilities-live-next-panel"
+                              aria-label={`Next: ${n.label}`}
+                            >
+                              <div className="facilities-live-next-section">
+                                <span className="facilities-live-next-kicker">When</span>
+                                <div className="facilities-live-next-whenLayout">
+                                  <span
+                                    className={
+                                      when.isToday
+                                        ? 'facilities-live-next-dayBadge facilities-live-next-dayBadge--today'
+                                        : 'facilities-live-next-dayBadge'
+                                    }
                                   >
-                                    {formatPhoneForDisplay(phone)}
-                                  </a>
-                                ) : null}
+                                    {when.dayLabel}
+                                  </span>
+                                  <span className="facilities-live-next-timeRange">{when.timeRange}</span>
+                                </div>
                               </div>
-                            );
-                          })()}
-                        </div>
+                              {name || phone ? (
+                                <div className="facilities-live-next-section facilities-live-next-section--contact">
+                                  <span className="facilities-live-next-kicker">Contact</span>
+                                  <div className="facilities-live-next-contactList">
+                                    {name ? (
+                                      <p className="facilities-live-next-guestName">
+                                        {formatBookingDisplayName(name)}
+                                      </p>
+                                    ) : null}
+                                    {phone ? (
+                                      <a
+                                        className="facilities-live-next-phoneCta"
+                                        href={`tel:${phone.replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <span className="facilities-live-next-phoneCta__num" dir="ltr">
+                                          {formatPhoneForDisplay(phone)}
+                                        </span>
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {showMeta ? (
+                                <div className="facilities-live-next-foot" role="status">
+                                  {meta.payment ? (
+                                    <span
+                                      className={
+                                        meta.payment === 'Paid'
+                                          ? 'facilities-live-next-pill facilities-live-next-pill--ok'
+                                          : meta.payment === 'Refunded'
+                                            ? 'facilities-live-next-pill facilities-live-next-pill--muted'
+                                            : 'facilities-live-next-pill facilities-live-next-pill--warn'
+                                      }
+                                    >
+                                      {meta.payment}
+                                    </span>
+                                  ) : null}
+                                  {meta.payment && meta.flow ? (
+                                    <span className="facilities-live-next-foot__sep" aria-hidden>
+                                      ·
+                                    </span>
+                                  ) : null}
+                                  {meta.flow ? (
+                                    <span className="facilities-live-next-pill facilities-live-next-pill--muted">
+                                      {meta.flow}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })()
                       ) : (
                         <span className="muted">—</span>
                       )}

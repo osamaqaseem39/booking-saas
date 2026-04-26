@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { listBusinessLocations } from '../../api/saasClient';
 import { formatFacilityTypeLabel } from '../../constants/locationFacilityTypes';
 import { useSession } from '../../context/SessionContext';
+import { isLocationOnlyAdmin } from '../../rbac';
 import type { BusinessLocationRow } from '../../types/domain';
 
 type FacilityCountsUi = {
@@ -44,6 +45,7 @@ function toTitle(value?: string | null): string {
 export default function LocationDetailPage() {
   const { session } = useSession();
   const isOwner = session?.roles?.includes('platform-owner') ?? false;
+  const isLocationOnly = isLocationOnlyAdmin(session?.roles);
   const { locationId = '' } = useParams<{ locationId: string }>();
   const [rows, setRows] = useState<BusinessLocationRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -282,12 +284,14 @@ export default function LocationDetailPage() {
             >
               Add booking
             </Link>
-            <Link
-              to={`/app/locations/${location.id}/facilities`}
-              className="btn-ghost"
-            >
-              Manage facilities
-            </Link>
+            {!isLocationOnly ? (
+              <Link
+                to={`/app/locations/${location.id}/facilities`}
+                className="btn-ghost"
+              >
+                Manage facilities
+              </Link>
+            ) : null}
           </div>
         </>
       )}

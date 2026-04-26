@@ -11,9 +11,19 @@ import {
   listTableTennisCourts,
 } from '../../api/saasClient';
 import {
+  courtSetupOptions,
+  CRICKET_COURT_SETUP_CODE,
+  FUTSAL_COURT_SETUP_CODE,
   isCourtSetupAllowedForLocation,
   TABLE_TENNIS_COURT_SETUP_CODE,
 } from '../../constants/locationFacilityTypes';
+
+/** Turf (futsal / cricket) and padel each have their own setup route; show one CTA per type enabled on the location. */
+const ARENA_ADD_SETUP_CODES = [
+  FUTSAL_COURT_SETUP_CODE,
+  CRICKET_COURT_SETUP_CODE,
+  'padel-court',
+] as const;
 import {
   GAMING_SETUP_OPTIONS,
   isGamingSetupAllowedForLocation,
@@ -202,27 +212,10 @@ export default function LocationFacilitiesPage() {
     [locations, locationId],
   );
   const tenantIdOverride = isOwner ? location?.business?.tenantId ?? '' : '';
-  const arenaPrimarySetupCode = useMemo(() => {
-    if (!location || location.locationType === 'gaming-zone') return '';
-    if (location.locationType === 'table-tennis') {
-      return isCourtSetupAllowedForLocation(
-        location,
-        TABLE_TENNIS_COURT_SETUP_CODE,
-      )
-        ? TABLE_TENNIS_COURT_SETUP_CODE
-        : '';
-    }
-    if (isCourtSetupAllowedForLocation(location, 'futsal-court')) {
-      return 'futsal-court';
-    }
-    if (isCourtSetupAllowedForLocation(location, 'cricket-court')) {
-      return 'cricket-court';
-    }
-    if (isCourtSetupAllowedForLocation(location, 'padel-court')) {
-      return 'padel-court';
-    }
-    return '';
-  }, [location]);
+  const setupLabelByCode = useMemo(
+    () => Object.fromEntries(courtSetupOptions().map((o) => [o.code, o.label])),
+    [],
+  );
 
   const load = () => {
     void (async () => {
@@ -305,16 +298,17 @@ export default function LocationFacilitiesPage() {
                     {
                       code: TABLE_TENNIS_COURT_SETUP_CODE,
                       label: 'Add table (setup form)',
-                      allowed: Boolean(arenaPrimarySetupCode),
+                      allowed: isCourtSetupAllowedForLocation(
+                        location,
+                        TABLE_TENNIS_COURT_SETUP_CODE,
+                      ),
                     },
                   ]
-                : [
-                    {
-                      code: arenaPrimarySetupCode || 'futsal-court',
-                      label: 'Add turf/padel (setup form)',
-                      allowed: Boolean(arenaPrimarySetupCode),
-                    },
-                  ]
+                : ARENA_ADD_SETUP_CODES.map((code) => ({
+                    code,
+                    label: `Add ${setupLabelByCode[code] ?? code} (setup form)`,
+                    allowed: isCourtSetupAllowedForLocation(location, code),
+                  }))
             ).map((o) =>
               o.allowed ? (
                 <Link key={o.code} to={setupPath(locationId, o.code)} className="btn-primary">

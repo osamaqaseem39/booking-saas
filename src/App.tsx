@@ -53,7 +53,10 @@ function ForbidLocationOnly({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** Main “Facilities” list/setup hub is for org roles; location-only staff use “Facilities live”. */
+/**
+ * Main “Facilities” hub, per-location facilities/setup/edit routes, and add-facility flow are for org
+ * roles; location-only staff use “Facilities live” (`/app/facilities-live`).
+ */
 function RedirectLocationOnlyToFacilitiesLive({ children }: { children: ReactNode }) {
   const { session } = useSession();
   if (isLocationOnlyAdmin(session?.roles)) {
@@ -145,7 +148,9 @@ export default function App() {
               path="locations/:locationId/facilities"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <LocationFacilitiesPage />
+                  <RedirectLocationOnlyToFacilitiesLive>
+                    <LocationFacilitiesPage />
+                  </RedirectLocationOnlyToFacilitiesLive>
                 </RequireRoles>
               }
             />
@@ -153,7 +158,9 @@ export default function App() {
               path="locations/:locationId/facilities/setup/:facilityCode"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <LocationFacilitySetupPage />
+                  <RedirectLocationOnlyToFacilitiesLive>
+                    <LocationFacilitySetupPage />
+                  </RedirectLocationOnlyToFacilitiesLive>
                 </RequireRoles>
               }
             />
@@ -161,7 +168,9 @@ export default function App() {
               path="locations/:locationId/facilities/edit/:facilityCode/:courtId"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <FacilityEditPage />
+                  <RedirectLocationOnlyToFacilitiesLive>
+                    <FacilityEditPage />
+                  </RedirectLocationOnlyToFacilitiesLive>
                 </RequireRoles>
               }
             />
