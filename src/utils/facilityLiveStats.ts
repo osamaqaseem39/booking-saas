@@ -103,6 +103,16 @@ function nextLabel(booking: BookingRecord, item: BookingItemRow, todayStr: strin
   return `${day} · ${range}`;
 }
 
+/** Name / phone for display on live cards; favours `user` on the booking. */
+export function contactFromBooking(
+  b: BookingRecord | null | undefined,
+): { name: string; phone: string } {
+  if (!b) return { name: '', phone: '' };
+  const name = (b.user?.fullName ?? '').trim();
+  const phone = (b.user?.phone ?? '').trim();
+  return { name, phone };
+}
+
 /**
  * Live snapshot for one court/facility card.
  */

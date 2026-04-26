@@ -3729,21 +3729,73 @@ table.data.data--noninteractive tbody tr:hover {
   min-width: 0;
 }
 
-.facilities-live-box__now-text {
-  font-weight: 600;
-  font-size: 0.84rem;
+.facilities-live-box__stat-value--with-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
 }
 
-.facilities-live-box__now-text--available {
+.facilities-live-now-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.facilities-live-box__status-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.5rem;
+  border-radius: 6px;
+  line-height: 1.1;
+  border: 1px solid transparent;
+}
+
+.facilities-live-box__status-tag--available {
+  background: rgba(16, 185, 129, 0.2);
   color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
-.facilities-live-box__now-text--in-session {
+.facilities-live-box__status-tag--in-session {
+  background: rgba(248, 113, 113, 0.2);
   color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
 }
 
-.facilities-live-box__now-text--unavailable {
-  color: #94a3b8;
+.facilities-live-box__status-tag--unavailable {
+  background: rgba(100, 116, 139, 0.25);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.facilities-live-box__status-tag--soon {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.facilities-live-now-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  text-align: right;
+  max-width: 100%;
+}
+
+.facilities-live-next-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  text-align: right;
+  width: 100%;
+  min-width: 0;
 }
 
 .facilities-live-box__next-line {
@@ -3751,6 +3803,31 @@ table.data.data--noninteractive tbody tr:hover {
   line-height: 1.4;
   font-size: 0.78rem;
   font-weight: 500;
+}
+
+.facilities-live-next-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  font-size: 0.74rem;
+}
+
+.facilities-live-next-name {
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+a.facilities-live-next-phone {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+a.facilities-live-next-phone:hover {
+  text-decoration: underline;
 }
 
 .facilities-live-box__stat-meta {
@@ -3796,16 +3873,32 @@ table.data.data--noninteractive tbody tr:hover {
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-[data-theme='light'] .facilities-live-box__now-text--available {
+[data-theme='light'] .facilities-live-box__status-tag--available {
+  background: rgba(16, 185, 129, 0.14);
   color: #047857;
+  border-color: rgba(5, 150, 105, 0.35);
 }
 
-[data-theme='light'] .facilities-live-box__now-text--in-session {
+[data-theme='light'] .facilities-live-box__status-tag--in-session {
+  background: rgba(220, 38, 38, 0.1);
   color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.32);
 }
 
-[data-theme='light'] .facilities-live-box__now-text--unavailable {
+[data-theme='light'] .facilities-live-box__status-tag--unavailable {
+  background: rgba(100, 116, 139, 0.12);
   color: #64748b;
+  border-color: rgba(100, 116, 139, 0.25);
+}
+
+[data-theme='light'] .facilities-live-box__status-tag--soon {
+  background: rgba(217, 119, 6, 0.12);
+  color: #92400e;
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+[data-theme='light'] a.facilities-live-next-phone {
+  color: #0369a1;
 }
 
 [data-theme='light'] .facilities-live-box__pill--live {

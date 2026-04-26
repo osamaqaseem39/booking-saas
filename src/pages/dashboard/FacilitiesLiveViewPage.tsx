@@ -18,6 +18,7 @@ import type { BookingRecord, PaymentStatus } from '../../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../../types/domain';
 import {
   computeFacilityLiveSnapshot,
+  contactFromBooking,
   facilityTypeToCourtKind,
   type FacilityLiveType,
 } from '../../utils/facilityLiveStats';
@@ -864,16 +865,6 @@ export default function FacilitiesLiveViewPage() {
                         {location?.name ? ` · ${location.name}` : ''}
                       </p>
                     </div>
-                    {v === 'live' && (
-                      <span className="facilities-live-box__pill facilities-live-box__pill--live">
-                        In session
-                      </span>
-                    )}
-                    {v === 'soon' && !snap?.ongoing && (
-                      <span className="facilities-live-box__pill facilities-live-box__pill--soon">
-                        Starting soon
-                      </span>
-                    )}
                   </div>
                   <p className="facilities-live-box__biz muted">
                     {business?.businessName ?? '—'}
@@ -884,23 +875,35 @@ export default function FacilitiesLiveViewPage() {
                 <div className="facilities-live-box__stats">
                   <div className="facilities-live-box__stat">
                     <span className="facilities-live-box__stat-label">Now</span>
-                    <span className="facilities-live-box__stat-value">
+                    <span className="facilities-live-box__stat-value facilities-live-box__stat-value--with-tag">
                       {snap?.ongoing ? (
                         <>
-                          <span className="facilities-live-box__now-text facilities-live-box__now-text--in-session">
+                          <span className="facilities-live-box__status-tag facilities-live-box__status-tag--in-session">
+                            In session
+                          </span>
+                          <p className="facilities-live-now-sub muted">
                             {snap.ongoing.label}
-                          </span>
-                          <span className="muted facilities-live-box__stat-meta">
-                            {' '}
-                            · {snap.ongoing.booking.bookingStatus}
-                          </span>
+                            <span className="facilities-live-box__stat-meta">
+                              {' '}
+                              · {snap.ongoing.booking.bookingStatus}
+                            </span>
+                          </p>
                         </>
                       ) : v === 'inactive' ? (
-                        <span className="facilities-live-box__now-text facilities-live-box__now-text--unavailable">
+                        <span className="facilities-live-box__status-tag facilities-live-box__status-tag--unavailable">
                           Unavailable
                         </span>
+                      ) : v === 'soon' ? (
+                        <div className="facilities-live-now-tags">
+                          <span className="facilities-live-box__status-tag facilities-live-box__status-tag--available">
+                            Available
+                          </span>
+                          <span className="facilities-live-box__status-tag facilities-live-box__status-tag--soon">
+                            Next soon
+                          </span>
+                        </div>
                       ) : (
-                        <span className="facilities-live-box__now-text facilities-live-box__now-text--available">
+                        <span className="facilities-live-box__status-tag facilities-live-box__status-tag--available">
                           Available
                         </span>
                       )}
@@ -910,7 +913,29 @@ export default function FacilitiesLiveViewPage() {
                     <span className="facilities-live-box__stat-label">Next</span>
                     <span className="facilities-live-box__stat-value">
                       {snap?.next ? (
-                        <span className="facilities-live-box__next-line">{snap.next.label}</span>
+                        <div className="facilities-live-next-block">
+                          <div className="facilities-live-box__next-line">{snap.next.label}</div>
+                          {(() => {
+                            const { name, phone } = contactFromBooking(snap.next.booking);
+                            if (!name && !phone) return null;
+                            return (
+                              <div className="facilities-live-next-contact">
+                                {name ? (
+                                  <div className="facilities-live-next-name">{name}</div>
+                                ) : null}
+                                {phone ? (
+                                  <a
+                                    className="facilities-live-next-phone"
+                                    href={`tel:${phone.replace(/\s/g, '')}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {phone}
+                                  </a>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       ) : (
                         <span className="muted">—</span>
                       )}
