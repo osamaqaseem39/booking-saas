@@ -135,11 +135,28 @@ export function navSectionsForRoles(userRoles: string[]): {
   }
   const main: NavItem[] = [];
   const footer: NavItem[] = [];
+  /** Keep venue + slots in the main column so they are not off-screen in the split footer (short / mobile). */
+  const isLocOnly = isLocationOnlyAdmin(userRoles);
   for (const item of filtered) {
-    if (BUSINESS_ADMIN_FOOTER_SET.has(item.to)) footer.push(item);
-    else main.push(item);
+    if (!isLocOnly && BUSINESS_ADMIN_FOOTER_SET.has(item.to)) {
+      footer.push(item);
+    } else {
+      main.push(item);
+    }
   }
-  footer.sort((a, b) => businessAdminFooterSortKey(a.to) - businessAdminFooterSortKey(b.to));
+  if (!isLocOnly) {
+    footer.sort((a, b) => businessAdminFooterSortKey(a.to) - businessAdminFooterSortKey(b.to));
+  } else {
+    const locMainOrder: Record<string, number> = {
+      '/app': 0,
+      '/app/bookings': 1,
+      '/app/Facilities': 2,
+      '/app/time-slots': 3,
+    };
+    main.sort(
+      (a, b) => (locMainOrder[a.to] ?? 50) - (locMainOrder[b.to] ?? 50),
+    );
+  }
   return { main, footer };
 }
 
