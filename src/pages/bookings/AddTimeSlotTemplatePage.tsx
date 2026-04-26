@@ -305,17 +305,29 @@ export default function AddTimeSlotTemplatePage() {
               Child slot lines (start time / end time)
             </p>
             {newTplLines.length > 0 && (
-              <div className="form-grid">
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '0.55rem',
+                }}
+              >
                 {newTplLines.map((line, idx) => (
                   <div
                     key={line.id}
                     style={{
                       border: '1px solid var(--border-subtle, #2a2f3a)',
                       borderRadius: '8px',
-                      padding: '0.65rem',
+                      padding: '0.55rem',
                     }}
                   >
-                    <div className="form-row-2">
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(160px, 0.9fr) auto',
+                        gap: '0.55rem',
+                        alignItems: 'end',
+                      }}
+                    >
                       <label>
                         <span className="muted" style={{ fontSize: '0.78rem', display: 'block' }}>
                           Child #{idx + 1} start time
@@ -359,12 +371,11 @@ export default function AddTimeSlotTemplatePage() {
                           <option value="blocked">Blocked</option>
                         </select>
                       </label>
-                    </div>
-                    <div className="page-actions-row" style={{ marginTop: '0.35rem' }}>
                       <button
                         type="button"
                         className="btn-ghost btn-compact"
                         onClick={() => onRemoveSlotLine(line.id)}
+                        style={{ whiteSpace: 'nowrap' }}
                       >
                         Remove child line
                       </button>
