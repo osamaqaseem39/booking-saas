@@ -53,6 +53,15 @@ function ForbidLocationOnly({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** Main “Facilities” list/setup hub is for org roles; location-only staff use “Facilities live”. */
+function RedirectLocationOnlyToFacilitiesLive({ children }: { children: ReactNode }) {
+  const { session } = useSession();
+  if (isLocationOnlyAdmin(session?.roles)) {
+    return <Navigate to="/app/facilities-live" replace />;
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -108,7 +117,9 @@ export default function App() {
               path="Facilities"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <AddFacilityPage />
+                  <RedirectLocationOnlyToFacilitiesLive>
+                    <AddFacilityPage />
+                  </RedirectLocationOnlyToFacilitiesLive>
                 </RequireRoles>
               }
             />
@@ -291,9 +302,7 @@ export default function App() {
               path="facilities-live"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin']}>
-                  <ForbidLocationOnly>
-                    <FacilitiesLiveViewPage />
-                  </ForbidLocationOnly>
+                  <FacilitiesLiveViewPage />
                 </RequireRoles>
               }
             />

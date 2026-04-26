@@ -69,6 +69,8 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/Facilities',
     label: 'Facilities',
     anyOf: ['platform-owner', 'business-admin', 'location-admin'],
+    /** Location-only admins use “Facilities live” instead; see `/app/facilities-live`. */
+    hideWhen: (roles) => isLocationOnlyAdmin(roles),
   },
   {
     to: '/app/bookings',
@@ -89,8 +91,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/facilities-live',
     label: 'Facilities live',
-    anyOf: ['business-admin', 'location-admin'],
-    hideWhen: (roles) => isLocationOnlyAdmin(roles),
+    anyOf: ['platform-owner', 'business-admin', 'location-admin'],
   },
   {
     to: '/app/billing',
@@ -150,7 +151,7 @@ export function navSectionsForRoles(userRoles: string[]): {
     const locMainOrder: Record<string, number> = {
       '/app': 0,
       '/app/bookings': 1,
-      '/app/Facilities': 2,
+      '/app/facilities-live': 2,
       '/app/time-slots': 3,
     };
     main.sort(
