@@ -1132,12 +1132,12 @@ export async function getCourtSlotGrid(params: {
       // Strictly past date — no slots
       filteredSegments = [];
     } else if (resolvedDate === localTodayStr) {
-      // Today — strip slots whose start time has already passed
+      // Today — keep the current in-progress slot; drop only fully ended slots.
       filteredSegments = filteredSegments.filter((s) => {
         if (!s) return false;
-        const [hStr, mStr] = (s.startTime ?? '').split(':');
-        const slotMins = Number(hStr || 0) * 60 + Number(mStr || 0);
-        return slotMins >= localCurrentMins;
+        const [hStr, mStr] = (s.endTime ?? '').split(':');
+        const slotEndMins = Number(hStr || 0) * 60 + Number(mStr || 0);
+        return slotEndMins > localCurrentMins;
       });
     }
 
