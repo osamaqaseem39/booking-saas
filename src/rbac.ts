@@ -87,6 +87,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/time-slots',
     label: 'Manage booking slots',
     anyOf: ['platform-owner', 'business-admin', 'location-admin', 'business-staff'],
+    hideWhen: (roles) => isLocationOnlyAdmin(roles),
   },
   {
     to: '/app/facilities-live',
@@ -152,7 +153,6 @@ export function navSectionsForRoles(userRoles: string[]): {
       '/app': 0,
       '/app/bookings': 1,
       '/app/facilities-live': 2,
-      '/app/time-slots': 3,
     };
     main.sort(
       (a, b) => (locMainOrder[a.to] ?? 50) - (locMainOrder[b.to] ?? 50),

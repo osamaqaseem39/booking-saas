@@ -270,7 +270,9 @@ export default function App() {
               path="time-slots"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
-                  <ManageTimeSlotsPage />
+                  <ForbidLocationOnly>
+                    <ManageTimeSlotsPage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -278,7 +280,9 @@ export default function App() {
               path="time-slots/new"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
-                  <AddTimeSlotTemplatePage />
+                  <ForbidLocationOnly>
+                    <AddTimeSlotTemplatePage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
@@ -286,7 +290,9 @@ export default function App() {
               path="time-slots/:templateId/edit"
               element={
                 <RequireRoles anyOf={['platform-owner', 'business-admin', 'location-admin', 'business-staff']}>
-                  <AddTimeSlotTemplatePage />
+                  <ForbidLocationOnly>
+                    <AddTimeSlotTemplatePage />
+                  </ForbidLocationOnly>
                 </RequireRoles>
               }
             />
