@@ -170,6 +170,16 @@ export function getTenantId(): string {
   return localStorage.getItem(LS_TENANT)?.trim() || '';
 }
 
+/**
+ * Resolves the tenant for API calls. Callers that pass `''` to mean "use the active
+ * tenant" are supported — `??` would keep `''` and skip `getTenantId()`.
+ */
+function resolveTenantId(override?: string | null): string {
+  const o = (override ?? '').toString().trim();
+  if (o) return o;
+  return getTenantId().trim();
+}
+
 export function getToken(): string {
   return localStorage.getItem(LS_TOKEN)?.trim() || '';
 }
@@ -806,7 +816,7 @@ export async function listIamUsers(
     return request<IamUserRow[]>(path, { method: 'GET', headers: h });
   }
 
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<IamUserRow[]>(tid, path, { method: 'GET' });
   }
@@ -829,7 +839,7 @@ export async function createIamUser(
   /** When set, uses this tenant for `X-Tenant-Id` instead of the stored active tenant. */
   tenantIdOverride?: string,
 ): Promise<IamUserRow> {
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (!tid) {
     throw new Error('Tenant is required to create a user.');
   }
@@ -1164,7 +1174,7 @@ export async function getCourtSlotGrid(params: {
       segments: filteredSegments,
     };
   };
-  const tid = (tenantOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantOverride);
   if (tid) {
     return normalizeGrid(await requestForTenant<unknown>(tid, path, { method: 'GET' }));
   }
@@ -1285,7 +1295,7 @@ export async function listTurfCourts(
   tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
   const path = appendBusinessLocationQuery(ARENA_TURF_COURTS, businessLocationId);
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (!tid) return [];
   const raw = await requestForTenant<unknown[]>(tid, path, { method: 'GET' });
   return normalizeTurfNamedCourtRows(raw);
@@ -1296,7 +1306,7 @@ export async function listFutsalCourts(
   tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
   const path = appendBusinessLocationQuery(ARENA_TURF_COURTS, businessLocationId, 'futsal');
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (!tid) return [];
   const raw = await requestForTenant<unknown[]>(tid, path, { method: 'GET' });
   return normalizeTurfNamedCourtRows(raw);
@@ -1307,7 +1317,7 @@ export async function listCricketCourts(
   tenantIdOverride?: string,
 ): Promise<NamedCourt[]> {
   const path = appendBusinessLocationQuery(ARENA_TURF_COURTS, businessLocationId, 'cricket');
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (!tid) return [];
   const raw = await requestForTenant<unknown[]>(tid, path, { method: 'GET' });
   return normalizeTurfNamedCourtRows(raw);
@@ -1321,7 +1331,7 @@ export async function listPadelCourts(
     ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
     : '';
   const path = `/arena/padel-court${q}`;
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
   }
@@ -1462,7 +1472,7 @@ export async function deleteFutsalCourt(
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
   const path = `${ARENA_TURF_COURTS}/${encodeURIComponent(id)}`;
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<{ deleted: true; id: string }>(tid, path, {
       method: 'DELETE',
@@ -1561,7 +1571,7 @@ export async function deleteCricketCourt(
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
   const path = `${ARENA_TURF_COURTS}/${encodeURIComponent(id)}`;
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<{ deleted: true; id: string }>(tid, path, {
       method: 'DELETE',
@@ -1658,7 +1668,7 @@ export async function deletePadelCourt(
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
   const path = `/arena/padel-court/${id}`;
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<{ deleted: true; id: string }>(tid, path, {
       method: 'DELETE',
@@ -1721,7 +1731,7 @@ export async function listTableTennisCourts(
     ? `?businessLocationId=${encodeURIComponent(businessLocationId.trim())}`
     : '';
   const path = `/arena/table-tennis-court${q}`;
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<NamedCourt[]>(tid, path, { method: 'GET' });
   }
@@ -1762,7 +1772,7 @@ export async function deleteTableTennisCourt(
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
   const path = `/arena/table-tennis-court/${id}`;
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (tid) {
     return requestForTenant<{ deleted: true; id: string }>(tid, path, {
       method: 'DELETE',
@@ -1789,7 +1799,7 @@ export type TimeSlotTemplateRecord = {
 export async function listTimeSlotTemplates(
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord[]> {
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (!getToken() || !tid) return [];
   return requestForTenant<TimeSlotTemplateRecord[]>(
     tid,
@@ -1810,7 +1820,7 @@ export async function createTimeSlotTemplate(
   },
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord> {
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   return requestForTenant<TimeSlotTemplateRecord>(
     tid,
     '/bookings/time-slot-templates',
@@ -1834,7 +1844,7 @@ export async function updateTimeSlotTemplate(
   }>,
   tenantIdOverride?: string,
 ): Promise<TimeSlotTemplateRecord> {
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   return requestForTenant<TimeSlotTemplateRecord>(
     tid,
     `/bookings/time-slot-templates/${id}`,
@@ -1849,7 +1859,7 @@ export async function deleteTimeSlotTemplate(
   id: string,
   tenantIdOverride?: string,
 ): Promise<{ deleted: true; id: string }> {
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   return requestForTenant<{ deleted: true; id: string }>(
     tid,
     `/bookings/time-slot-templates/${id}`,
@@ -1868,7 +1878,7 @@ export async function listCourtOptions(
   tenantIdOverride?: string,
 ): Promise<CourtOption[]> {
   if (!getToken()) return [];
-  const tid = (tenantIdOverride ?? getTenantId()).trim();
+  const tid = resolveTenantId(tenantIdOverride);
   if (!tid) return [];
   const loc = businessLocationId?.trim() || undefined;
   const padelPath =

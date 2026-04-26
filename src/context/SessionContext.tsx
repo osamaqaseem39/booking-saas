@@ -13,11 +13,46 @@ import {
   getApiBase,
   getTenantId,
   getToken,
+  listBusinessLocations,
   persistConnection,
   setTenantIdStorage,
   subscribeTokensUpdated,
 } from '../api/saasClient';
 import type { SessionUser } from '../types/domain';
+
+/** Set active tenant from `/iam/me` or, if missing, from the first location the user can access. */
+async function applyTenantForSession(
+  me: SessionUser,
+  setTenant: (s: string) => void,
+): Promise<void> {
+  const fromMe = (me.tenantId ?? '').toString().trim();
+  if (fromMe) {
+    setTenant(fromMe);
+    setTenantIdStorage(fromMe);
+    return;
+  }
+  const roles = new Set(me.roles ?? []);
+  if (roles.has('platform-owner')) return;
+  if (
+    !roles.has('location-admin') &&
+    !roles.has('business-admin') &&
+    !roles.has('business-staff')
+  ) {
+    return;
+  }
+  try {
+    const locs = await listBusinessLocations({ ignoreActiveTenant: true });
+    const want = (me.locationId ?? '').toString().trim();
+    const loc = want ? (locs.find((l) => l.id === want) ?? locs[0]) : locs[0];
+    const tid = (loc?.business?.tenantId ?? '').toString().trim();
+    if (tid) {
+      setTenant(tid);
+      setTenantIdStorage(tid);
+    }
+  } catch {
+    /* leave tenant as-is */
+  }
+}
 
 type Ctx = {
   apiBase: string;
@@ -65,11 +100,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const me = await fetchSessionUser();
       setSession(me);
       setUserIdState(me.id);
-      const fromMe = (me.tenantId ?? '').toString().trim();
-      if (fromMe) {
-        setTenantIdState(fromMe);
-        setTenantIdStorage(fromMe);
-      }
+      await applyTenantForSession(me, setTenantIdState);
       if (!me.roles?.length) {
         setError('This user has no roles assigned yet.');
       }
@@ -139,11 +170,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const me = await fetchSessionUser();
       setSession(me);
       setUserIdState(me.id);
-      const fromMe = (me.tenantId ?? '').toString().trim();
-      if (fromMe) {
-        setTenantIdState(fromMe);
-        setTenantIdStorage(fromMe);
-      }
+      await applyTenantForSession(me, setTenantIdState);
       if (!me.roles?.length) {
         setError('This user has no roles assigned yet.');
       }
