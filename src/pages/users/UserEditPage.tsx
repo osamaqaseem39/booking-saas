@@ -35,7 +35,6 @@ export default function UserEditPage() {
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activating, setActivating] = useState(false);
-  const [assigning, setAssigning] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

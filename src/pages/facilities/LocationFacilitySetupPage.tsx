@@ -203,17 +203,18 @@ export default function LocationFacilitySetupPage() {
           />
         </div>
       ) : facilityCode === TABLE_TENNIS_COURT_SETUP_CODE ? (
-        <>
-          <p className="muted">
-            Location: <strong>{location.name}</strong>. Table tennis: hourly
-            rate, optional slot template.
+        <div className="turf-setup-page">
+          <p className="muted turf-setup-page-intro">
+            Location: <strong>{location.name}</strong>. Table tennis table —
+            play area, pricing, schedule, peak rates, half-hour pro-rata, extras,
+            and rules (same detail level as padel and turf).
           </p>
           <TableTennisCourtSetupForm
             locationId={locationId}
             locations={locations}
             onSuccess={() => navigate('/app/Facilities')}
           />
-        </>
+        </div>
       ) : (
         <>
           <p className="muted">

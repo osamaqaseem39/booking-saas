@@ -16,7 +16,6 @@ import {
 } from '../../api/saasClient';
 import type { BookingRecord, PaymentStatus } from '../../types/booking';
 import type { BusinessDashboardView, BusinessLocationRow, NamedCourt } from '../../types/domain';
-import { formatTime12h } from '../../utils/timeDisplay';
 import {
   computeFacilityLiveSnapshot,
   facilityTypeToCourtKind,
