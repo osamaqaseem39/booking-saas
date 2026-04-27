@@ -1152,13 +1152,32 @@ table.data.data--noninteractive tbody tr:hover {
 .booking-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-areas:
+    'summary actions'
+    'items items';
   gap: 1rem;
   align-items: start;
+}
+
+.booking-detail-summary {
+  grid-area: summary;
+}
+
+.booking-detail-actions {
+  grid-area: actions;
+}
+
+.booking-detail-items {
+  grid-area: items;
 }
 
 @media (max-width: 860px) {
   .booking-detail-layout {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'summary'
+      'actions'
+      'items';
   }
 }
 

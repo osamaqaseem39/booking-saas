@@ -146,6 +146,7 @@ export default function BookingsPage() {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [amountPaidInput, setAmountPaidInput] = useState('');
+  const [discountInput, setDiscountInput] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -157,22 +158,31 @@ export default function BookingsPage() {
   useEffect(() => {
     if (!selected) {
       setAmountPaidInput('');
+      setDiscountInput('');
       return;
     }
     setAmountPaidInput(String(selected.payment.paidAmount));
-  }, [selectedId, selected?.payment.paidAmount]);
+    setDiscountInput(String(selected.pricing.discount ?? 0));
+  }, [selectedId, selected?.payment.paidAmount, selected?.pricing.discount]);
 
   const detailPayment = useMemo(() => {
     if (!selected) return null;
-    const total = selected.pricing.totalAmount;
+    const subTotal = selected.pricing.subTotal ?? 0;
+    const tax = selected.pricing.tax ?? 0;
+    const rawDiscount = discountInput.trim();
+    const parsedDiscount = rawDiscount === '' ? Number.NaN : Number(rawDiscount);
+    const discount = Number.isFinite(parsedDiscount)
+      ? Math.max(0, parsedDiscount)
+      : selected.pricing.discount ?? 0;
+    const total = Math.max(0, subTotal - discount + tax);
     const raw = amountPaidInput.trim();
     const parsed = raw === '' ? Number.NaN : Number(raw);
     const paid = Number.isFinite(parsed)
       ? Math.max(0, parsed)
       : selected.payment.paidAmount;
     const remaining = Math.max(0, total - paid);
-    return { total, paid, remaining };
-  }, [selected, amountPaidInput]);
+    return { subTotal, tax, discount, total, paid, remaining };
+  }, [selected, amountPaidInput, discountInput]);
 
   const filteredBookings = useMemo(() => {
     const todayDate = new Date();
@@ -914,83 +924,68 @@ export default function BookingsPage() {
           >
             <h3 style={{ marginBottom: '1rem' }}>Booking Detail</h3>
             <div className="booking-detail-layout">
-              <div>
-                <div className="detail-section">
-                  <h4>Summary</h4>
-                  <div className="detail-row">
-                    <span>Booking</span>
-                    <span style={{ wordBreak: 'break-word' }}>
-                      #{selected.bookingId?.slice(0, 8) ?? '??'}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span>User</span>
-                    <span style={{ wordBreak: 'break-word' }}>
-                      {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId?.slice(0, 8) ?? '??'}`}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Phone</span>
-                    <span style={{ wordBreak: 'break-word' }}>
-                      {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
-                    </span>
-                  </div>
-                  <div className="detail-row" style={{ marginTop: '0.4rem', borderTop: '1px solid var(--border)', paddingTop: '0.4rem' }}>
-                    <span>Total Amount</span>
-                    <strong>{detailPayment ? detailPayment.total.toLocaleString() : selected.pricing.totalAmount.toLocaleString()} PKR</strong>
-                  </div>
-                  {detailPayment && (
-                    <>
+              <div className="booking-detail-summary">
+                <h4>Summary</h4>
+                <div className="detail-row">
+                  <span>Booking</span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    #{selected.bookingId?.slice(0, 8) ?? '??'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span>User</span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    {selected.user?.fullName || usersMap[selected.userId]?.name || `User ${selected.userId?.slice(0, 8) ?? '??'}`}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span>Phone</span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    {selected.user?.phone || usersMap[selected.userId]?.phone || '-'}
+                  </span>
+                </div>
+                <div className="detail-row" style={{ marginTop: '0.4rem', borderTop: '1px solid var(--border)', paddingTop: '0.4rem' }}>
+                  <span>Sub Total</span>
+                  <span>{detailPayment ? detailPayment.subTotal.toLocaleString() : selected.pricing.subTotal.toLocaleString()} PKR</span>
+                </div>
+                <div className="detail-row">
+                  <span>Discount</span>
+                  <span className={detailPayment && detailPayment.discount > 0 ? 'text-success' : ''}>
+                    -{detailPayment ? detailPayment.discount.toLocaleString() : selected.pricing.discount.toLocaleString()} PKR
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span>Tax</span>
+                  <span>{detailPayment ? detailPayment.tax.toLocaleString() : selected.pricing.tax.toLocaleString()} PKR</span>
+                </div>
+                <div className="detail-row">
+                  <span>Total Amount</span>
+                  <strong>{detailPayment ? detailPayment.total.toLocaleString() : selected.pricing.totalAmount.toLocaleString()} PKR</strong>
+                </div>
+                {detailPayment && (
+                  <>
+                    <div className="detail-row">
+                      <span>Paid Amount</span>
+                      <span className="text-success">{detailPayment.paid.toLocaleString()} PKR</span>
+                    </div>
+                    <div className="detail-row">
+                      <span>Remaining</span>
+                      <span className={detailPayment.remaining > 0 ? 'text-danger' : 'text-success'}>
+                        {detailPayment.remaining.toLocaleString()} PKR
+                      </span>
+                    </div>
+                    {detailPayment.total > 0 && (
                       <div className="detail-row">
-                        <span>Paid Amount</span>
-                        <span className="text-success">{detailPayment.paid.toLocaleString()} PKR</span>
-                      </div>
-                      <div className="detail-row">
-                        <span>Remaining</span>
-                        <span className={detailPayment.remaining > 0 ? 'text-danger' : 'text-success'}>
-                          {detailPayment.remaining.toLocaleString()} PKR
+                        <span>Collected</span>
+                        <span className="muted">
+                          {Math.round((detailPayment.paid / detailPayment.total) * 100)}% of total
                         </span>
                       </div>
-                      {detailPayment.total > 0 && (
-                        <div className="detail-row">
-                          <span>Collected</span>
-                          <span className="muted">
-                            {Math.round((detailPayment.paid / detailPayment.total) * 100)}% of total
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                <div className="detail-section">
-                  <h4>Items</h4>
-                  <ul className="items-list">
-                    {selected.items.map((it) => (
-                      <li key={it.id}>
-                        <div>
-                          <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
-                        </div>
-                        <div className="muted">
-                          {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
-                          <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          style={{ marginTop: '0.35rem' }}
-                          onClick={() => {
-                            setAvailabilityDate(selected.bookingDate);
-                            void viewCourtSlots(it.courtKind, it.courtId, selected.bookingDate);
-                          }}
-                        >
-                          View court booked slots
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                    )}
+                  </>
+                )}
               </div>
-              <div className="detail-section">
+              <div className="detail-section booking-detail-actions">
                 <h4>Actions</h4>
                 <div className="form-grid">
                 <div>
@@ -1039,6 +1034,34 @@ export default function BookingsPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label>Discount (PKR)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={discountInput}
+                    onChange={(e) => setDiscountInput(e.target.value)}
+                    onBlur={() => {
+                      if (!selected) return;
+                      const discRaw = Number(discountInput);
+                      const discount = Number.isFinite(discRaw) ? Math.max(0, discRaw) : (selected.pricing.discount ?? 0);
+                      const subTotal = selected.pricing.subTotal ?? 0;
+                      const tax = selected.pricing.tax ?? 0;
+                      const totalAmount = Math.max(0, subTotal - discount + tax);
+                      setDiscountInput(String(discount));
+                      if (discount !== (selected.pricing.discount ?? 0)) {
+                        void patchBooking({
+                          pricing: {
+                            subTotal,
+                            discount,
+                            tax,
+                            totalAmount,
+                          },
+                        } as any);
+                      }
+                    }}
+                  />
                 </div>
                 <div>
                   <label>Amount Paid (PKR)</label>
@@ -1116,6 +1139,33 @@ export default function BookingsPage() {
                     Delete booking
                   </button>
                 </div>
+              </div>
+              <div className="detail-section booking-detail-items">
+                <h4>Items</h4>
+                <ul className="items-list">
+                  {selected.items.map((it) => (
+                    <li key={it.id}>
+                      <div>
+                        <strong>{courtsMap[it.courtId] ?? titleCaseWords(it.courtKind)}</strong>
+                      </div>
+                      <div className="muted">
+                        {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
+                        <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{ marginTop: '0.35rem' }}
+                        onClick={() => {
+                          setAvailabilityDate(selected.bookingDate);
+                          void viewCourtSlots(it.courtKind, it.courtId, selected.bookingDate);
+                        }}
+                      >
+                        View court booked slots
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
               </div>
             </div>
