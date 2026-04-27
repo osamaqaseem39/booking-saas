@@ -1159,7 +1159,7 @@ table.data.data--noninteractive tbody tr:hover {
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   grid-template-areas:
     'summary actions'
-    'items items';
+    'summary items';
   gap: 1rem;
   align-items: start;
 }
