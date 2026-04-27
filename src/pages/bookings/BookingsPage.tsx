@@ -1152,17 +1152,6 @@ export default function BookingsPage() {
                         {formatTimeRange12h(it.startTime, it.endTime)} · {it.price} PKR{' '}
                         <span className={badgeClass(it.status)}>{titleCaseWords(it.status)}</span>
                       </div>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        style={{ marginTop: '0.35rem' }}
-                        onClick={() => {
-                          setAvailabilityDate(selected.bookingDate);
-                          void viewCourtSlots(it.courtKind, it.courtId, selected.bookingDate);
-                        }}
-                      >
-                        View court booked slots
-                      </button>
                     </li>
                   ))}
                 </ul>

@@ -931,6 +931,11 @@ table.data.data--noninteractive tbody tr:hover {
   background: rgba(28, 36, 46, 0.38);
 }
 
+[data-theme='light'] .items-list li {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--surface2) 100%);
+}
+
 .items-list li:last-child {
   border-bottom: 1px solid rgba(42, 53, 68, 0.75);
 }
