@@ -501,11 +501,26 @@ export default function FacilitiesLiveViewPage() {
         );
       });
       deduped.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+      const now = new Date();
+      const today = localDateYmd();
+      const currentHourStartMins = now.getHours() * 60;
+      const minutesPastHour = now.getMinutes();
+      const filteredForToday =
+        state.date === today
+          ? deduped.filter((slot) => {
+              const slotStartMins = timeToMinutes(slot.startTime);
+              // Never show slots from previous hours on today's date.
+              if (slotStartMins < currentHourStartMins) return false;
+              // Hide current-hour slot once we are past half-hour.
+              if (minutesPastHour > 30 && slotStartMins === currentHourStartMins) return false;
+              return true;
+            })
+          : deduped;
       /**
        * `getCourtSlots` is already filtered by the facility's assigned
        * time-slot template on the backend.
        */
-      setQuickSlots(deduped);
+      setQuickSlots(filteredForToday);
     } catch {
       setQuickSlots([]);
     } finally {
@@ -603,11 +618,6 @@ export default function FacilitiesLiveViewPage() {
         );
         return;
       }
-    }
-    const startAt = new Date(`${quickBooking.date}T${startTime}:00`);
-    if (startAt.getTime() < Date.now()) {
-      setQuickBookingError('Booking start time cannot be in the past.');
-      return;
     }
     if (quickPrice == null) {
       setQuickBookingError('Price is unavailable for this slot. Try another time.');
@@ -1030,7 +1040,7 @@ export default function FacilitiesLiveViewPage() {
           <div
             className="connection-panel"
             style={{
-              maxWidth: 'min(32rem, calc(100vw - 1.5rem))',
+              maxWidth: 'min(52rem, calc(100vw - 1.5rem))',
               width: '100%',
               minWidth: 0,
               margin: 0,
@@ -1267,7 +1277,7 @@ export default function FacilitiesLiveViewPage() {
                   style={{
                     marginTop: '0.35rem',
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
                     gap: '0.4rem',
                     width: '100%',
                     minWidth: 0,
