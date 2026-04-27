@@ -1145,6 +1145,23 @@ table.data.data--noninteractive tbody tr:hover {
   padding: 1.25rem 1.5rem;
 }
 
+.booking-detail-modal {
+  width: min(960px, 100%);
+}
+
+.booking-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .booking-detail-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal h2 {
   margin: 0 0 1rem;
   font-size: 1.1rem;
